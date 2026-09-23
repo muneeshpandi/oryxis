@@ -44,3 +44,7 @@ nohup_x11.out
 # Harness batch-runner dumps for a failed .ice test (the trimmed script
 # + a screenshot). Build output, not source.
 crates/oryxis-app/tests/e2e/errors/
+
+# Local macOS build artifacts (app bundle + disk image)
+/Oryxis.app/
+/*.dmg
