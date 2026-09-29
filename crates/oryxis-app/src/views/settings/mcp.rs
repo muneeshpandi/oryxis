@@ -480,7 +480,7 @@ fn mcp_info_panel(app: &crate::app::Oryxis) -> Element<'_, Message> {
                 .on_input(|v| Message::Mcp(McpMessage::McpVaultPwInput(v)))
                 .on_submit(Message::Mcp(McpMessage::McpVaultPwConfirm))
                 .padding(8)
-                .size(12)
+                .size(13)
                 .width(240)
                 .style(crate::widgets::rounded_input_style)
                 .into(),

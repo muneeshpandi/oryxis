@@ -175,6 +175,7 @@ impl Oryxis {
                         text_input("22", &self.prefs.default_port)
                             .id(iced::widget::Id::new("set-connection-default-port"))
                             .on_input(|v| Message::Settings(SettingsMessage::DefaultPortChanged(v)))
+                            .size(13)
                             .padding(10).width(120)
                             .style(crate::widgets::rounded_input_style).align_x(dir_align_x()).into(),
                     ),
@@ -190,6 +191,7 @@ impl Oryxis {
                         text_input(&self.prefs.keepalive_interval, &self.prefs.default_keepalive)
                             .id(iced::widget::Id::new("set-connection-default-keepalive"))
                             .on_input(|v| Message::Settings(SettingsMessage::DefaultKeepaliveChanged(v)))
+                            .size(13)
                             .padding(10).width(120)
                             .style(crate::widgets::rounded_input_style).align_x(dir_align_x()).into(),
                     ),
@@ -214,6 +216,7 @@ impl Oryxis {
                         text_input("", &self.prefs.default_username)
                             .id(iced::widget::Id::new("set-connection-default-username"))
                             .on_input(|v| Message::Settings(SettingsMessage::DefaultUsernameChanged(v)))
+                            .size(13)
                             .padding(10).width(220)
                             .style(crate::widgets::rounded_input_style).align_x(dir_align_x()).into(),
                     ),
@@ -272,6 +275,7 @@ impl Oryxis {
                     dir_row(vec![
                         text_input("LC_EXAMPLE", &e.key)
                             .on_input(move |v| Message::Settings(SettingsMessage::DefaultEnvVarKeyChanged(idx, v)))
+                            .size(13)
                             .padding(6)
                             .width(Length::FillPortion(2))
                             .style(crate::widgets::rounded_input_style)
@@ -280,6 +284,7 @@ impl Oryxis {
                         text("=").size(12).color(OryxisColors::t().text_muted).into(),
                         text_input("value", &e.value)
                             .on_input(move |v| Message::Settings(SettingsMessage::DefaultEnvVarValueChanged(idx, v)))
+                            .size(13)
                             .padding(6)
                             .width(Length::FillPortion(3))
                             .style(crate::widgets::rounded_input_style)
@@ -323,6 +328,7 @@ impl Oryxis {
                 text_input("30", &self.prefs.keepalive_interval)
                     .id(iced::widget::Id::new("set-connection-keepalive"))
                     .on_input(|v| Message::Settings(SettingsMessage::SettingKeepaliveChanged(v)))
+                    .size(13)
                     .padding(10)
                     .width(240)
                     .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
@@ -359,6 +365,7 @@ impl Oryxis {
                 text_input("5", &self.prefs.max_reconnect_attempts)
                     .id(iced::widget::Id::new("set-connection-max-reconnect"))
                     .on_input(|v| Message::Settings(SettingsMessage::SettingMaxReconnectChanged(v)))
+                    .size(13)
                     .padding(10)
                     .width(240)
                     .style(crate::widgets::rounded_input_style).align_x(dir_align_x())

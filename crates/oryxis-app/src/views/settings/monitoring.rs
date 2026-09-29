@@ -58,6 +58,7 @@ impl Oryxis {
                 text_input("5", &self.prefs.monitor_interval)
                     .id(iced::widget::Id::new("set-monitor-interval"))
                     .on_input(|v| Message::Settings(SettingsMessage::SettingMonitorIntervalChanged(v)))
+                    .size(13)
                     .padding(10)
                     .width(240)
                     .style(crate::widgets::rounded_input_style)

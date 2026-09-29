@@ -148,6 +148,7 @@ impl Oryxis {
                 text_input(t("login_script_name_ph"), &form.name)
                     .id(iced::widget::Id::new("set-login-script-name"))
                     .on_input(|v| Message::Settings(SettingsMessage::LoginScriptNameChanged(v)))
+                    .size(13)
                     .padding(10)
                     .style(crate::widgets::rounded_input_style)
                     .into(),
@@ -260,6 +261,7 @@ impl Oryxis {
         let expect_input = text_input(t("login_script_prompt_ph"), expect_text)
             .id(expect_id)
             .on_input(move |v| Message::Settings(SettingsMessage::LoginScriptStepExpect(i, v)))
+            .size(13)
             .padding(8)
             .style(crate::widgets::rounded_input_style);
 
@@ -315,6 +317,7 @@ impl Oryxis {
                         .on_input(move |v| {
                             Message::Settings(SettingsMessage::LoginScriptStepText(i, v))
                         })
+                        .size(13)
                         .padding(8)
                         .style(crate::widgets::rounded_input_style)
                         .into(),

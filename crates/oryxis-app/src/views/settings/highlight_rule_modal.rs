@@ -219,6 +219,7 @@ impl Oryxis {
         let mut input = text_input(placeholder, value)
             .id(iced::widget::Id::new(id))
             .on_input(on_input)
+            .size(13)
             .padding(10)
             .style(crate::widgets::rounded_input_style)
             .align_x(dir_align_x());
@@ -327,7 +328,7 @@ impl Oryxis {
                 .id(iced::widget::Id::new("set-hl-rule-color"))
                 .on_input(|v| Message::Settings(SettingsMessage::HighlightRuleColorChanged(v)))
                 .padding(7)
-                .size(12)
+                .size(13)
                 .width(Length::Fixed(110.0))
                 .style(crate::widgets::rounded_input_style)
                 .into(),
