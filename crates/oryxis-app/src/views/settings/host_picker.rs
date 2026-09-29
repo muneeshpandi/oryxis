@@ -141,6 +141,7 @@ pub(super) fn sync_host_picker_modal(app: &Oryxis, target: HostPickerTarget) -> 
             Space::new().height(8),
             text_input(t("search_hosts"), target.search(app))
                 .on_input(move |v| target.search_changed(v))
+                .size(13)
                 .padding(10)
                 .style(crate::widgets::rounded_input_style)
                 .align_x(dir_align_x()),

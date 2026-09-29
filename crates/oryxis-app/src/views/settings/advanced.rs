@@ -245,6 +245,7 @@ impl Oryxis {
                     text_input(t("download_mirror_url_placeholder"), &ui.url_input)
                         .id(iced::widget::Id::new("set-download-mirror-url"))
                         .on_input(|v| Message::Settings(SettingsMessage::DownloadMirrorUrlEdited(v)))
+                        .size(13)
                         .on_submit(Message::Settings(SettingsMessage::DownloadMirrorUrlCommitted))
                         .padding(10)
                         .width(360)

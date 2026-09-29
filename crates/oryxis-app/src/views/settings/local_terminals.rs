@@ -287,6 +287,7 @@ impl Oryxis {
                 t("terminal_label"),
                 text_input("PowerShell", &self.local_terminal_form.label)
                     .on_input(|v| Message::Settings(SettingsMessage::LocalTerminalFormLabelChanged(v)))
+                    .size(13)
                     .padding(10)
                     .style(crate::widgets::rounded_input_style)
                     .align_x(dir_align_x())
@@ -297,6 +298,7 @@ impl Oryxis {
                 t("terminal_program"),
                 text_input("/usr/bin/zsh", &self.local_terminal_form.program)
                     .on_input(|v| Message::Settings(SettingsMessage::LocalTerminalFormProgramChanged(v)))
+                    .size(13)
                     .padding(10)
                     .style(crate::widgets::rounded_input_style)
                     .align_x(dir_align_x())
@@ -307,6 +309,7 @@ impl Oryxis {
                 t("terminal_args"),
                 text_input("-l", &self.local_terminal_form.args)
                     .on_input(|v| Message::Settings(SettingsMessage::LocalTerminalFormArgsChanged(v)))
+                    .size(13)
                     .padding(10)
                     .style(crate::widgets::rounded_input_style)
                     .align_x(dir_align_x())
@@ -317,6 +320,7 @@ impl Oryxis {
                 t("tags"),
                 text_input(t("tags_placeholder"), &self.local_terminal_form.tags)
                     .on_input(|v| Message::Settings(SettingsMessage::LocalTerminalFormTagsChanged(v)))
+                    .size(13)
                     .padding(10)
                     .style(crate::widgets::rounded_input_style)
                     .align_x(dir_align_x())
