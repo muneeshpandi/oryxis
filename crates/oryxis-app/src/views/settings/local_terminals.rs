@@ -76,6 +76,7 @@ impl Oryxis {
         .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
         .width(280)
         .padding(10)
+        .text_size(13)
         .style(crate::widgets::rounded_pick_list_style);
         let default_picker = self.settings_nav_slot_labeled(
             t("default_terminal_behavior"),

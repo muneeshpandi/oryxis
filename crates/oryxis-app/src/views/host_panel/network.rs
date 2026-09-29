@@ -122,6 +122,7 @@ impl Oryxis {
                         .on_input(move |v| Message::Editor(EditorMessage::EditorPortFwdLocalPortChanged(idx, v)))
                         .padding(6)
                         .width(70)
+                        .size(13)
                         .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
                         .boxed(),
                     text(" -> ").size(12).color(OryxisColors::t().text_muted).boxed(),
@@ -129,6 +130,7 @@ impl Oryxis {
                         .on_input(move |v| Message::Editor(EditorMessage::EditorPortFwdRemoteHostChanged(idx, v)))
                         .padding(6)
                         .width(Length::Fill)
+                        .size(13)
                         .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
                         .boxed(),
                     text(":").size(12).color(OryxisColors::t().text_muted).boxed(),
@@ -136,6 +138,7 @@ impl Oryxis {
                         .on_input(move |v| Message::Editor(EditorMessage::EditorPortFwdRemotePortChanged(idx, v)))
                         .padding(6)
                         .width(70)
+                        .size(13)
                         .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
                         .boxed(),
                     self.panel_nav_slot(
@@ -255,6 +258,7 @@ impl Oryxis {
                         .on_submit_maybe(self.hp_submit())
                         .padding(6)
                         .width(100)
+                        .size(13)
                         .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
                         .boxed(),
                 ),
@@ -295,6 +299,7 @@ impl Oryxis {
                         .on_submit_maybe(self.hp_submit())
                         .padding(6)
                         .width(160)
+                        .size(13)
                         .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
                         .boxed(),
                 ),
@@ -333,6 +338,7 @@ impl Oryxis {
                     .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                     .width(120)
                     .padding(10)
+                    .text_size(13)
                     .style(crate::widgets::rounded_pick_list_style)
                     .boxed(),
                 ),
@@ -373,6 +379,7 @@ impl Oryxis {
                     .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                     .width(120)
                     .padding(10)
+                    .text_size(13)
                     .style(crate::widgets::rounded_pick_list_style)
                     .boxed(),
             ),
@@ -428,6 +435,7 @@ impl Oryxis {
                         .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                         .width(120)
                         .padding(10)
+                        .text_size(13)
                         .style(crate::widgets::rounded_pick_list_style)
                         .boxed(),
                 ),
@@ -512,6 +520,7 @@ impl Oryxis {
                 .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                 .width(140)
                 .padding(10)
+                .text_size(13)
                 .style(crate::widgets::rounded_pick_list_style)
                 .boxed(),
             ),
@@ -567,6 +576,7 @@ impl Oryxis {
                         .on_input(|v| Message::Editor(EditorMessage::EditorProxyCommandChanged(v)))
                         .on_submit_maybe(self.hp_submit())
                         .padding(10)
+                        .size(13)
                         .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
                         .boxed(),
                     ),
@@ -590,6 +600,7 @@ impl Oryxis {
                         .on_input(|v| Message::Editor(EditorMessage::EditorProxyHostChanged(v)))
                         .on_submit_maybe(self.hp_submit())
                         .padding(10)
+                        .size(13)
                         .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
                         .boxed(),
                     ),
@@ -606,6 +617,7 @@ impl Oryxis {
                             .on_submit_maybe(self.hp_submit())
                             .padding(6)
                             .width(70)
+                            .size(13)
                             .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
                             .boxed(),
                     ),
@@ -624,6 +636,7 @@ impl Oryxis {
                         .on_input(|v| Message::Editor(EditorMessage::EditorProxyUsernameChanged(v)))
                         .on_submit_maybe(self.hp_submit())
                         .padding(10)
+                        .size(13)
                         .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
                         .boxed(),
                     ),

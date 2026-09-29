@@ -43,15 +43,7 @@ impl Oryxis {
                     .color(OryxisColors::t().text_primary)
                     .boxed(),
                 Space::new().width(Length::Fill).boxed(),
-                button(text("\u{00D7}").size(20).color(OryxisColors::t().text_muted))
-                    .on_press(Message::Tabs(TabsMessage::CancelGroupEdit))
-                    .padding(Padding { top: 4.0, right: 8.0, bottom: 4.0, left: 8.0 })
-                    .style(|_, _| button::Style {
-                        background: Some(Background::Color(Color::TRANSPARENT)),
-                        border: Border::default(),
-                        ..Default::default()
-                    })
-                    .boxed(),
+                crate::widgets::panel_close_button(Message::Tabs(TabsMessage::CancelGroupEdit)).boxed(),
             ])
             .align_y(iced::Alignment::Center),
         )

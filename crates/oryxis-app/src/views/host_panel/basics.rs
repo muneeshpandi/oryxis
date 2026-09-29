@@ -15,6 +15,7 @@ impl Oryxis {
             text_input(t("my_server_placeholder"), &self.editor_form.label)
                 .id(iced::widget::Id::new("editor-label"))
                 .on_input(|v| Message::Editor(EditorMessage::EditorLabelChanged(v))).on_submit_maybe(self.hp_submit()).padding(10)
+                .size(13)
                 .style(crate::widgets::rounded_input_style).align_x(dir_align_x()).boxed(),
         );
         label_field
@@ -48,6 +49,7 @@ impl Oryxis {
                 |v| Message::Editor(EditorMessage::EditorGroupChanged(v)),
             )
             .on_input(|v| Message::Editor(EditorMessage::EditorGroupChanged(v)))
+            .size(13)
             .padding(10)
             .input_style(crate::widgets::rounded_input_style)
             .menu_style(crate::widgets::combo_menu_style)
@@ -68,6 +70,7 @@ impl Oryxis {
                 .on_input(|v| Message::Editor(EditorMessage::EditorTagsChanged(v)))
                 .on_submit_maybe(self.hp_submit())
                 .padding(10)
+                .size(13)
                 .style(crate::widgets::rounded_input_style)
                 .align_x(dir_align_x())
                 .boxed(),
@@ -148,6 +151,7 @@ impl Oryxis {
                     .on_input(|v| Message::Editor(EditorMessage::EditorHostnameChanged(v)))
                     .on_submit_maybe(self.hp_submit())
                     .padding(10)
+                    .size(13)
                     .style(crate::widgets::rounded_input_style).align_x(dir_align_x()).boxed(),
             ),
         ]).align_y(iced::Alignment::Center).boxed();
@@ -188,6 +192,7 @@ impl Oryxis {
                     .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                     .width(120)
                     .padding(10)
+                    .text_size(13)
                     .style(crate::widgets::rounded_pick_list_style)
                     .boxed(),
             );
@@ -236,6 +241,7 @@ impl Oryxis {
                     .on_open(Message::Navigation(NavigationMessage::PickOpenChanged(true)))
                     .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                     .padding(10)
+                    .text_size(13)
                     .style(crate::widgets::rounded_pick_list_style)
                     .boxed(),
                 );
@@ -275,6 +281,7 @@ impl Oryxis {
                     .on_submit_maybe(self.hp_submit())
                     .padding(6)
                     .width(56)
+                    .size(13)
                     .style(crate::widgets::rounded_input_style).align_x(dir_align_x()).boxed(),
             )
         };
@@ -342,6 +349,7 @@ impl Oryxis {
                 .on_input(move |v| Message::Editor(make(v)))
                 .on_submit_maybe(self.hp_submit())
                 .padding(10)
+                .size(13)
                 .style(crate::widgets::rounded_input_style)
                 .align_x(dir_align_x())
                 .boxed(),
@@ -464,6 +472,7 @@ impl Oryxis {
                     ))
                 })
                 .padding(10)
+                .text_size(13)
                 .style(crate::widgets::rounded_pick_list_style)
                 .boxed(),
         );
@@ -475,6 +484,7 @@ impl Oryxis {
                 .on_input(|v| Message::Editor(EditorMessage::EditorLocalCwdChanged(v)))
                 .on_submit_maybe(self.hp_submit())
                 .padding(10)
+                .size(13)
                 .style(crate::widgets::rounded_input_style)
                 .align_x(dir_align_x())
                 .boxed(),

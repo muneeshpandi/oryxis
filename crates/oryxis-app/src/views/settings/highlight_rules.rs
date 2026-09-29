@@ -78,6 +78,7 @@ impl Oryxis {
                 ))
                 .width(width)
                 .padding(10)
+                .text_size(13)
                 .style(crate::widgets::rounded_pick_list_style)
                 .boxed(),
         );

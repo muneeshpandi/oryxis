@@ -213,6 +213,13 @@ where
         })
         .width(Length::Fill)
         .style(rounded_input_style);
+    // Inline form rows (inner_padding 10) match the 13px body text of
+    // the panels around them; the vault hero field (inner_padding 12)
+    // keeps its larger default so the lock screen still reads as a hero
+    // input.
+    if inner_padding < 12.0 {
+        field = field.size(13);
+    }
     if let Some(id) = id {
         field = field.id(id);
     }
