@@ -228,29 +228,60 @@ impl Oryxis {
                 .boxed()
         };
 
+        // A bound connect shortcut shows as a small chord badge on the
+        // subtitle's trailing edge, so a shortcut the user set is
+        // visible where the host lives, not only in Settings. Redacted
+        // hosts keep it (a chord is not sensitive like an address).
+        let hotkey_badge: Option<Element<'_, Message>> = conn
+            .hotkey
+            .as_deref()
+            .and_then(crate::hotkeys::HotkeyBinding::parse)
+            .map(|b| {
+                let muted = OryxisColors::t().text_muted;
+                container(text(b.badges().join(" ")).size(9).color(muted))
+                    .padding(Padding { top: 1.0, right: 5.0, bottom: 1.0, left: 5.0 })
+                    .style(move |_| container::Style {
+                        background: Some(Background::Color(Color { a: 0.10, ..muted })),
+                        border: Border {
+                            radius: Radius::from(4.0),
+                            color: Color { a: 0.25, ..muted },
+                            width: 1.0,
+                        },
+                        ..Default::default()
+                    })
+                    .boxed()
+            });
+
         // Subtitle row carries the brand badge on its leading edge
         // when this host is cloud-sourced. Manual hosts get just
         // the subtitle text (no leading gap).
-        let subtitle_el: Element<'_, Message> = match &cloud_decoration {
-            Some((brand_key, color, _)) => {
-                let glyph = crate::os_icon::custom_icon_glyph(brand_key);
-                dir_row(vec![
-                    glyph.view(10.0, *color),
-                    Space::new().width(6).boxed(),
+        let subtitle_el: Element<'_, Message> = {
+            let mut cells: Vec<Element<'_, Message>> = match &cloud_decoration {
+                Some((brand_key, color, _)) => {
+                    let glyph = crate::os_icon::custom_icon_glyph(brand_key);
+                    vec![
+                        glyph.view(10.0, *color),
+                        Space::new().width(6).boxed(),
+                        text(subtitle)
+                            .size(10)
+                            .color(OryxisColors::t().text_muted)
+                            .wrapping(iced::widget::text::Wrapping::None)
+                            .boxed(),
+                    ]
+                }
+                None => vec![
                     text(subtitle)
                         .size(10)
                         .color(OryxisColors::t().text_muted)
                         .wrapping(iced::widget::text::Wrapping::None)
                         .boxed(),
-                ])
-                .align_y(iced::Alignment::Center)
-                .boxed()
+                ],
+            };
+            if let Some(badge) = hotkey_badge {
+                cells.push(Space::new().width(6).boxed());
+                cells.push(badge);
             }
-            None => text(subtitle)
-                .size(10)
-                .color(OryxisColors::t().text_muted)
-                .wrapping(iced::widget::text::Wrapping::None)
-                .boxed(),
+            dir_row(cells).align_y(iced::Alignment::Center).boxed()
         };
 
         // The row's leading cells. The selection check lives IN the row,

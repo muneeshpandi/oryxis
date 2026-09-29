@@ -68,6 +68,33 @@ impl Oryxis {
             rows_col = rows_col.push(self.hotkey_editor_row(*action, defaults.get(action)));
         }
 
+        // Per-host connect shortcuts. Derived LIVE from the saved host
+        // list, so adding a host makes it bindable here with no manual
+        // registration, and deleting one removes its row. Only rendered
+        // when there is at least one host, so an empty vault shows no
+        // bare section header.
+        if !self.connections.is_empty() {
+            rows_col = rows_col.push(Space::new().height(20).boxed());
+            rows_col = rows_col.push(
+                text(crate::i18n::t("hotkey_hosts_section"))
+                    .size(13)
+                    .color(OryxisColors::t().text_primary)
+                    .boxed(),
+            );
+            rows_col = rows_col.push(
+                text(crate::i18n::t("hotkey_hosts_hint"))
+                    .size(11)
+                    .color(OryxisColors::t().text_muted)
+                    .boxed(),
+            );
+            rows_col = rows_col.push(Space::new().height(8).boxed());
+            // Index-free: the row keys everything on the connection id,
+            // so a reorder of `connections` can't misbind a chord.
+            for conn in &self.connections {
+                rows_col = rows_col.push(self.host_hotkey_row(conn));
+            }
+        }
+
         scrollable(
             container(rows_col)
                 .padding(Padding { top: 24.0, right: 24.0, bottom: 24.0, left: 24.0 }),
@@ -308,6 +335,108 @@ impl Oryxis {
             label.boxed(),
             Space::new().width(Length::Fill).boxed(),
             reset_el,
+        ])
+        .align_y(iced::Alignment::Center)
+        .boxed()
+    }
+
+    /// One row of the Shortcuts editor's Hosts section: a chip that
+    /// captures / shows the host's connect shortcut, the host label,
+    /// and a Clear button when a chord is bound. Mirrors
+    /// `hotkey_editor_row` but keyed on a connection id (a host binding
+    /// is a single chord, not the action table's list, so there is one
+    /// chip and no add-slot).
+    fn host_hotkey_row<'a>(
+        &'a self,
+        conn: &'a oryxis_core::models::Connection,
+    ) -> Element<'a, Message> {
+        let recording = self.editing_host_hotkey == Some(conn.id);
+        let bound = conn
+            .hotkey
+            .as_deref()
+            .and_then(crate::hotkeys::HotkeyBinding::parse);
+
+        let idx = self.settings_nav_record(crate::keynav::RowAction::activate(
+            Message::Settings(SettingsMessage::StartEditingHostHotkey(conn.id)),
+        ));
+        let inner: Element<'a, Message> = if recording {
+            text(crate::i18n::t("hotkey_press_a_key"))
+                .size(12)
+                .color(OryxisColors::t().button_text)
+                .boxed()
+        } else if let Some(b) = bound {
+            let badges: Vec<Element<'a, Message>> =
+                b.badges().into_iter().map(key_badge_owned).collect();
+            iced::widget::Row::with_children(badges)
+                .spacing(4)
+                .align_y(iced::Alignment::Center)
+                .boxed()
+        } else {
+            text(crate::i18n::t("hotkey_unbound"))
+                .size(11)
+                .color(OryxisColors::t().button_text)
+                .boxed()
+        };
+        let chip = button(inner)
+            .on_press(Message::Settings(SettingsMessage::StartEditingHostHotkey(conn.id)))
+            .style(move |_, status| {
+                let bg = match status {
+                    BtnStatus::Hovered => OryxisColors::t().button_bg_hover,
+                    _ => OryxisColors::t().button_bg,
+                };
+                let border_color = if recording {
+                    OryxisColors::t().accent
+                } else {
+                    OryxisColors::t().border
+                };
+                button::Style {
+                    background: Some(Background::Color(bg)),
+                    border: Border { radius: Radius::from(6.0), color: border_color, width: 1.0 },
+                    ..Default::default()
+                }
+            });
+        let chip_el = self.settings_nav_ring_at(idx, 6.0, chip.boxed());
+
+        let pills_box = container(chip_el).width(260).align_x(dir_align_x());
+
+        let label = text(conn.label.clone())
+            .size(13)
+            .color(OryxisColors::t().text_secondary);
+
+        // Clear button only when a chord is bound, recorded after the
+        // chip so build order is display order.
+        let clear_el: Element<'a, Message> = if conn.hotkey.is_some() {
+            let btn = button(
+                text(crate::i18n::t("hotkey_reset"))
+                    .size(11)
+                    .color(OryxisColors::t().text_muted),
+            )
+            .on_press(Message::Settings(SettingsMessage::ClearHostHotkey(conn.id)))
+            .style(|_, status| {
+                let bg = match status {
+                    BtnStatus::Hovered => Some(Background::Color(OryxisColors::t().button_bg_hover)),
+                    _ => None,
+                };
+                button::Style {
+                    background: bg,
+                    border: Border { radius: Radius::from(4.0), ..Default::default() },
+                    ..Default::default()
+                }
+            });
+            self.settings_nav_slot(
+                crate::keynav::RowAction::activate(Message::Settings(SettingsMessage::ClearHostHotkey(conn.id))),
+                4.0,
+                btn.boxed(),
+            )
+        } else {
+            Space::new().boxed()
+        };
+
+        dir_row(vec![
+            pills_box.boxed(),
+            label.boxed(),
+            Space::new().width(Length::Fill).boxed(),
+            clear_el,
         ])
         .align_y(iced::Alignment::Center)
         .boxed()

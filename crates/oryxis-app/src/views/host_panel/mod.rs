@@ -9,7 +9,7 @@ use iced::{Background, Border, Color, Element, Length, Padding};
 use oryxis_core::models::connection::AuthMethod;
 use oryxis_core::models::identity::Identity;
 
-use crate::app::{TabsMessage, EditorMessage, KeysMessage, NavigationMessage, Message, Oryxis};
+use crate::app::{TabsMessage, EditorMessage, KeysMessage, NavigationMessage, SettingsMessage, Message, Oryxis};
 use crate::i18n::t;
 use crate::state::ProxyKind;
 use crate::theme::OryxisColors;
@@ -55,6 +55,126 @@ impl Oryxis {
     pub(super) fn hp_submit(&self) -> Option<Message> {
         (!self.panel_ring_on_noninput())
             .then(|| Message::Editor(EditorMessage::EditorSave))
+    }
+
+    /// The per-host connect-shortcut card at the foot of the editor.
+    /// `None` for a brand-new host (no saved id to bind to yet); once
+    /// saved, the shortcut is bindable here and in Settings → Shortcuts,
+    /// both writing the same connection field.
+    fn hp_hotkey_section(&self) -> Option<Element<'_, Message>> {
+        let id = self.editor_form.editing_id?;
+        let recording = self.editing_host_hotkey == Some(id);
+        let bound = self
+            .editor_form
+            .hotkey
+            .as_deref()
+            .and_then(crate::hotkeys::HotkeyBinding::parse);
+
+        let start = Message::Settings(SettingsMessage::StartEditingHostHotkey(id));
+        let chip_inner: Element<'_, Message> = if recording {
+            text(t("hotkey_press_a_key"))
+                .size(12)
+                .color(OryxisColors::t().button_text)
+                .boxed()
+        } else if let Some(b) = bound {
+            let badges: Vec<Element<'_, Message>> = b
+                .badges()
+                .into_iter()
+                .map(|lbl| {
+                    container(text(lbl).size(11).color(OryxisColors::t().text_primary))
+                        .padding(Padding { top: 3.0, right: 6.0, bottom: 3.0, left: 6.0 })
+                        .style(|_| container::Style {
+                            background: Some(Background::Color(OryxisColors::t().bg_selected)),
+                            border: Border { radius: Radius::from(4.0), ..Default::default() },
+                            ..Default::default()
+                        })
+                        .boxed()
+                })
+                .collect();
+            iced::widget::Row::with_children(badges)
+                .spacing(4)
+                .align_y(iced::Alignment::Center)
+                .boxed()
+        } else {
+            text(t("hotkey_unbound"))
+                .size(11)
+                .color(OryxisColors::t().button_text)
+                .boxed()
+        };
+        let chip = self.panel_nav_slot(
+            crate::keynav::RowAction::activate(start.clone()),
+            6.0,
+            button(chip_inner)
+                .on_press(start)
+                .padding(Padding { top: 5.0, right: 10.0, bottom: 5.0, left: 10.0 })
+                .style(move |_, status| {
+                    let bg = match status {
+                        BtnStatus::Hovered => OryxisColors::t().button_bg_hover,
+                        _ => OryxisColors::t().button_bg,
+                    };
+                    let border_color = if recording {
+                        OryxisColors::t().accent
+                    } else {
+                        OryxisColors::t().border
+                    };
+                    button::Style {
+                        background: Some(Background::Color(bg)),
+                        border: Border { radius: Radius::from(6.0), color: border_color, width: 1.0 },
+                        ..Default::default()
+                    }
+                })
+                .boxed(),
+        );
+
+        let mut row_items: Vec<Element<'_, Message>> = vec![
+            iced_fonts::lucide::keyboard()
+                .size(14)
+                .color(OryxisColors::t().text_muted)
+                .boxed(),
+            Space::new().width(10).boxed(),
+            text(t("host_hotkey"))
+                .size(13)
+                .color(OryxisColors::t().text_secondary)
+                .boxed(),
+            Space::new().width(Length::Fill).boxed(),
+            chip,
+        ];
+        // Clear button appears only once a chord is bound.
+        if self.editor_form.hotkey.is_some() {
+            let clear = Message::Settings(SettingsMessage::ClearHostHotkey(id));
+            row_items.push(Space::new().width(6).boxed());
+            row_items.push(self.panel_nav_slot(
+                crate::keynav::RowAction::activate(clear.clone()),
+                4.0,
+                button(
+                    text(t("hotkey_reset"))
+                        .size(11)
+                        .color(OryxisColors::t().text_muted),
+                )
+                .on_press(clear)
+                .padding(Padding { top: 4.0, right: 8.0, bottom: 4.0, left: 8.0 })
+                .style(|_, status| {
+                    let bg = match status {
+                        BtnStatus::Hovered => Some(Background::Color(OryxisColors::t().button_bg_hover)),
+                        _ => None,
+                    };
+                    button::Style {
+                        background: bg,
+                        border: Border { radius: Radius::from(4.0), ..Default::default() },
+                        ..Default::default()
+                    }
+                })
+                .boxed(),
+            ));
+        }
+
+        Some(panel_section(iced::widget::column![
+            dir_row(row_items).align_y(iced::Alignment::Center),
+            Space::new().height(4),
+            text(t("host_hotkey_desc"))
+                .size(11)
+                .color(OryxisColors::t().text_muted),
+        ]))
     }
 
     pub(crate) fn view_host_panel(&self) -> Element<'_, Message> {
@@ -497,6 +617,12 @@ impl Oryxis {
             form_col = form_col.push(Space::new().height(10).boxed()).push(section);
         }
         form_col = form_col.push(Space::new().height(10).boxed()).push(terminal_section);
+        // Per-host connect shortcut, only for a saved host (a brand-new
+        // unsaved one has no id to bind to yet). Its own small card at
+        // the foot of the form, mirroring the Settings → Shortcuts row.
+        if let Some(hotkey_section) = self.hp_hotkey_section() {
+            form_col = form_col.push(Space::new().height(10).boxed()).push(hotkey_section);
+        }
         let form_scroll = scrollable(
             form_col.padding(Padding { top: 0.0, right: 16.0, bottom: 16.0, left: 16.0 }),
         )

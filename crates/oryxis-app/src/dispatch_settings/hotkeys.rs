@@ -14,6 +14,18 @@ impl Oryxis {
         match message {
             SettingsMessage::StartEditingHotkey(action, slot) => {
                 self.editing_hotkey = Some((action, slot));
+                // One live capture at a time: arming an action capture
+                // cancels a pending host one, so a stale flag can't eat
+                // the next chord for the wrong target.
+                self.editing_host_hotkey = None;
+            }
+            SettingsMessage::StartEditingHostHotkey(id) => {
+                self.editing_host_hotkey = Some(id);
+                self.editing_hotkey = None;
+            }
+            SettingsMessage::ClearHostHotkey(id) => {
+                self.editing_host_hotkey = None;
+                self.set_host_hotkey(id, None);
             }
             SettingsMessage::MouseButtonPressed(button) => {
                 return Ok(self.handle_mouse_button_press(button));
@@ -47,5 +59,26 @@ impl Oryxis {
             m => return Err(m),
         }
         Ok(Task::none())
+    }
+
+    /// Set (or clear, with `None`) a host's connect shortcut by
+    /// connection id, updating the in-memory list and persisting to the
+    /// vault. The single write path shared by both edit surfaces
+    /// (Settings → Shortcuts and the host editor tray), so they can
+    /// never disagree. `chord` is the serialized `HotkeyBinding`.
+    pub(crate) fn set_host_hotkey(&mut self, id: uuid::Uuid, chord: Option<String>) {
+        let Some(idx) = self.connections.iter().position(|c| c.id == id) else {
+            return;
+        };
+        self.connections[idx].hotkey = chord.clone();
+        // Keep the open editor form in step so the tray reflects the
+        // change immediately whichever surface made it.
+        if self.editor_form.editing_id == Some(id) {
+            self.editor_form.hotkey = chord;
+        }
+        if let Some(vault) = &self.vault {
+            // `None` password preserves the encrypted column untouched.
+            let _ = vault.save_connection(&self.connections[idx], None);
+        }
     }
 }
