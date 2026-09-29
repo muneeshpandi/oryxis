@@ -397,6 +397,11 @@ impl VaultStore {
         // Outbound address-family preference ('auto' | 'v4' | 'v6');
         // NULL on older rows reads as 'auto'.
         let _ = self.db.execute_batch("ALTER TABLE connections ADD COLUMN address_family TEXT;");
+
+        // Optional per-host connect shortcut, stored as the app's
+        // serialized HotkeyBinding ("ctrl+alt+1"). NULL on every host
+        // that has none, which is every row written before this column.
+        let _ = self.db.execute_batch("ALTER TABLE connections ADD COLUMN hotkey TEXT;");
         // Backing query for dynamic groups (ECS services / K8s workloads).
         // JSON-encoded `CloudQuery`. NULL for manual groups.
         let _ = self.db.execute_batch("ALTER TABLE groups ADD COLUMN cloud_query TEXT;");

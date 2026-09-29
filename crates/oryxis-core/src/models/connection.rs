@@ -349,6 +349,16 @@ pub struct Connection {
     /// known, ZMODEM otherwise.
     #[serde(default)]
     pub zmodem_drops: bool,
+    /// Optional custom keyboard shortcut that connects to (or focuses an
+    /// open session of) this host, stored in the app's serialized
+    /// binding format ("ctrl+alt+1"). Lives on the connection itself so
+    /// deleting the host deletes its shortcut by construction, the same
+    /// rule as a snippet's hotkey. `None` = no shortcut. `#[serde(default)]`
+    /// so payloads written before this field (sync peers, older exports)
+    /// still deserialize, and a peer that never knew the field simply
+    /// omits it.
+    #[serde(default)]
+    pub hotkey: Option<String>,
 }
 
 impl Connection {
@@ -452,6 +462,7 @@ impl Connection {
             rekey_limit_mb: None,
             sftp_initial_path: None,
             zmodem_drops: false,
+            hotkey: None,
         }
     }
 }

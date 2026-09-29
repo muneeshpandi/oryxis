@@ -871,6 +871,15 @@ pub struct Oryxis {
     pub(crate) editing_hotkey:
         Option<(crate::hotkeys::HotkeyAction, crate::hotkeys::HotkeySlot)>,
 
+    /// Connection whose per-host connect shortcut is being captured
+    /// (from Settings → Shortcuts' Hosts section or the host editor).
+    /// `Some(id)` puts the keyboard handler in host-hotkey capture mode:
+    /// the next non-Esc, non-pure-modifier `KeyPressed` becomes that
+    /// host's chord (Esc cancels). Separate from `editing_hotkey`
+    /// because a host binding is per-connection data, not a static
+    /// `HotkeyAction`.
+    pub(crate) editing_host_hotkey: Option<uuid::Uuid>,
+
     // Keys
     pub(crate) keys: Vec<SshKey>,
     /// Parsed certificate on display in the read-only cert viewer modal

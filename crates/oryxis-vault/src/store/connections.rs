@@ -127,8 +127,8 @@ impl VaultStore {
             "INSERT OR REPLACE INTO connections
              (id, label, hostname, port, username, auth_method, key_id, group_id,
               jump_chain, proxy, tags, notes, color, password, last_used, created_at, updated_at, identity_id, mcp_enabled, port_forwards,
-              detected_os, custom_icon, custom_color, agent_forwarding, proxy_identity_id, terminal_theme, cloud_ref, initial_command, keepalive_interval, icon_style, customized_fields, env_vars, encoding, session_logging, startup_snippet_id, auto_title, terminal_type, ciphers, kex, macs, host_key_algorithms, privacy_mode, proxy_password, totp_secret, protocol, serial_config, rd_kind, rd_gateway_id, address_family, quirks, rekey_limit_mb, monitor_enabled, sidebar_auto_open, x11_forwarding, sftp_initial_path, mac_address, login_script, target_password, terminal_appearance, highlight_rules, monitor_disks, use_disk_key, identity_file, telnet_config, local_config, mosh_config, zmodem_drops, ambiguous_width)
-             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22,?23,?24,?25,?26,?27,?28,?29,?30,?31,?32,?33,?34,?35,?36,?37,?38,?39,?40,?41,?42,?43,?44,?45,?46,?47,?48,?49,?50,?51,?52,?53,?54,?55,?56,?57,?58,?59,?60,?61,?62,?63,?64,?65,?66,?67,?68)",
+              detected_os, custom_icon, custom_color, agent_forwarding, proxy_identity_id, terminal_theme, cloud_ref, initial_command, keepalive_interval, icon_style, customized_fields, env_vars, encoding, session_logging, startup_snippet_id, auto_title, terminal_type, ciphers, kex, macs, host_key_algorithms, privacy_mode, proxy_password, totp_secret, protocol, serial_config, rd_kind, rd_gateway_id, address_family, quirks, rekey_limit_mb, monitor_enabled, sidebar_auto_open, x11_forwarding, sftp_initial_path, mac_address, login_script, target_password, terminal_appearance, highlight_rules, monitor_disks, use_disk_key, identity_file, telnet_config, local_config, mosh_config, zmodem_drops, ambiguous_width, hotkey)
+             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19,?20,?21,?22,?23,?24,?25,?26,?27,?28,?29,?30,?31,?32,?33,?34,?35,?36,?37,?38,?39,?40,?41,?42,?43,?44,?45,?46,?47,?48,?49,?50,?51,?52,?53,?54,?55,?56,?57,?58,?59,?60,?61,?62,?63,?64,?65,?66,?67,?68,?69)",
             params![
                 conn.id.to_string(),
                 conn.label,
@@ -219,6 +219,12 @@ impl VaultStore {
                 mosh_json,
                 conn.zmodem_drops as i32,
                 width_str,
+                // Blank reads as "no shortcut", so an emptied binding in
+                // the editor means the same as one never set.
+                conn.hotkey
+                    .as_ref()
+                    .map(|h| h.trim())
+                    .filter(|h| !h.is_empty()),
             ],
         )?;
         // Re-creation clears any stale tombstone for this id (the
@@ -241,12 +247,12 @@ impl VaultStore {
         let query = match mcp_filter {
             Some(true) => {
                 "SELECT id, label, hostname, port, username, auth_method, key_id, group_id,
-                        jump_chain, proxy, tags, notes, color, last_used, created_at, updated_at, identity_id, mcp_enabled, port_forwards, detected_os, custom_icon, custom_color, agent_forwarding, proxy_identity_id, terminal_theme, cloud_ref, initial_command, keepalive_interval, icon_style, customized_fields, env_vars, encoding, session_logging, startup_snippet_id, auto_title, terminal_type, ciphers, kex, macs, host_key_algorithms, privacy_mode, protocol, serial_config, rd_kind, rd_gateway_id, address_family, quirks, rekey_limit_mb, monitor_enabled, sidebar_auto_open, x11_forwarding, sftp_initial_path, mac_address, login_script, terminal_appearance, highlight_rules, monitor_disks, use_disk_key, identity_file, telnet_config, local_config, mosh_config, zmodem_drops, ambiguous_width
+                        jump_chain, proxy, tags, notes, color, last_used, created_at, updated_at, identity_id, mcp_enabled, port_forwards, detected_os, custom_icon, custom_color, agent_forwarding, proxy_identity_id, terminal_theme, cloud_ref, initial_command, keepalive_interval, icon_style, customized_fields, env_vars, encoding, session_logging, startup_snippet_id, auto_title, terminal_type, ciphers, kex, macs, host_key_algorithms, privacy_mode, protocol, serial_config, rd_kind, rd_gateway_id, address_family, quirks, rekey_limit_mb, monitor_enabled, sidebar_auto_open, x11_forwarding, sftp_initial_path, mac_address, login_script, terminal_appearance, highlight_rules, monitor_disks, use_disk_key, identity_file, telnet_config, local_config, mosh_config, zmodem_drops, ambiguous_width, hotkey
                  FROM connections WHERE mcp_enabled = 1 AND (protocol IS NULL OR protocol = 'ssh') ORDER BY label"
             }
             _ => {
                 "SELECT id, label, hostname, port, username, auth_method, key_id, group_id,
-                        jump_chain, proxy, tags, notes, color, last_used, created_at, updated_at, identity_id, mcp_enabled, port_forwards, detected_os, custom_icon, custom_color, agent_forwarding, proxy_identity_id, terminal_theme, cloud_ref, initial_command, keepalive_interval, icon_style, customized_fields, env_vars, encoding, session_logging, startup_snippet_id, auto_title, terminal_type, ciphers, kex, macs, host_key_algorithms, privacy_mode, protocol, serial_config, rd_kind, rd_gateway_id, address_family, quirks, rekey_limit_mb, monitor_enabled, sidebar_auto_open, x11_forwarding, sftp_initial_path, mac_address, login_script, terminal_appearance, highlight_rules, monitor_disks, use_disk_key, identity_file, telnet_config, local_config, mosh_config, zmodem_drops, ambiguous_width
+                        jump_chain, proxy, tags, notes, color, last_used, created_at, updated_at, identity_id, mcp_enabled, port_forwards, detected_os, custom_icon, custom_color, agent_forwarding, proxy_identity_id, terminal_theme, cloud_ref, initial_command, keepalive_interval, icon_style, customized_fields, env_vars, encoding, session_logging, startup_snippet_id, auto_title, terminal_type, ciphers, kex, macs, host_key_algorithms, privacy_mode, protocol, serial_config, rd_kind, rd_gateway_id, address_family, quirks, rekey_limit_mb, monitor_enabled, sidebar_auto_open, x11_forwarding, sftp_initial_path, mac_address, login_script, terminal_appearance, highlight_rules, monitor_disks, use_disk_key, identity_file, telnet_config, local_config, mosh_config, zmodem_drops, ambiguous_width, hotkey
                  FROM connections ORDER BY label"
             }
         };
@@ -572,6 +578,11 @@ impl VaultStore {
                         .and_then(|s| s.get("vars"))
                         .and_then(|v| serde_json::from_value(v.clone()).ok())
                         .unwrap_or_default(),
+                    // Blank / NULL (pre-migration rows) reads as no
+                    // shortcut.
+                    hotkey: row
+                        .get::<_, Option<String>>(64)?
+                        .filter(|h| !h.trim().is_empty()),
                 })
             })?
             .collect::<Result<Vec<_>, _>>()?;

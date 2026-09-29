@@ -9,7 +9,7 @@
 use iced::keyboard::{key::Named, Key, Modifiers};
 use iced::Task;
 
-use crate::app::{SftpMessage, SettingsMessage, TabsMessage, EditorMessage, KeysMessage, TerminalMessage, NavigationMessage, SnippetMessage, AiMessage, Message, Oryxis};
+use crate::app::{SftpMessage, SettingsMessage, SshMessage, TabsMessage, EditorMessage, KeysMessage, TerminalMessage, NavigationMessage, SnippetMessage, AiMessage, Message, Oryxis};
 use crate::hotkeys::{FamilyMatch, HotkeyAction};
 use crate::state::View;
 
@@ -73,19 +73,76 @@ impl Oryxis {
                     self.set_toast(crate::i18n::t("snippet_hotkey_reserved").to_string());
                     return Some(super::toast_clear_after_secs(2));
                 }
-                // Conflicts: the static table and other snippets.
+                // Conflicts: the static table, other snippets, and any
+                // host connect shortcut (all three share one keyspace).
                 let in_table = self.hotkey_bindings.values().any(|b| b.contains(&binding));
+                let serialized = binding.serialize();
                 let in_snippets = self.snippets.iter().any(|sn| {
                     self.snippet_form.editing_id != Some(sn.id)
-                        && sn.hotkey.as_deref()
-                            == Some(binding.serialize()).as_deref()
+                        && sn.hotkey.as_deref() == Some(serialized.as_str())
                 });
-                if in_table || in_snippets {
+                let in_hosts = self
+                    .connections
+                    .iter()
+                    .any(|c| c.hotkey.as_deref() == Some(serialized.as_str()));
+                if in_table || in_snippets || in_hosts {
                     self.set_toast(crate::i18n::t("snippet_hotkey_in_use").to_string());
                     return Some(super::toast_clear_after_secs(2));
                 }
                 self.snippet_form.hotkey = Some(binding);
                 self.snippet_form.hotkey_capturing = false;
+                return Some(Task::none());
+            }
+        }
+
+        // 1.6. Per-host connect-shortcut recorder, armed from either the
+        //       Settings → Shortcuts Hosts section or the host editor.
+        //       The next chord becomes that connection's connect
+        //       shortcut; Esc cancels. Same validation as the snippet
+        //       recorder: a modifier is required, a bare shell control
+        //       sequence is refused (a host chord fires globally and
+        //       would otherwise shadow readline inside a terminal), and
+        //       the chord must not already belong to the action table,
+        //       a snippet, or another host.
+        if let Some(host_id) = self.editing_host_hotkey {
+            // Capture is only valid on a surface that armed it: the
+            // Shortcuts editor's Hosts section or the open host editor.
+            // Navigating away (or the host being deleted) cancels it so
+            // a stale flag can't eat a keystroke elsewhere.
+            let on_capture_surface = (self.active_view == View::Settings
+                && self.settings_section == crate::state::SettingsSection::Shortcuts)
+                || self.panels.host_panel;
+            if !on_capture_surface || !self.connections.iter().any(|c| c.id == host_id) {
+                self.editing_host_hotkey = None;
+            } else {
+                if matches!(key, Key::Named(Named::Escape)) {
+                    self.editing_host_hotkey = None;
+                    return Some(Task::none());
+                }
+                if matches!(
+                    key,
+                    Key::Named(
+                        Named::Control | Named::Shift | Named::Alt | Named::Super | Named::Meta
+                    )
+                ) {
+                    // Mid-chord modifier press; keep waiting.
+                    return Some(Task::none());
+                }
+                let Some(binding) = crate::hotkeys::binding_from_event(key, modifiers, true)
+                else {
+                    self.set_toast(crate::i18n::t("hotkey_must_have_modifier").to_string());
+                    return Some(super::toast_clear_after_secs(2));
+                };
+                if binding.is_terminal_control_sequence() {
+                    self.set_toast(crate::i18n::t("snippet_hotkey_reserved").to_string());
+                    return Some(super::toast_clear_after_secs(2));
+                }
+                if self.hotkey_chord_in_use(&binding, Some(host_id)) {
+                    self.set_toast(crate::i18n::t("snippet_hotkey_in_use").to_string());
+                    return Some(super::toast_clear_after_secs(2));
+                }
+                self.editing_host_hotkey = None;
+                self.set_host_hotkey(host_id, Some(binding.serialize()));
                 return Some(Task::none());
             }
         }
@@ -231,6 +288,30 @@ impl Oryxis {
             return Some(self.dispatch_hotkey_action(action, family));
         }
 
+        // 2.4. Per-host connect shortcuts, derived LIVE from the saved
+        //       host list (no side registry: deleting a host deletes its
+        //       shortcut by construction, the snippet rule). GLOBAL,
+        //       unlike snippet hotkeys: the moment a "jump to prod-web"
+        //       key is wanted most is from the dashboard, so it is not
+        //       gated on a focused terminal. It still yields a chord that
+        //       looks like a shell control sequence to the PTY when a
+        //       terminal owns the keys, exactly like the static table, so
+        //       binding one to Ctrl+letter can't shadow readline there.
+        if !modal_owns_keys {
+            let hit = self.connections.iter().position(|c| {
+                c.hotkey
+                    .as_deref()
+                    .and_then(crate::hotkeys::HotkeyBinding::parse)
+                    .is_some_and(|b| {
+                        b.match_event(key, modifiers).is_some()
+                            && !(pty_owns_keys && b.is_terminal_control_sequence())
+                    })
+            });
+            if let Some(idx) = hit {
+                return Some(self.activate_or_connect_host(idx));
+            }
+        }
+
         // 2.5. Per-snippet custom hotkeys, derived LIVE from the vault
         //      list (no side registry: deleting a snippet deletes its
         //      shortcut by construction). Terminal-focused only, since
@@ -357,6 +438,71 @@ impl Oryxis {
     /// Ctrl+P with no saved-host tab, Alt+arrow with no tabs open).
     /// The action is still considered consumed, so the key doesn't
     /// leak into PTY routing.
+    /// Whether a chord is already claimed by the static action table, a
+    /// snippet, or a host connect shortcut, the three surfaces that
+    /// share one keyspace. `exclude_host` skips the connection currently
+    /// being edited so re-recording its own chord is not a self-conflict.
+    pub(crate) fn hotkey_chord_in_use(
+        &self,
+        binding: &crate::hotkeys::HotkeyBinding,
+        exclude_host: Option<uuid::Uuid>,
+    ) -> bool {
+        let serialized = binding.serialize();
+        let in_table = self.hotkey_bindings.values().any(|b| b.contains(binding));
+        let in_snippets = self
+            .snippets
+            .iter()
+            .any(|sn| sn.hotkey.as_deref() == Some(serialized.as_str()));
+        let in_hosts = self.connections.iter().any(|c| {
+            Some(c.id) != exclude_host && c.hotkey.as_deref() == Some(serialized.as_str())
+        });
+        in_table || in_snippets || in_hosts
+    }
+
+    /// Resolve a per-host connect shortcut: focus an already-open
+    /// session for the host if one exists, otherwise open a new one.
+    ///
+    /// A shortcut is a DESTINATION ("put me on prod-web"), not a spawn
+    /// command, so pressing it while a session is already up switches to
+    /// that session instead of piling on a duplicate tab. When the host
+    /// has several open tabs the most-recently-used one wins (`tab_mru`,
+    /// front = most recent), which is what "take me there" means.
+    ///
+    /// `idx` is an index into `self.connections`, matching the
+    /// `ConnectSsh(idx)` contract used everywhere else.
+    fn activate_or_connect_host(&mut self, idx: usize) -> Task<Message> {
+        let Some(conn_id) = self.connections.get(idx).map(|c| c.id) else {
+            return Task::none();
+        };
+        // Every open terminal tab that hosts this connection (any pane,
+        // so a split whose other half is this host still counts).
+        let hosts_conn = |tab: &crate::state::TerminalTab| {
+            tab.pane_grid
+                .panes
+                .values()
+                .any(|p| matches!(p.origin, crate::state::PaneOrigin::Host(id) if id == conn_id))
+        };
+        // Prefer the most-recently-used matching tab. `tab_mru` holds
+        // TabRefs front-most-recent; the first terminal ref that both
+        // still exists and hosts this connection is the one to focus.
+        let mru_tab_idx = self.tab_mru.iter().find_map(|r| match r {
+            crate::state::TabRef::Terminal(tid) => {
+                let pos = self.tabs.iter().position(|t| t._id == *tid)?;
+                hosts_conn(self.tabs.get(pos)?).then_some(pos)
+            }
+            _ => None,
+        });
+        // Fall back to the first open tab for the host (a session opened
+        // before MRU tracking began, or any edge where the ref is
+        // missing), then to opening a fresh session.
+        let target = mru_tab_idx.or_else(|| self.tabs.iter().position(hosts_conn));
+        if let Some(tab_idx) = target {
+            Task::done(Message::Tabs(TabsMessage::SelectTab(tab_idx)))
+        } else {
+            Task::done(Message::Ssh(SshMessage::ConnectSsh(idx)))
+        }
+    }
+
     pub(crate) fn dispatch_hotkey_action(
         &mut self,
         action: HotkeyAction,

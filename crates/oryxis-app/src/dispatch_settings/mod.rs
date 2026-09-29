@@ -378,6 +378,8 @@ impl Oryxis {
             ) => self.handle_settings_locale(m).unwrap_or_else(crate::dispatch::unrouted),
             m @ (
             SettingsMessage::StartEditingHotkey(..)
+            | SettingsMessage::StartEditingHostHotkey(..)
+            | SettingsMessage::ClearHostHotkey(..)
             | SettingsMessage::MouseButtonPressed(..)
             | SettingsMessage::WheelCaptured(..)
             | SettingsMessage::ResetHotkey(..)

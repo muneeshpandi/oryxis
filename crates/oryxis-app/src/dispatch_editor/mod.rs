@@ -1031,6 +1031,7 @@ impl Oryxis {
                 .unwrap_or_default(),
             sftp_initial_path: conn.sftp_initial_path.clone().unwrap_or_default(),
             zmodem_drops: conn.zmodem_drops,
+            hotkey: conn.hotkey.clone(),
         }
     }
 

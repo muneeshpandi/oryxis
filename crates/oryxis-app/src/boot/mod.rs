@@ -473,6 +473,7 @@ impl Oryxis {
                 fullscreen_hint_visible: restored_fullscreen,
                 hotkey_bindings: crate::hotkeys::default_bindings(),
                 editing_hotkey: None,
+                editing_host_hotkey: None,
                 modifiers: keyboard::Modifiers::default(),
                 alt_sides: crate::key_encode::OptionSides::default(),
                 #[cfg(target_os = "windows")]
