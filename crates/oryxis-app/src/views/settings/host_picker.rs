@@ -134,24 +134,7 @@ pub(super) fn sync_host_picker_modal(app: &Oryxis, target: HostPickerTarget) -> 
                     .color(OryxisColors::t().text_primary)
                     .boxed(),
                 Space::new().width(Length::Fill).boxed(),
-                button(text("\u{2715}").size(13).color(OryxisColors::t().text_muted))
-                    .on_press(target.close())
-                    .padding(Padding { top: 4.0, right: 8.0, bottom: 4.0, left: 8.0 })
-                    .style(|_, status| {
-                        let bg = match status {
-                            BtnStatus::Hovered | BtnStatus::Pressed => OryxisColors::t().bg_hover,
-                            _ => Color::TRANSPARENT,
-                        };
-                        button::Style {
-                            background: Some(Background::Color(bg)),
-                            border: Border {
-                                radius: Radius::from(4.0),
-                                ..Default::default()
-                            },
-                            ..Default::default()
-                        }
-                    })
-                    .boxed(),
+                crate::widgets::panel_close_button(target.close()).boxed(),
             ])
             .align_y(iced::Alignment::Center)
             .width(Length::Fill),

@@ -1184,7 +1184,7 @@ impl Oryxis {
                 .on_select(|v| Message::Settings(SettingsMessage::TerminalFontChanged(v)))
                 .on_open(Message::Navigation(NavigationMessage::PickOpenChanged(true)))
                 .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
-                .width(260).padding(10).style(crate::widgets::rounded_pick_list_style)
+                .width(260).padding(10).text_size(13).style(crate::widgets::rounded_pick_list_style)
                 .boxed(),
             ),
         ];
@@ -1246,7 +1246,7 @@ impl Oryxis {
                 })
                 .on_open(Message::Navigation(NavigationMessage::PickOpenChanged(true)))
                 .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
-                .width(260).padding(10).style(crate::widgets::rounded_pick_list_style)
+                .width(260).padding(10).text_size(13).style(crate::widgets::rounded_pick_list_style)
                 .boxed(),
             ));
         // The weight's honesty line, right under the picker it is about.
@@ -1302,7 +1302,7 @@ impl Oryxis {
                 })
                 .on_open(Message::Navigation(NavigationMessage::PickOpenChanged(true)))
                 .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
-                .width(260).padding(10).style(crate::widgets::rounded_pick_list_style)
+                .width(260).padding(10).text_size(13).style(crate::widgets::rounded_pick_list_style)
                 .boxed(),
             ));
         let font_picker_block = font_picker_block
