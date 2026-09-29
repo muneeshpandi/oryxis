@@ -83,6 +83,7 @@ impl Oryxis {
                     })
                     .on_submit_maybe(self.hp_submit())
                     .padding(6)
+                    .size(13)
                     .width(Length::Fill)
                     .style(crate::widgets::rounded_input_style)
                     .align_x(dir_align_x())
@@ -258,6 +259,7 @@ impl Oryxis {
                 .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                 .width(120)
                 .padding(10)
+                .text_size(13)
                 .style(crate::widgets::rounded_pick_list_style)
                 .into(),
         );
@@ -329,6 +331,7 @@ impl Oryxis {
                             })
                             .padding(6)
                             .width(Length::Fill)
+                            .size(13)
                             .style(crate::widgets::rounded_input_style)
                             .align_x(dir_align_x())
                             .into(),
@@ -395,6 +398,7 @@ impl Oryxis {
                     .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                     .width(120)
                     .padding(10)
+                    .text_size(13)
                     .style(crate::widgets::rounded_pick_list_style)
                     .into(),
                 ),
@@ -436,6 +440,7 @@ impl Oryxis {
                     .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                     .width(200)
                     .padding(10)
+                    .text_size(13)
                     .style(crate::widgets::rounded_pick_list_style)
                     .into(),
                 ),
@@ -500,6 +505,7 @@ impl Oryxis {
                         .on_input(move |v| Message::Editor(EditorMessage::EditorEnvVarKeyChanged(idx, v)))
                         .padding(6)
                         .width(Length::FillPortion(2))
+                        .size(13)
                         .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
                         .into(),
                     text("=").size(12).color(OryxisColors::t().text_muted).into(),
@@ -507,6 +513,7 @@ impl Oryxis {
                         .on_input(move |v| Message::Editor(EditorMessage::EditorEnvVarValueChanged(idx, v)))
                         .padding(6)
                         .width(Length::FillPortion(3))
+                        .size(13)
                         .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
                         .into(),
                     self.panel_nav_slot(
@@ -564,6 +571,7 @@ impl Oryxis {
             .on_open(Message::Editor(EditorMessage::EditorStartupComboOpened))
             // Restores the committed pick on blur; see auth.rs.
             .on_close(Message::NoOp)
+            .size(13)
             .padding(10)
             .input_style(crate::widgets::rounded_input_style)
             .menu_style(crate::widgets::combo_menu_style)

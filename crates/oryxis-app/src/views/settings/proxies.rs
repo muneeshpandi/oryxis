@@ -311,6 +311,7 @@ impl Oryxis {
         .on_open(Message::Navigation(NavigationMessage::PickOpenChanged(true)))
         .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
         .padding(10)
+        .text_size(13)
         .style(crate::widgets::rounded_pick_list_style);
 
         let pw_placeholder: &str = crate::widgets::password_placeholder(
@@ -461,15 +462,7 @@ impl Oryxis {
                     .color(OryxisColors::t().text_primary)
                     .into(),
                 Space::new().width(Length::Fill).into(),
-                button(text("\u{00D7}").size(14).color(OryxisColors::t().text_muted))
-                    .on_press(Message::ProxyIdentity(ProxyIdentityMessage::HideProxyIdentityForm))
-                    .padding(Padding { top: 4.0, right: 8.0, bottom: 4.0, left: 8.0 })
-                    .style(|_, _| button::Style {
-                        background: Some(Background::Color(Color::TRANSPARENT)),
-                        border: Border::default(),
-                        ..Default::default()
-                    })
-                    .into(),
+                crate::widgets::panel_close_button(Message::ProxyIdentity(ProxyIdentityMessage::HideProxyIdentityForm)),
             ])
             .align_y(iced::Alignment::Center),
         )

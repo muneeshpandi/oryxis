@@ -41,6 +41,7 @@ impl Oryxis {
             .on_open(Message::Editor(EditorMessage::EditorLoginScriptComboOpened))
             // Restores the committed pick on blur; see auth.rs.
             .on_close(Message::NoOp)
+            .size(13)
             .padding(10)
             .input_style(crate::widgets::rounded_input_style)
             .menu_style(crate::widgets::combo_menu_style)
@@ -146,6 +147,7 @@ impl Oryxis {
                             ))
                         })
                         .padding(10)
+                        .size(13)
                         .style(crate::widgets::rounded_input_style),
                 ]
                 .width(Length::Fill);
@@ -218,6 +220,7 @@ impl Oryxis {
                 Some(&template_label),
                 |v| Message::Editor(EditorMessage::EditorScriptDraftTemplateChanged(v)),
             )
+            .size(13)
             .padding(10)
             .input_style(crate::widgets::rounded_input_style)
             .menu_style(crate::widgets::combo_menu_style)
@@ -244,6 +247,7 @@ impl Oryxis {
                     .id(wid)
                     .on_input(on_input)
                     .padding(10)
+                    .size(13)
                     .style(crate::widgets::rounded_input_style)
                     .into(),
             )

@@ -40,6 +40,7 @@ impl Oryxis {
                             .on_input(|v| Message::Editor(EditorMessage::EditorUsernameChanged(v)))
                             .on_submit_maybe(self.hp_submit())
                             .padding(10)
+                            .size(13)
                             .style(crate::widgets::rounded_input_style).align_x(dir_align_x()).into(),
                     ),
                 ]).align_y(iced::Alignment::Center).into(),
@@ -356,6 +357,7 @@ impl Oryxis {
                         .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                         .width(120)
                         .padding(10)
+                        .text_size(13)
                         .style(crate::widgets::rounded_pick_list_style)
                         .into(),
                 ),
@@ -373,6 +375,7 @@ impl Oryxis {
                         .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                         .width(120)
                         .padding(10)
+                        .text_size(13)
                         .style(crate::widgets::rounded_pick_list_style)
                         .into(),
                 ),
@@ -394,6 +397,7 @@ impl Oryxis {
                     .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                     .width(120)
                     .padding(10)
+                    .text_size(13)
                     .style(crate::widgets::rounded_pick_list_style)
                     .into(),
                 ),
@@ -415,6 +419,7 @@ impl Oryxis {
                     .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                     .width(120)
                     .padding(10)
+                    .text_size(13)
                     .style(crate::widgets::rounded_pick_list_style)
                     .into(),
                 ),
@@ -440,6 +445,7 @@ impl Oryxis {
                     .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                     .width(140)
                     .padding(10)
+                    .text_size(13)
                     .style(crate::widgets::rounded_pick_list_style)
                     .into(),
                 ),
@@ -465,6 +471,7 @@ impl Oryxis {
                     .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                     .width(120)
                     .padding(10)
+                    .text_size(13)
                     .style(crate::widgets::rounded_pick_list_style)
                     .into(),
                 ),

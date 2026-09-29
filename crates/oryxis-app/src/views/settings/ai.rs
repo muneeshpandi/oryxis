@@ -43,6 +43,7 @@ impl Oryxis {
                 .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                 .width(220)
                 .padding(10)
+                .text_size(13)
                 .style(crate::widgets::rounded_pick_list_style)
                 .into(),
             );

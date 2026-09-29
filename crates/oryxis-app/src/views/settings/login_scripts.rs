@@ -274,6 +274,7 @@ impl Oryxis {
             )
             .on_select(move |v| Message::Settings(SettingsMessage::LoginScriptStepSendKind(i, v)))
             .padding(8)
+            .text_size(13)
             .into(),
         );
 

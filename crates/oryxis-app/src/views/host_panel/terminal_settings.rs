@@ -95,6 +95,7 @@ impl Oryxis {
         .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
         .width(170)
         .padding(10)
+        .text_size(13)
         .style(crate::widgets::rounded_pick_list_style);
         // Focusable select (Tab + Enter/Space, widget-owned keys).
         let icon_row: Element<'_, Message> = dir_row(vec![
@@ -129,6 +130,7 @@ impl Oryxis {
             .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
             .width(170)
             .padding(10)
+            .text_size(13)
             .style(crate::widgets::rounded_pick_list_style);
         // Focusable select, same treatment as the icon row.
         let encoding_row: Element<'_, Message> = dir_row(vec![
@@ -166,6 +168,7 @@ impl Oryxis {
         // the half of the answer nobody needs.
         .width(210)
         .padding(10)
+        .text_size(13)
         .style(crate::widgets::rounded_pick_list_style);
         let ambiguous_row: Element<'_, Message> = dir_row(vec![
             text(crate::i18n::t("host_ambiguous_width")).size(13).color(OryxisColors::t().text_secondary).into(),
@@ -209,6 +212,7 @@ impl Oryxis {
             .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
             .width(170)
             .padding(10)
+            .text_size(13)
             .style(crate::widgets::rounded_pick_list_style);
         // Focusable select, same treatment as the icon row.
         let term_row: Element<'_, Message> = dir_row(vec![
@@ -419,6 +423,7 @@ impl Oryxis {
             .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
             .width(200)
             .padding(10)
+            .text_size(13)
             .style(crate::widgets::rounded_pick_list_style);
         dir_row(vec![
             text(label)
@@ -500,6 +505,7 @@ impl Oryxis {
                     .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                     .width(120)
                     .padding(10)
+                    .text_size(13)
                     .style(crate::widgets::rounded_pick_list_style)
                     .into(),
             ),
@@ -537,6 +543,7 @@ impl Oryxis {
                     .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                     .width(120)
                     .padding(10)
+                    .text_size(13)
                     .style(crate::widgets::rounded_pick_list_style)
                     .into(),
             ),
@@ -570,6 +577,7 @@ impl Oryxis {
                     // Wide enough for the longest label ("Control-? (127)").
                     .width(160.0)
                     .padding(10)
+                    .text_size(13)
                     .style(crate::widgets::rounded_pick_list_style)
                     .into(),
             ),
@@ -728,6 +736,7 @@ impl Oryxis {
                 .on_input(|v| Message::Editor(EditorMessage::EditorQuirkRekeyChanged(v)))
                 .width(120)
                 .padding(8)
+                .size(13)
                 .style(crate::widgets::rounded_input_style)
                 .into(),
         );

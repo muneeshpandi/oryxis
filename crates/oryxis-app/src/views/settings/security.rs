@@ -863,7 +863,7 @@ impl Oryxis {
                 .on_select(|v| Message::Settings(SettingsMessage::LogsRetentionChanged(v)))
                 .on_open(Message::Navigation(NavigationMessage::PickOpenChanged(true)))
                 .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
-                .width(260).padding(10).style(crate::widgets::rounded_pick_list_style)
+                .width(260).padding(10).text_size(13).style(crate::widgets::rounded_pick_list_style)
                 .into(),
             ),
             // Size cap: the user's own quota on what recordings may
@@ -892,7 +892,7 @@ impl Oryxis {
                 .on_select(|v| Message::Settings(SettingsMessage::LogsSizeCapChanged(v)))
                 .on_open(Message::Navigation(NavigationMessage::PickOpenChanged(true)))
                 .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
-                .width(260).padding(10).style(crate::widgets::rounded_pick_list_style)
+                .width(260).padding(10).text_size(13).style(crate::widgets::rounded_pick_list_style)
                 .into(),
             ),
         ]))
@@ -1206,6 +1206,7 @@ impl Oryxis {
                     .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                     .width(300)
                     .padding(10)
+                    .text_size(13)
                     .style(crate::widgets::rounded_pick_list_style)
                     .into(),
             );

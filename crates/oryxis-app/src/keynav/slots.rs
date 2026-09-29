@@ -848,6 +848,10 @@ impl crate::app::Oryxis {
                 .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                 .width(width)
                 .padding(10)
+                // Match the 13px body text of the surrounding Settings
+                // rows; iced's pick_list otherwise defaults to ~16px,
+                // which reads larger than the label beside it.
+                .text_size(13)
                 .style(crate::widgets::rounded_pick_list_style)
                 .into(),
         );

@@ -34,6 +34,7 @@ impl Oryxis {
                     // ("Password (ask...)" and its translations) is not truncated.
                     .width(200)
                     .padding(10)
+                    .text_size(13)
                     .style(crate::widgets::rounded_pick_list_style)
                     .into(),
             ),
@@ -127,6 +128,7 @@ impl Oryxis {
                 // the host then saves with the key the form still
                 // holds. Nothing to handle, the restore is the point.
                 .on_close(Message::NoOp)
+                .size(13)
                 .padding(10)
                 .input_style(crate::widgets::rounded_input_style)
                 .menu_style(crate::widgets::combo_menu_style)
@@ -410,6 +412,7 @@ impl Oryxis {
                     .on_input(|v| Message::Editor(EditorMessage::EditorIdentityFileChanged(v)))
                     .on_submit_maybe(self.hp_submit())
                     .padding(10)
+                    .size(13)
                     .style(crate::widgets::rounded_input_style)
                     .align_x(dir_align_x())
                     .into(),

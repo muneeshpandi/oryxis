@@ -167,3 +167,37 @@ pub(crate) fn styled_icon_button<'a>(
     })
     .into()
 }
+
+/// The standard panel/modal header dismiss button: the muted `×` that
+/// closes a form or side panel from its top-right corner. One size, one
+/// padding, one hover treatment for every header across the app, so the
+/// close affordance reads the same whether it sits on the Edit Host
+/// tray, a Settings sub-panel, or a Keys dialog.
+///
+/// This exists because these buttons had drifted to 13 / 14 / 16 / 20 px
+/// with no hover feedback, each hand-built at its call site. Route new
+/// header closers through here rather than re-typing `button(text("×"))`.
+pub(crate) fn panel_close_button<'a>(msg: Message) -> Element<'a, Message> {
+    button(
+        text("\u{00D7}")
+            .size(18)
+            .color(OryxisColors::t().text_muted),
+    )
+    .on_press(msg)
+    .padding(Padding { top: 4.0, right: 8.0, bottom: 4.0, left: 8.0 })
+    .style(|_, status| {
+        // Transparent until hovered/pressed, then a faint wash so the
+        // corner answers the pointer like the other icon affordances.
+        let bg = match status {
+            iced::widget::button::Status::Hovered => Color::from_rgba(1.0, 1.0, 1.0, 0.08),
+            iced::widget::button::Status::Pressed => Color::from_rgba(1.0, 1.0, 1.0, 0.12),
+            _ => Color::TRANSPARENT,
+        };
+        button::Style {
+            background: Some(Background::Color(bg)),
+            border: Border { radius: Radius::from(6.0), ..Default::default() },
+            ..Default::default()
+        }
+    })
+    .into()
+}
