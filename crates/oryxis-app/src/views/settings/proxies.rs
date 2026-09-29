@@ -346,6 +346,7 @@ impl Oryxis {
                     text_input("home-bastion", &self.proxy_identity_form.label)
                         .id(iced::widget::Id::new("panel-proxy-identity-label"))
                         .on_input(|v| Message::ProxyIdentity(ProxyIdentityMessage::ProxyIdentityFormLabelChanged(v)))
+                        .size(13)
                         .padding(10)
                         .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
                         .boxed(),
@@ -376,6 +377,7 @@ impl Oryxis {
                     )
                     .id(iced::widget::Id::new("panel-proxy-identity-host"))
                     .on_input(|v| Message::ProxyIdentity(ProxyIdentityMessage::ProxyIdentityFormHostChanged(v)))
+                    .size(13)
                     .padding(10)
                     .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
                     .boxed(),
@@ -392,6 +394,7 @@ impl Oryxis {
                     text_input("1080", &self.proxy_identity_form.port)
                         .id(iced::widget::Id::new("panel-proxy-identity-port"))
                         .on_input(|v| Message::ProxyIdentity(ProxyIdentityMessage::ProxyIdentityFormPortChanged(v)))
+                        .size(13)
                         .padding(6)
                         .width(70)
                         .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
@@ -412,6 +415,7 @@ impl Oryxis {
                     )
                     .id(iced::widget::Id::new("panel-proxy-identity-username"))
                     .on_input(|v| Message::ProxyIdentity(ProxyIdentityMessage::ProxyIdentityFormUsernameChanged(v)))
+                    .size(13)
                     .padding(10)
                     .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
                     .boxed(),

@@ -110,6 +110,7 @@ impl Oryxis {
             .on_input_maybe(
                 editable.then_some(|v| Message::Sync(SyncMessage::DeployPortChanged(v))),
             )
+            .size(13)
             .padding(8)
             .width(120)
             .style(crate::widgets::rounded_input_style)
