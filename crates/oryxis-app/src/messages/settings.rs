@@ -20,6 +20,15 @@ pub enum SettingsMessage {
     /// when a modifier makes it one; a bare notch is left alone so the
     /// page under the capture keeps scrolling.
     WheelCaptured(crate::hotkeys::WheelDirection),
+    /// Settings → Shortcuts (Hosts section) or the host editor: enter
+    /// capture mode for a host's connect shortcut. The next non-Esc,
+    /// non-pure-modifier `KeyPressed` becomes that connection's chord.
+    /// Carries the connection id (per-host data, not a `HotkeyAction`).
+    StartEditingHostHotkey(uuid::Uuid),
+
+    /// Clear a host's connect shortcut (unbind it).
+    ClearHostHotkey(uuid::Uuid),
+
     /// Settings → Shortcuts: drop a single action's user override and
     /// fall back to the factory default.
     ResetHotkey(crate::hotkeys::HotkeyAction),

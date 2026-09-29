@@ -857,7 +857,14 @@ pub struct Oryxis {
     /// is capturing for. `None` when no capture is live.
     pub(crate) editing_hotkey:
         Option<(crate::hotkeys::HotkeyAction, crate::hotkeys::HotkeySlot)>,
-
+    /// Connection whose per-host connect shortcut is being captured
+    /// (from Settings → Shortcuts' Hosts section or the host editor).
+    /// `Some(id)` puts the keyboard handler in host-hotkey capture mode:
+    /// the next non-Esc, non-pure-modifier `KeyPressed` becomes that
+    /// host's chord (Esc cancels). Separate from `editing_hotkey`
+    /// because a host binding is per-connection data, not a static
+    /// `HotkeyAction`.
+    pub(crate) editing_host_hotkey: Option<uuid::Uuid>,
 
     /// Bumped per armed run so a stale timeout tick from a finished
     /// run cannot abort the one that replaced it.

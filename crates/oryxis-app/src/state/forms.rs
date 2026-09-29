@@ -468,6 +468,12 @@ pub(crate) struct ConnectionForm {
     /// SFTP, for shells that run inside a container. Maps to
     /// `Connection.zmodem_drops`.
     pub zmodem_drops: bool,
+    /// Serialized per-host connect shortcut for display in the editor
+    /// tray. Maps to `Connection.hotkey`. Persisted immediately on
+    /// capture/clear (a shortcut is not deferred form data), so this is
+    /// a mirror kept in step by `set_host_hotkey`, not the source of
+    /// truth on save.
+    pub hotkey: Option<String>,
 }
 
 /// One collapsible section of the host editor's two-tier form. The
@@ -1430,6 +1436,7 @@ impl Default for ConnectionForm {
             rekey_limit_mb: String::new(),
             sftp_initial_path: String::new(),
             zmodem_drops: false,
+            hotkey: None,
         }
     }
 }
