@@ -157,6 +157,10 @@ pub enum SettingsMessage {
     AppThemeChanged(String),
     TerminalFontSizeIncrease,
     TerminalFontSizeDecrease,
+    /// Settings → Interface: grow / shrink the host badge font size (the
+    /// iTerm2-style label at the terminal's top-right), clamped 10–28.
+    HostBadgeFontSizeIncrease,
+    HostBadgeFontSizeDecrease,
     TerminalFontChanged(String),
     /// Settings / Host config: terminal font weight picked (issue
     /// #155). Global, like the family and size it sits with.

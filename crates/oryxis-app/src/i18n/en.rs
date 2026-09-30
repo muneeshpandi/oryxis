@@ -531,6 +531,8 @@ pub(super) fn lookup(key: &str) -> &'static str {
         "host_icon_style" => "Icon shape",
         "host_icon_style_desc" => "Override the global default for this host's badge in cards and tabs.",
         "terminal_font_size" => "Terminal Font Size",
+        "host_badge_font_size" => "Host badge font size",
+        "host_badge_font_size_desc" => "Size of the host label shown at the top-right of the terminal.",
         "vault_stats" => "Vault Statistics",
         "security" => "Security",
         "connection" => "Connection",

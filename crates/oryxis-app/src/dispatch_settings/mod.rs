@@ -267,6 +267,8 @@ impl Oryxis {
             | SettingsMessage::RegenerateShellIntegrationNonce
             | SettingsMessage::TerminalFontSizeIncrease
             | SettingsMessage::TerminalFontSizeDecrease
+            | SettingsMessage::HostBadgeFontSizeIncrease
+            | SettingsMessage::HostBadgeFontSizeDecrease
             | SettingsMessage::TerminalFontChanged(..)
             | SettingsMessage::TerminalFontWeightChanged(..)
             | SettingsMessage::TerminalTextThicknessChanged(..)

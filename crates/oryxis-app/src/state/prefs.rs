@@ -220,6 +220,10 @@ pub(crate) struct AppPrefs {
     pub(crate) status_show_latency: bool,
     pub(crate) status_show_dimensions: bool,
     pub(crate) status_show_cwd: bool,
+    /// Font size (px) of the iTerm2-style host badge floating at the
+    /// top-right of the terminal. Adjustable in Settings → Interface;
+    /// clamped to a sane 10–28 range. Defaults to 18.
+    pub(crate) host_badge_font_size: f32,
     /// Align the status-bar content on the PHYSICAL left edge instead
     /// of the trailing edge (issue #83 follow-up), so it lines up with
     /// a left-docked panel layout. The panel dock is a physical edge
@@ -675,6 +679,7 @@ impl Default for AppPrefs {
             status_show_latency: false,
             status_show_dimensions: false,
             status_show_cwd: false,
+            host_badge_font_size: 18.0,
             status_bar_align_left: false,
             sidebar_tab_sides: std::collections::HashMap::new(),
             sidebar_auto_open: false,

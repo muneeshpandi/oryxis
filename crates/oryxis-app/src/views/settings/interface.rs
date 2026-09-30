@@ -4,6 +4,55 @@ use super::*;
 use iced::widget::column;
 
 impl Oryxis {
+    /// A −/+ stepper for the host-badge font size, showing the current
+    /// px. Left/Right (the picker RowAction) shrink/grow it from the
+    /// keyboard; the two chips do the same on click. Clamped 10–28 in
+    /// the dispatch handler.
+    fn host_badge_size_row(&self) -> Element<'_, Message> {
+        let dec = Message::Settings(SettingsMessage::HostBadgeFontSizeDecrease);
+        let inc = Message::Settings(SettingsMessage::HostBadgeFontSizeIncrease);
+        let step_btn = |glyph: &'static str, msg: Message| -> Element<'_, Message> {
+            button(
+                container(text(glyph).size(14).color(OryxisColors::t().text_primary))
+                    .center_x(28)
+                    .center_y(24),
+            )
+            .on_press(msg)
+            .style(|_, status| {
+                let bg = match status {
+                    BtnStatus::Hovered | BtnStatus::Pressed => OryxisColors::t().bg_hover,
+                    _ => OryxisColors::t().bg_surface,
+                };
+                button::Style {
+                    background: Some(Background::Color(bg)),
+                    border: Border { radius: Radius::from(6.0), color: OryxisColors::t().border, width: 1.0 },
+                    ..Default::default()
+                }
+            })
+            .into()
+        };
+        self.settings_nav_slot_labeled(
+            crate::i18n::t("host_badge_font_size"),
+            crate::keynav::RowAction::picker(Some(dec.clone()), Some(inc.clone())),
+            6.0,
+            dir_row(vec![
+                step_btn("\u{2212}", dec), // minus sign
+                Space::new().width(8).into(),
+                container(
+                    text(format!("{}", self.prefs.host_badge_font_size as i32))
+                        .size(13)
+                        .color(OryxisColors::t().text_primary),
+                )
+                .center_x(32)
+                .into(),
+                Space::new().width(8).into(),
+                step_btn("+", inc),
+            ])
+            .align_y(iced::Alignment::Center)
+            .into(),
+        )
+    }
+
     /// The one-line "your Ctrl+digit slots are off by one" notice under
     /// the tab-number picker, with the button that aligns them.
     ///
@@ -203,6 +252,15 @@ impl Oryxis {
             ),
             Space::new().height(12),
             self.card_appearance_preview(),
+            Space::new().height(16),
+            // Host badge font size: the iTerm2-style label floating at
+            // the terminal's top-right. A −/+ stepper showing the current
+            // px, same shape as the terminal font-size control.
+            self.host_badge_size_row(),
+            Space::new().height(4),
+            text(crate::i18n::t("host_badge_font_size_desc"))
+                .size(11)
+                .color(OryxisColors::t().text_muted),
         ]);
 
         // ── Tabs ──
