@@ -537,8 +537,7 @@ impl Oryxis {
         // Clamp so the 200 px panel never runs past the right edge.
         let dots_x = (8.0 + strip_left + chip + inline_w)
             .min((self.window_size.width - strip_right - 206.0).max(0.0));
-        let side_hidden_bar = crate::views::tab_bar::tab_bar_pos().is_side()
-            && self.prefs.side_hide_top_bar;
+        let side_hidden_bar = self.top_bar_hidden();
         let pinned = container(panel)
             .width(Length::Fill)
             .height(Length::Fill)
@@ -834,7 +833,7 @@ impl Oryxis {
         // shifts it past the strip band (otherwise the panel opens in
         // the opposite corner of the window, detached from its button).
         let strip_pos = crate::views::tab_bar::tab_bar_pos();
-        let in_strip_header = self.prefs.side_hide_top_bar && strip_pos.is_side();
+        let in_strip_header = self.top_bar_hidden();
         let (align, pad) = if in_strip_header {
             let inset = crate::views::tab_bar::SIDE_STRIP_WIDTH + 8.0;
             if strip_pos == crate::views::tab_bar::TabBarPos::Right {
@@ -843,9 +842,17 @@ impl Oryxis {
                     Padding { top: 44.0, right: inset, bottom: 0.0, left: 0.0 },
                 )
             } else {
+                // macOS: the header sits under the traffic lights' own
+                // title-bar band (`view_side_tab_strip`), and so does the
+                // burger the panel hangs from.
+                let band = if self.traffic_light_inset() > 0.0 {
+                    crate::views::chrome::MACOS_TITLE_BAR_HEIGHT
+                } else {
+                    0.0
+                };
                 (
                     iced::alignment::Horizontal::Left,
-                    Padding { top: 44.0, right: 0.0, bottom: 0.0, left: inset },
+                    Padding { top: 44.0 + band, right: 0.0, bottom: 0.0, left: inset },
                 )
             }
         } else {

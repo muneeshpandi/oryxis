@@ -38,7 +38,7 @@ impl Oryxis {
     /// fixed pinned group, then the scrolling tab list with `+`; `⋯`
     /// joins a docked footer once the list overflows the viewport.
     pub(crate) fn view_side_tab_strip(&self) -> Element<'_, Message> {
-        let hide_top_bar = self.prefs.side_hide_top_bar;
+        let hide_top_bar = self.top_bar_hidden();
         let pins_top = self.prefs.pinned_tabs_top_bar;
         let compact_pins = self.prefs.pinned_tab_style == "compact";
         let solid_fill =
@@ -71,6 +71,18 @@ impl Oryxis {
         // them.
         let mut head: Vec<Element<'_, Message>> = Vec::new();
         if hide_top_bar {
+            // macOS (left dock only, `top_bar_hidden`): the strip is the
+            // top-left of the window, which is where the traffic lights
+            // float. The header row is already full at 216 px, so they
+            // get a title-bar band of their own above it rather than a
+            // corner of it: a drag area as tall as AppKit's title bar,
+            // which is what centres the buttons in it.
+            if self.traffic_light_inset() > 0.0 {
+                head.push(crate::views::chrome::traffic_light_gutter(
+                    SIDE_STRIP_WIDTH,
+                    crate::views::chrome::MACOS_TITLE_BAR_HEIGHT,
+                ));
+            }
             let mut header: Vec<Element<'_, Message>> = vec![
                 burger_menu_btn(self.panels.burger_menu),
                 self.home_area_tab(solid_fill),

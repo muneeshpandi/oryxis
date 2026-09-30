@@ -740,7 +740,13 @@ fn main() -> iced::Result {
             fullscreen: window_fullscreen,
             min_size: Some(Size::new(MIN_WIDTH, MIN_HEIGHT)),
             icon,
-            decorations: false, // native title bar off, our own chrome in the tab bar
+            // Native title bar off, our own chrome in the tab bar. Except
+            // on macOS, where AppKit keeps the frame (issue #238): the
+            // traffic lights, the green button's native fullscreen and
+            // the resize edges are the platform's, and the title bar is
+            // made transparent below so our bar still reads as the only
+            // one (see `views::chrome::NATIVE_FRAME`).
+            decorations: views::chrome::NATIVE_FRAME,
             // Only when a translucent terminal was asked for: a surface
             // that composites with the desktop is not free everywhere
             // (X11 needs a running compositor; DX12 usually offers no
@@ -793,6 +799,17 @@ fn main() -> iced::Result {
                 application_id: std::env::var("FLATPAK_ID")
                     .unwrap_or_else(|_| "oryxis".to_string()),
                 ..Default::default()
+            },
+            #[cfg(target_os = "macos")]
+            platform_specific: window::settings::PlatformSpecific {
+                // A decorated window whose title bar is transparent and
+                // whose content runs underneath it: the traffic lights
+                // float over the top-left of our own bar, which reserves
+                // that corner for them (`traffic_light_inset`). No title
+                // text, the tabs already name what is open.
+                title_hidden: true,
+                titlebar_transparent: true,
+                fullsize_content_view: true,
             },
             ..Default::default()
         })

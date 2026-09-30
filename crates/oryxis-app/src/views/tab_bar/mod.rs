@@ -178,9 +178,10 @@ impl Oryxis {
         }
         leading.push(right_cluster);
         let bar_bg = self.tab_bar_background();
-        let bar: Element<'_, Message> = container(
-            crate::widgets::dir_row(leading).align_y(iced::Alignment::Center),
-        )
+        let bar: Element<'_, Message> = container(self.with_traffic_light_gutter(
+            crate::widgets::dir_row(leading).align_y(iced::Alignment::Center).into(),
+            BAR_HEIGHT,
+        ))
         .width(Length::Fill)
         .height(Length::Fixed(BAR_HEIGHT))
         .style(move |_| container::Style {
@@ -393,7 +394,14 @@ impl Oryxis {
     /// locale flips. Shared by the combined top bar, the slim chrome bar
     /// of the docked layouts (standard 46 x BAR_HEIGHT cells) and the
     /// side strip's header when the top bar is hidden (compact cells).
+    ///
+    /// Empty where AppKit draws the frame (`chrome::NATIVE_FRAME`): the
+    /// traffic lights are the controls there, in the corner each bar
+    /// reserves through `with_traffic_light_gutter`.
     pub(crate) fn window_chrome_row(&self, cell_w: f32, cell_h: f32) -> iced::widget::Row<'_, Message> {
+        if crate::views::chrome::NATIVE_FRAME {
+            return iced::widget::Row::new();
+        }
         let max_icon = if self.window_maximized {
             iced_fonts::codicon::chrome_restore()
         } else {
@@ -466,7 +474,11 @@ impl Oryxis {
         const AREA_TAB_APPROX_WIDTH: f32 = 100.0;
         let area_tabs_total =
             area_tab_count as f32 * (AREA_TAB_APPROX_WIDTH + TAB_SPACING);
-        let reserved = strip_reserved_width(bottom, toggle_count);
+        let reserved = strip_reserved_width(
+            bottom,
+            toggle_count,
+            window_controls_width(self.traffic_light_inset()),
+        );
         (self.window_size.width - reserved - area_tabs_total - 12.0).max(120.0)
     }
 
@@ -776,10 +788,12 @@ impl Oryxis {
         // breathes the active tab's colour via `top_accent_tint`. Both
         // gradient stops are opaque, so the tab buttons render normally.
         let bar_bg = self.tab_bar_background();
-        let bar: Element<'_, Message> = container(
-            crate::widgets::dir_row(leading)
-                .align_y(iced::Alignment::Center),
-        )
+        // The bottom-docked strip is not the top-most bar, so only the
+        // combined bar leaves the traffic lights their corner.
+        let row: Element<'_, Message> =
+            crate::widgets::dir_row(leading).align_y(iced::Alignment::Center).into();
+        let row = if bottom { row } else { self.with_traffic_light_gutter(row, BAR_HEIGHT) };
+        let bar: Element<'_, Message> = container(row)
         .width(Length::Fill)
         .height(Length::Fixed(BAR_HEIGHT))
         .style(move |_| container::Style {

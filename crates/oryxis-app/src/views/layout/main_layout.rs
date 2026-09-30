@@ -18,7 +18,12 @@ impl Oryxis {
         // over tab-bar buttons near the frame, while the Space in the
         // middle is pass-through.
         let resize_overlay: Option<Element<'_, Message>> =
-            if self.window_maximized || self.window_fullscreen {
+            // macOS: AppKit's frame resizes the window from its own
+            // edges (`chrome::NATIVE_FRAME`); ours would double them.
+            if self.window_maximized
+                || self.window_fullscreen
+                || crate::views::chrome::NATIVE_FRAME
+            {
                 None
             } else {
                 Some(resize_border())
@@ -32,7 +37,7 @@ impl Oryxis {
     /// status bar, composed in a single background container. The modal /
     /// overlay layering is applied on top by `layer_modals`.
     fn build_base(&self) -> Element<'_, Message> {
-        let immersive = self.window_fullscreen;
+        let immersive = self.immersive_fullscreen();
         // Opt-in docking (Settings -> Interface -> Tab bar position):
         // `bottom` moves the strip above the status bar; `left` /
         // `right` dock it as a vertical list on that window edge
@@ -45,7 +50,7 @@ impl Oryxis {
         let side_tabs = tab_pos.is_side();
         // The side dock can hide the top bar entirely (`side_hide_top_bar`):
         // the titlebar contract moves into the strip's header row.
-        let side_hidden_bar = side_tabs && self.prefs.side_hide_top_bar;
+        let side_hidden_bar = self.top_bar_hidden();
         let tab_bar: Element<'_, Message> = if immersive || side_hidden_bar {
             Space::new().into()
         } else if bottom_tabs || side_tabs {

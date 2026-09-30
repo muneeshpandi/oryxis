@@ -257,10 +257,7 @@ impl Oryxis {
         // hairline above the content (absent in fullscreen and when the
         // side dock hides the top bar).
         let rail = self.vault_rail_width() + self.side_strip_left_offset();
-        let view_top = if self.window_fullscreen
-            || (crate::views::tab_bar::tab_bar_pos().is_side()
-                && self.prefs.side_hide_top_bar)
-        {
+        let view_top = if self.immersive_fullscreen() || self.top_bar_hidden() {
             0.0
         } else {
             41.0

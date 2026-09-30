@@ -456,19 +456,25 @@ impl Oryxis {
                         .size(11)
                         .color(OryxisColors::t().text_muted),
                 )
-                .push(Space::new().height(8))
-                .push(self.nav_toggle_row(
-                    crate::i18n::t("side_hide_top_bar"),
-                    self.prefs.side_hide_top_bar,
-                    Message::Settings(SettingsMessage::SettingToggleSideHideTopBar),
-                ))
-                .push(Space::new().height(4))
-                .push(
-                    text(crate::i18n::t("side_hide_top_bar_desc"))
-                        .size(11)
-                        .color(OryxisColors::t().text_muted),
-                )
-                .push(Space::new().height(8))
+                .push(Space::new().height(8));
+            // Not offered where it cannot apply: on macOS a right dock
+            // keeps the top bar for the traffic lights (`top_bar_hidden`).
+            if !(crate::views::chrome::NATIVE_FRAME && self.prefs.tab_bar_position == "right") {
+                top_bar_col = top_bar_col
+                    .push(self.nav_toggle_row(
+                        crate::i18n::t("side_hide_top_bar"),
+                        self.prefs.side_hide_top_bar,
+                        Message::Settings(SettingsMessage::SettingToggleSideHideTopBar),
+                    ))
+                    .push(Space::new().height(4))
+                    .push(
+                        text(crate::i18n::t("side_hide_top_bar_desc"))
+                            .size(11)
+                            .color(OryxisColors::t().text_muted),
+                    )
+                    .push(Space::new().height(8));
+            }
+            top_bar_col = top_bar_col
                 .push(self.nav_toggle_row(
                     crate::i18n::t("side_full_height"),
                     self.prefs.side_full_height,

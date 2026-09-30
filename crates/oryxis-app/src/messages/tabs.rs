@@ -268,7 +268,12 @@ pub enum TabsMessage {
     /// is committed here, once the OS has answered, rather than in the
     /// resize handler where the stale flag could let a monitor-sized
     /// rectangle through as the "windowed" size.
-    WindowMaximizedSynced(bool, iced::Size),
+    ///
+    /// `fullscreen` is the OS truth too, but only where the OS can change
+    /// it behind our back: macOS's green button enters native fullscreen
+    /// without ever reaching `WindowFullscreenToggle` (issue #238).
+    /// Elsewhere F11 is the only door and it carries our own flag back.
+    WindowStateSynced { maximized: bool, fullscreen: bool, size: iced::Size },
     WindowFullscreenToggle,
     /// Clears the "Press F11 to exit fullscreen" banner. Fired by a
     /// timed `Task::perform` 3 s after entering fullscreen.

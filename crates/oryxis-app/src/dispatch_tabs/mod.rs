@@ -75,7 +75,7 @@ impl Oryxis {
                 | TabsMessage::WindowExpandVertical
                 | TabsMessage::WindowMinimize
                 | TabsMessage::WindowMaximizeToggle
-                | TabsMessage::WindowMaximizedSynced(..)
+                | TabsMessage::WindowStateSynced { .. }
                 | TabsMessage::WindowClose
                 | TabsMessage::ConfirmCloseWindow
                 | TabsMessage::WindowFullscreenToggle

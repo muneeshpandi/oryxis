@@ -792,7 +792,7 @@ pub struct Oryxis {
     /// not fullscreen). This is what `persist_window_geometry` writes to
     /// the settings table so the next launch restores the floating size
     /// rather than whatever monitor-sized rectangle the window occupied
-    /// at close. Committed by `WindowMaximizedSynced` (which carries the
+    /// at close. Committed by `WindowStateSynced` (which carries the
     /// resize that triggered it) once the OS has confirmed the window is
     /// not maximized: judging against the optimistic flag in the resize
     /// handler let an OS-side maximize record its monitor-sized
@@ -811,7 +811,7 @@ pub struct Oryxis {
     /// OS-side maximize (Win+Up, aero snap) parks the window at the
     /// monitor origin while `window_maximized` is still stale-false, so
     /// the accompanying `Moved` overwrites the real windowed position;
-    /// the `WindowMaximizedSynced` reconcile rolls back to this slot
+    /// the `WindowStateSynced` reconcile rolls back to this slot
     /// when it detects that drift.
     pub(crate) window_windowed_pos_prev: Option<Point>,
     /// Whether the OS window currently has focus. Driven by the
@@ -844,7 +844,7 @@ pub struct Oryxis {
     /// Whether the OS window is currently maximized. Used by the custom
     /// chrome to swap the maximize glyph for a "restore" glyph. Flipped
     /// optimistically by `WindowMaximizeToggle` and reconciled with the
-    /// OS truth by `WindowMaximizedSynced` after a `WindowResized`
+    /// OS truth by `WindowStateSynced` after a `WindowResized`
     /// (Win+Up/Down, aero snap and dragging the custom title bar down
     /// all change the OS state without firing a toggle message).
     pub(crate) window_maximized: bool,

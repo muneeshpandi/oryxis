@@ -438,8 +438,9 @@ pub(crate) fn active_tab_bg(accent: Color, solid_fill: bool) -> Background {
 /// top bar reserves the sidebar toggle, the `+`, the drag handle, the
 /// `⋯`, one side-panel toggle per region and the window chrome; the
 /// bottom-docked strip carries only the `+` and the `⋯` (its chrome and
-/// drag area live in the slim top bar).
-pub(crate) fn strip_reserved_width(bottom: bool, toggle_count: usize) -> f32 {
+/// drag area live in the slim top bar). `window_controls` is whatever the
+/// window controls occupy right now ([`window_controls_width`]).
+pub(crate) fn strip_reserved_width(bottom: bool, toggle_count: usize, window_controls: f32) -> f32 {
     if bottom {
         return PLUS_BUTTON_WIDTH + 2.0 + DOTS_BUTTON_WIDTH;
     }
@@ -450,7 +451,20 @@ pub(crate) fn strip_reserved_width(bottom: bool, toggle_count: usize) -> f32 {
         + DRAG_SPACER_WIDTH
         + DOTS_BUTTON_WIDTH
         + 2.0
-        + CHROME_TOTAL_WIDTH
+        + window_controls
+}
+
+/// Width the window controls take in the combined top bar: our
+/// minimize / maximize / close trio, or on macOS the traffic-light corner
+/// (`traffic_light_inset`, zero in native fullscreen) that the bar leaves
+/// empty for AppKit's buttons instead. Same amount either way from the
+/// strip's point of view: width it cannot have.
+pub(crate) fn window_controls_width(traffic_light_inset: f32) -> f32 {
+    if crate::views::chrome::NATIVE_FRAME {
+        traffic_light_inset
+    } else {
+        CHROME_TOTAL_WIDTH
+    }
 }
 
 #[cfg(test)]
@@ -476,16 +490,33 @@ mod tests {
                 + 2.0
                 + CHROME_TOTAL_WIDTH;
             assert_eq!(
-                strip_reserved_width(false, toggles),
+                strip_reserved_width(false, toggles, CHROME_TOTAL_WIDTH),
                 without_handle + DRAG_SPACER_WIDTH,
                 "top bar with {toggles} panel toggles"
             );
         }
         assert_eq!(
-            strip_reserved_width(true, 2),
+            strip_reserved_width(true, 2, CHROME_TOTAL_WIDTH),
             PLUS_BUTTON_WIDTH + 2.0 + DOTS_BUTTON_WIDTH,
             "the bottom strip carries no chrome and no handle"
         );
+    }
+
+    /// The window controls' share of the budget is whoever draws them:
+    /// our trio, or on macOS the traffic-light corner the bar leaves empty
+    /// (issue #238), which collapses in native fullscreen along with the
+    /// buttons themselves. Budgeting the trio there would hand the strip
+    /// 60 px less than it has; budgeting nothing would let it run under
+    /// the traffic lights.
+    #[test]
+    fn the_window_controls_budget_follows_who_draws_the_frame() {
+        if crate::views::chrome::NATIVE_FRAME {
+            assert_eq!(window_controls_width(crate::views::chrome::TRAFFIC_LIGHT_INSET), crate::views::chrome::TRAFFIC_LIGHT_INSET);
+            assert_eq!(window_controls_width(0.0), 0.0, "native fullscreen hides the buttons");
+        } else {
+            assert_eq!(window_controls_width(crate::views::chrome::TRAFFIC_LIGHT_INSET), CHROME_TOTAL_WIDTH);
+            assert_eq!(window_controls_width(0.0), CHROME_TOTAL_WIDTH);
+        }
     }
 
     /// The invariant the two halves of the label math must hold: a chip

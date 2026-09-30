@@ -136,7 +136,7 @@ impl Oryxis {
         // hover-only round X. Both stack above any modal scrim so the
         // user can always escape immersive mode even when a picker is
         // open underneath.
-        let composed = if self.window_fullscreen {
+        let composed = if self.immersive_fullscreen() {
             self.layer_fullscreen_overlays(composed)
         } else {
             composed
@@ -176,7 +176,17 @@ impl Oryxis {
         // up to the container bounds and cover the 1 px frame.
         use iced::widget::container;
         use iced::{Background, Border, Length, Padding};
-        let border_width = if self.window_maximized || self.window_fullscreen { 0.0 } else { 1.0 };
+        // Also 0 where AppKit draws the frame: its window has a rounded,
+        // shadowed edge of its own, and a square 1 px line inside that
+        // mask reads as a cut across the corners.
+        let border_width = if self.window_maximized
+            || self.window_fullscreen
+            || crate::views::chrome::NATIVE_FRAME
+        {
+            0.0
+        } else {
+            1.0
+        };
         container(composed)
             .width(Length::Fill)
             .height(Length::Fill)

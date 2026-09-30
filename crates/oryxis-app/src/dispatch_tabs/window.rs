@@ -252,9 +252,29 @@ impl Oryxis {
             // truth: recording it here, gated on the optimistic flag,
             // let an OS-side maximize slip its monitor-sized rectangle
             // in as the "windowed" size before the reconcile landed.
+            //
+            // On macOS the fullscreen state rides along for the same
+            // reason: the green button (and the Window menu, and a
+            // Mission Control gesture) enter and leave native
+            // fullscreen without `WindowFullscreenToggle`, and every
+            // transition resizes the window. Elsewhere the flag is
+            // handed back unchanged, F11 being its only writer.
+            let ours = self.window_fullscreen;
             return iced::window::latest().then(move |id_opt| match id_opt {
-                Some(id) => iced::window::is_maximized(id).map(move |maximized| {
-                    Message::Tabs(TabsMessage::WindowMaximizedSynced(maximized, snapped))
+                Some(id) => iced::window::is_maximized(id).then(move |maximized| {
+                    let synced = move |fullscreen| {
+                        Message::Tabs(TabsMessage::WindowStateSynced {
+                            maximized,
+                            fullscreen,
+                            size: snapped,
+                        })
+                    };
+                    if crate::views::chrome::NATIVE_FRAME {
+                        iced::window::mode(id)
+                            .map(move |mode| synced(mode == iced::window::Mode::Fullscreen))
+                    } else {
+                        Task::done(synced(ours))
+                    }
                 }),
                 None => Task::none(),
             });
@@ -574,9 +594,10 @@ impl Oryxis {
     }
 
     pub(super) fn handle_window_fullscreen_toggle(&mut self) -> Task<Message> {
-        // Optimistic local flip mirrors `WindowMaximizeToggle`,
-        // the only way fullscreen changes today is through this
-        // handler so the cached bool stays in sync.
+        // Optimistic local flip mirrors `WindowMaximizeToggle`. Off
+        // macOS this handler is the only way fullscreen changes, so the
+        // cached bool stays in sync; on macOS the OS has doors of its
+        // own and `WindowStateSynced` reconciles after every resize.
         self.window_fullscreen = !self.window_fullscreen;
         // Same crash-safe checkpoint as the maximize toggle.
         self.persist_window_geometry();
@@ -594,7 +615,9 @@ impl Oryxis {
         // exit" for 3 s then auto-hide. Exiting fullscreen
         // also clears the flag in case the user toggled
         // out before the timer fired.
-        if entering {
+        // macOS native fullscreen draws no hint of ours
+        // (`immersive_fullscreen`): it is left the way it was entered.
+        if entering && !crate::views::chrome::NATIVE_FRAME {
             self.fullscreen_hint_visible = true;
             let hide_task = Task::perform(
                 async {
@@ -641,7 +664,7 @@ impl Oryxis {
                     // while `window_maximized` is still stale-false,
                     // so that Moved passes this guard and overwrites
                     // the real windowed position. When the
-                    // `WindowMaximizedSynced` reconcile then detects
+                    // `WindowStateSynced` reconcile then detects
                     // the drift, it rolls back to this slot.
                     self.window_windowed_pos_prev = self.window_windowed_pos;
                     self.window_windowed_pos = Some(pos);
@@ -680,20 +703,35 @@ impl Oryxis {
             }
             TabsMessage::WindowExpandVertical => return self.handle_window_expand_vertical(),
             TabsMessage::WindowMinimize => return self.handle_window_minimize(),
-            TabsMessage::WindowMaximizedSynced(maximized, size) => {
+            TabsMessage::WindowStateSynced { maximized, fullscreen, size } => {
+                // Fullscreen first, because it decides whether the rest
+                // means anything: AppKit reports a window in native
+                // fullscreen as zoomed, and its rectangle is the whole
+                // screen. Neither may be recorded as the windowed state
+                // the next launch restores, so while fullscreen both
+                // wait for the transition out, which resizes (and
+                // therefore reconciles) again.
+                if self.window_fullscreen != fullscreen {
+                    self.window_fullscreen = fullscreen;
+                    if !fullscreen {
+                        self.fullscreen_hint_visible = false;
+                    }
+                    self.persist_window_geometry();
+                }
+                if fullscreen {
+                    return Task::none();
+                }
                 // Deferred windowed-size commit: `size` is the snapped
                 // size of the `WindowResized` that triggered this
                 // query, recorded only now that the OS has said
                 // whether that rectangle was a real windowed size or a
-                // maximize transition's monitor-sized one. The
-                // fullscreen flag needs no such reconcile: F11 is the
-                // only path that changes it, so the optimistic flip
-                // always lands before the fullscreen resize arrives.
-                if !maximized && !self.window_fullscreen {
+                // maximize transition's monitor-sized one (the
+                // fullscreen case already returned above).
+                if !maximized {
                     self.window_windowed_size = size;
                 }
                 // Reconcile the optimistic flag with the OS truth
-                // (see `WindowMaximizedSynced`).
+                // (see `WindowStateSynced`).
                 if self.window_maximized != maximized {
                     if maximized {
                         // OS-side maximize: the Moved that parked the

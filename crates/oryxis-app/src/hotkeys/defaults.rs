@@ -363,7 +363,21 @@ pub fn default_bindings() -> HotkeyMap {
     put(&mut m, OpenSftpConsole, primary_ctrl, true, false, primary_logo, Char('s'));
     put(&mut m, SwitchToTabSlot, primary_ctrl, false, false, primary_logo, Digit1to9);
     put(&mut m, CycleTabs, false, false, true, false, ArrowLeftRight);
-    put(&mut m, ToggleFullscreen, false, false, false, false, Named(keyboard::key::Named::F11));
+    // F11 everywhere, plus Ctrl+Cmd+F on macOS, the platform's own
+    // fullscreen chord (issue #238): on a Mac keyboard F11 is Show
+    // Desktop unless Fn is held, so F11 alone left the Mac with no key.
+    if mac {
+        put_many(
+            &mut m,
+            ToggleFullscreen,
+            &[
+                (false, false, false, false, Named(keyboard::key::Named::F11)),
+                (true, false, false, true, Char('f')),
+            ],
+        );
+    } else {
+        put(&mut m, ToggleFullscreen, false, false, false, false, Named(keyboard::key::Named::F11));
+    }
     // Font zoom: the key chord plus Ctrl+wheel in the matching
     // direction, the gnome-terminal / Konsole / Windows Terminal
     // gesture, and the one a Windows precision touchpad turns a pinch
