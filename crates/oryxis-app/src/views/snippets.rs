@@ -700,6 +700,7 @@ self.keynav_ring_content(kb_selected, card_el)
                 text_input("restart-nginx", &self.vaults.cur().snippet_form.label)
                     .id(iced::widget::Id::new("panel-snippet-name"))
                     .on_input(|v| Message::Snippet(SnippetMessage::SnippetLabelChanged(v)))
+                    .size(13)
                     .padding(10)
                     .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
                     .boxed(),
@@ -736,6 +737,7 @@ self.keynav_ring_content(kb_selected, card_el)
                     // abandoned field stays blank while the form keeps
                     // the group. The message itself does nothing.
                     .on_close(Message::NoOp)
+                    .size(13)
                     .padding(10)
                     .input_style(crate::widgets::rounded_input_style)
                     .menu_style(crate::widgets::combo_menu_style)
@@ -752,6 +754,7 @@ self.keynav_ring_content(kb_selected, card_el)
                 text_input(t("tags_placeholder"), &self.vaults.cur().snippet_form.tags_input)
                     .id(iced::widget::Id::new("panel-snippet-tags"))
                     .on_input(|v| Message::Snippet(SnippetMessage::SnippetTagsChanged(v)))
+                    .size(13)
                     .padding(10)
                     .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
                     .boxed(),
