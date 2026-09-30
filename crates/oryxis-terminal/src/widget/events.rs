@@ -265,7 +265,10 @@ impl<Message> TerminalView<Message> {
                         Self::whole_cells_px(widget_state, *y, self.cell_height) as f32
                     }
                 };
-                if dy == 0.0 {
+                // A tilt wheel or a sideways swipe reports buttons 66 /
+                // 67 on the same accumulation.
+                let dx = self.whole_columns(widget_state, delta);
+                if dy == 0.0 && dx == 0 {
                     // The fragment only grew a residual. Still consume
                     // it: while the app holds mouse tracking the wheel
                     // belongs to the report path, and falling through
@@ -274,20 +277,27 @@ impl<Message> TerminalView<Message> {
                     // buffer the TUI is covering.
                     return Some(CanvasAction::capture());
                 }
-                let btn = if dy > 0.0 {
+                let vertical = if dy > 0.0 {
                     ReportButton::WheelUp
                 } else {
                     ReportButton::WheelDown
                 };
-                // One report per notch, capped so a fast flick can't flood
-                // the session, concatenated into a single write.
-                let notches = (dy.abs().ceil() as u32).clamp(1, 5);
+                let horizontal = if dx > 0 {
+                    ReportButton::WheelLeft
+                } else {
+                    ReportButton::WheelRight
+                };
+                // One report per notch, capped per axis so a fast flick
+                // can't flood the session, concatenated into a single
+                // write.
                 let mut bytes = Vec::new();
-                for _ in 0..notches {
-                    if let Some(seq) =
-                        mouse_report::encode(mode, MouseEventKind::Press, btn, col, row, mods)
-                    {
-                        bytes.extend_from_slice(&seq);
+                for (btn, steps) in [(vertical, dy.abs() as u32), (horizontal, dx.unsigned_abs())] {
+                    for _ in 0..steps.min(5) {
+                        if let Some(seq) =
+                            mouse_report::encode(mode, MouseEventKind::Press, btn, col, row, mods)
+                        {
+                            bytes.extend_from_slice(&seq);
+                        }
                     }
                 }
                 if bytes.is_empty() {
@@ -355,16 +365,43 @@ impl<Message> TerminalView<Message> {
     /// before calling here: a tilt on a wheel proves the touchpad's
     /// sub-cell pixel fraction is stale, and vice versa.
     pub(super) fn whole_notches(widget_state: &TerminalWidgetState, y: f32) -> i32 {
-        let prev = widget_state.scroll_line_residual.get();
-        // Direction only: see the doc comment on the `y == 0.0` split.
-        let acc = if prev != 0.0 && y != 0.0 && prev.signum() != y.signum() {
-            y
+        Self::whole_units(&widget_state.scroll_line_residual, y, 1.0)
+    }
+
+    /// The accumulator behind every wheel axis and device kind: add
+    /// `v` to `residual`, emit the whole `unit`s the total covers, keep
+    /// the remainder. A sign flip starts over, and a zero `v` (the
+    /// other axis moved) carries no direction, so it never reads as
+    /// one: see the doc comment on [`Self::whole_notches`].
+    fn whole_units(residual: &std::cell::Cell<f32>, v: f32, unit: f32) -> i32 {
+        let prev = residual.get();
+        let acc = if prev != 0.0 && v != 0.0 && prev.signum() != v.signum() {
+            v
         } else {
-            prev + y
+            prev + v
         };
-        let whole = acc.trunc();
-        widget_state.scroll_line_residual.set(acc - whole);
+        let whole = (acc / unit).trunc();
+        residual.set(acc - whole * unit);
         whole as i32
+    }
+
+    /// Whole steps along the HORIZONTAL axis of a wheel event, on the
+    /// horizontal residual pair: `Lines` counts notches, `Pixels`
+    /// counts cell widths. Same device-kind rule as the vertical arms
+    /// (a notch proves the pixel remainder stale and vice versa).
+    /// Positive = the content moves right, revealing the left, which is
+    /// a wheel LEFT in xterm's terms (button 66, the Left arrow).
+    pub(super) fn whole_columns(&self, widget_state: &TerminalWidgetState, delta: &mouse::ScrollDelta) -> i32 {
+        match delta {
+            mouse::ScrollDelta::Lines { x, .. } => {
+                widget_state.scroll_px_residual_x.set(0.0);
+                Self::whole_units(&widget_state.scroll_line_residual_x, *x, 1.0)
+            }
+            mouse::ScrollDelta::Pixels { x, .. } => {
+                widget_state.scroll_line_residual_x.set(0.0);
+                Self::whole_units(&widget_state.scroll_px_residual_x, *x, self.cell_width)
+            }
+        }
     }
 
     /// Whole CELLS in a `ScrollDelta::Pixels` value, carrying the
@@ -385,15 +422,7 @@ impl<Message> TerminalView<Message> {
         y: f32,
         cell_height: f32,
     ) -> i32 {
-        let prev = widget_state.scroll_px_residual.get();
-        let acc = if prev != 0.0 && y != 0.0 && prev.signum() != y.signum() {
-            y
-        } else {
-            prev + y
-        };
-        let cells = (acc / cell_height).trunc();
-        widget_state.scroll_px_residual.set(acc - cells * cell_height);
-        cells as i32
+        Self::whole_units(&widget_state.scroll_px_residual, y, cell_height)
     }
 
     pub(super) fn is_in_selection(sel: &Selection, col: u16, line: i32) -> bool {
@@ -656,7 +685,8 @@ where
             // (top, vim, less, htop, …) we forward the wheel as cursor
             // arrows so paging works inside those apps, instead of
             // adding to our scrollback buffer (which is empty in alt
-            // screen mode anyway).
+            // screen mode anyway), unless `on_wheel_scroll` keeps the
+            // notch local.
             iced::Event::Mouse(mouse::Event::WheelScrolled { delta })
                 if cursor.position_in(bounds).is_some() =>
             {
@@ -753,6 +783,18 @@ where
     /// direction, or arrow keys when the remote app is on the
     /// alternate screen (`top`, `vim`, `less`), where our own
     /// scrollback is empty and paging belongs to the app.
+    ///
+    /// The arrows are xterm's alternate scroll (`?1007`), with its
+    /// rules: only while the mode is on, only for an app that did NOT
+    /// ask for the mouse, in the cursor-key form the app selected
+    /// (DECCKM), and a sideways notch is Left / Right. An app tracking
+    /// the mouse reaches here only when its report was withheld (a host
+    /// with mouse reporting off, the Shift bypass, an unfocused pane),
+    /// and arrows in place of the report it asked for move vim's
+    /// cursor, so it gets nothing, which is also what xterm and
+    /// alacritty send it. Shift keeps a pager's wheel local too, as in
+    /// alacritty. The alternate screen has no history, so a notch that
+    /// sends nothing is consumed and nothing moves.
     fn on_wheel_scroll(
         &self,
         widget_state: &mut TerminalWidgetState,
@@ -781,49 +823,58 @@ where
                     Self::whole_cells_px(widget_state, *y, self.cell_height)
                 }
             };
+            // The sideways axis only means something to alternate
+            // scroll, but it accumulates on every event like the
+            // vertical one, so a fragment carries over whatever mode
+            // the next one finds. A notch moves as many columns as it
+            // moves lines, as in alacritty.
+            let columns = match delta {
+                mouse::ScrollDelta::Lines { .. } => self.whole_columns(widget_state, delta) * 3,
+                mouse::ScrollDelta::Pixels { .. } => self.whole_columns(widget_state, delta),
+            };
             // A delta that only grew a residual (no whole cell / notch
             // yet) still belongs to this canvas: consume it so it can't
             // bleed into a sibling scrollable, but skip the lock and the
             // redraw since nothing moved.
-            if lines == 0 {
+            if lines == 0 && columns == 0 {
                 return Some(CanvasAction::capture());
             }
-            // One lock for the alt-screen test and the scroll itself,
-            // this handler fires for every wheel tick and locking twice
+            // One lock for the mode test and the scroll itself, this
+            // handler fires for every wheel tick and locking twice
             // doubled the contention with `process()`.
-            let in_alt_screen = {
+            let arrows = {
+                use alacritty_terminal::term::TermMode;
                 let mut s = match self.state.lock() {
                     Ok(s) => s,
                     Err(p) => p.into_inner(),
                 };
-                let in_alt = s
-                    .backend
-                    .term
-                    .mode()
-                    .contains(alacritty_terminal::term::TermMode::ALT_SCREEN);
-                if !in_alt {
+                let mode = *s.backend.term.mode();
+                if !mode.contains(TermMode::ALT_SCREEN) {
+                    // A sideways-only notch has no scrollback to move.
+                    if lines == 0 {
+                        return Some(CanvasAction::capture());
+                    }
                     // Positive = older content. The grid clamps to its
                     // history; the mirror serves the hit-tests that run
                     // before the next frame.
                     let offset = s.scroll_viewport_by(lines);
                     widget_state.scroll_offset.set(offset);
+                    None
+                } else if mode.contains(TermMode::ALTERNATE_SCROLL)
+                    && !mode.intersects(TermMode::MOUSE_MODE)
+                    && !widget_state.modifiers.shift()
+                {
+                    Some(mode.contains(TermMode::APP_CURSOR))
+                } else {
+                    None
                 }
-                in_alt
             };
-            if in_alt_screen {
-                // Translate wheel into arrow-key bytes for the remote
-                // app, `top`/`vim`/`less` all listen for these. Routed
-                // through `emit_input` so it reaches the SSH session,
-                // a direct `state.write` only hits the local PTY and is
-                // a no-op on SSH tabs (this used to silently do nothing
-                // when scrolling vim / less over SSH).
-                let arrow: &[u8] = if lines > 0 { b"\x1b[A" } else { b"\x1b[B" };
-                let count = lines.unsigned_abs().min(10) as usize;
-                let mut bytes = Vec::with_capacity(arrow.len() * count);
-                for _ in 0..count {
-                    bytes.extend_from_slice(arrow);
-                }
-                return Some(self.emit_input(bytes));
+            if let Some(app_cursor) = arrows {
+                // Routed through `emit_input` so it reaches the SSH
+                // session, a direct `state.write` only hits the local
+                // PTY and is a no-op on SSH tabs (this used to silently
+                // do nothing when scrolling vim / less over SSH).
+                return Some(self.emit_input(alternate_scroll_arrows(lines, columns, app_cursor)));
             }
             Some(CanvasAction::request_redraw().and_capture())
     }
@@ -1894,6 +1945,26 @@ fn pinch_step(prev: f32, delta: f32, step: f32) -> (Option<(PinchDirection, u32)
 
 /// Most whole steps one pinch event may report.
 const MAX_PINCH_STEPS: f32 = 64.0;
+
+/// The cursor keys alternate scroll sends for `lines` vertical and
+/// `columns` horizontal steps (positive = up / left, the wheel's own
+/// signs), in the form DECCKM selected: SS3 (`ESC O A`) under
+/// application cursor keys, CSI (`ESC [ A`) otherwise, the bytes the
+/// arrow keys themselves send, which is how xterm routes the wheel.
+/// Capped at ten per axis so a flick cannot flood the session.
+fn alternate_scroll_arrows(lines: i32, columns: i32, app_cursor: bool) -> Vec<u8> {
+    let intro: &[u8] = if app_cursor { b"\x1bO" } else { b"\x1b[" };
+    let vertical = if lines > 0 { b'A' } else { b'B' };
+    let horizontal = if columns > 0 { b'D' } else { b'C' };
+    let mut bytes = Vec::new();
+    for (key, steps) in [(vertical, lines.unsigned_abs()), (horizontal, columns.unsigned_abs())] {
+        for _ in 0..steps.min(10) {
+            bytes.extend_from_slice(intro);
+            bytes.push(key);
+        }
+    }
+    bytes
+}
 
 #[cfg(test)]
 mod pinch_tests {

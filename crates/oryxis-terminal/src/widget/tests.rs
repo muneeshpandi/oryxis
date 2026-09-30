@@ -180,6 +180,120 @@
         );
     }
 
+    /// What one wheel event over the grid sends to the remote, for a
+    /// screen driven into a mode by `setup` and a host whose mouse
+    /// reporting is `reporting`. `None` = the event stayed local.
+    fn wheel_sends(
+        setup: &[u8],
+        reporting: bool,
+        shift: bool,
+        delta: mouse::ScrollDelta,
+    ) -> Option<Vec<u8>> {
+        let mut term = TerminalState::new_no_pty(80, 24).unwrap();
+        term.process(setup);
+        let view = TerminalView::new(Arc::new(Mutex::new(term)))
+            .on_terminal_input(|bytes| bytes)
+            .with_mouse_reporting(reporting);
+        let mut ws = TerminalWidgetState::default();
+        if shift {
+            ws.modifiers = keyboard::Modifiers::SHIFT;
+        }
+        let cursor = mouse::Cursor::Available(Point::new(40.0, 40.0));
+        let event = iced::Event::Mouse(mouse::Event::WheelScrolled { delta });
+        let action = view
+            .on_event(&mut ws, &event, bounds(), cursor)
+            .expect("a wheel event over the grid is always consumed");
+        action.into_inner().0
+    }
+
+    /// One notch up.
+    fn notch_up(setup: &[u8], reporting: bool, shift: bool) -> Option<Vec<u8>> {
+        wheel_sends(setup, reporting, shift, mouse::ScrollDelta::Lines { x: 0.0, y: 1.0 })
+    }
+
+    /// vim under Ubuntu's `defaults.vim` (`mouse=a`): the alternate
+    /// screen plus SGR click tracking.
+    const VIM_MOUSE: &[u8] = b"\x1b[?1049h\x1b[?1000h\x1b[?1006h";
+    /// `less` / `man`: the alternate screen, no mouse tracking.
+    const PAGER: &[u8] = b"\x1b[?1049h";
+
+    /// An app that asked for the mouse and had its report withheld (a
+    /// host with mouse reporting off, or the Shift bypass) gets nothing,
+    /// never alternate-scroll arrows in its place: in vim those move the
+    /// cursor out of the text being edited (issue #240).
+    #[test]
+    fn a_withheld_report_is_not_replaced_by_arrows() {
+        assert_eq!(notch_up(VIM_MOUSE, false, false), None);
+        assert_eq!(notch_up(VIM_MOUSE, true, true), None);
+    }
+
+    /// The report itself, and alternate scroll for an app that never
+    /// asked for the mouse, which is not a mouse report and so pages a
+    /// pager whatever the host's reporting says, as in every terminal.
+    #[test]
+    fn a_tracking_app_gets_its_report_and_a_pager_gets_arrows() {
+        assert_eq!(notch_up(VIM_MOUSE, true, false), Some(b"\x1b[<64;4;2M".to_vec()));
+        for reporting in [true, false] {
+            assert_eq!(notch_up(PAGER, reporting, false), Some(b"\x1b[A\x1b[A\x1b[A".to_vec()));
+        }
+    }
+
+    /// Alternate scroll follows its own mode (`?1007l` turns it off) and
+    /// the Shift bypass, as in alacritty.
+    #[test]
+    fn alternate_scroll_follows_its_mode_and_the_shift_bypass() {
+        assert_eq!(notch_up(b"\x1b[?1049h\x1b[?1007l", true, false), None);
+        assert_eq!(notch_up(PAGER, true, true), None);
+    }
+
+    /// The arrows are the ones the arrow keys send: SS3 once the app
+    /// selects application cursor keys (DECCKM, `?1h`), as xterm does.
+    #[test]
+    fn alternate_scroll_arrows_follow_decckm() {
+        assert_eq!(
+            notch_up(b"\x1b[?1049h\x1b[?1h", true, false),
+            Some(b"\x1bOA\x1bOA\x1bOA".to_vec())
+        );
+    }
+
+    /// A sideways notch (tilt wheel, touchpad swipe) is Left / Right in
+    /// alternate scroll and buttons 66 / 67 in a report; positive x
+    /// reveals the left, as in winit and alacritty.
+    #[test]
+    fn a_sideways_notch_scrolls_sideways() {
+        let left = mouse::ScrollDelta::Lines { x: 1.0, y: 0.0 };
+        let right = mouse::ScrollDelta::Lines { x: -1.0, y: 0.0 };
+        assert_eq!(wheel_sends(PAGER, true, false, left), Some(b"\x1b[D\x1b[D\x1b[D".to_vec()));
+        assert_eq!(wheel_sends(PAGER, true, false, right), Some(b"\x1b[C\x1b[C\x1b[C".to_vec()));
+        assert_eq!(wheel_sends(VIM_MOUSE, true, false, left), Some(b"\x1b[<66;4;2M".to_vec()));
+        assert_eq!(wheel_sends(VIM_MOUSE, true, false, right), Some(b"\x1b[<67;4;2M".to_vec()));
+        // The main screen has no columns to scroll: consumed, nothing sent.
+        assert_eq!(wheel_sends(b"", true, false, left), None);
+    }
+
+    /// A sideways fragment accumulates on its own residual, so a slow
+    /// swipe does not become one report per fragment, and a vertical
+    /// notch in between leaves it alone.
+    #[test]
+    fn a_sideways_fragment_accumulates() {
+        let mut term = TerminalState::new_no_pty(80, 24).unwrap();
+        term.process(PAGER);
+        let view = TerminalView::new(Arc::new(Mutex::new(term))).on_terminal_input(|bytes| bytes);
+        let mut ws = TerminalWidgetState::default();
+        let cursor = mouse::Cursor::Available(Point::new(40.0, 40.0));
+        let wheel = |x: f32, y: f32| {
+            iced::Event::Mouse(mouse::Event::WheelScrolled {
+                delta: mouse::ScrollDelta::Lines { x, y },
+            })
+        };
+        let sent = |ws: &mut TerminalWidgetState, e: &iced::Event| {
+            view.on_event(ws, e, bounds(), cursor).and_then(|a| a.into_inner().0)
+        };
+        assert_eq!(sent(&mut ws, &wheel(0.5, 0.0)), None);
+        assert_eq!(sent(&mut ws, &wheel(0.0, 1.0)), Some(b"\x1b[A\x1b[A\x1b[A".to_vec()));
+        assert_eq!(sent(&mut ws, &wheel(0.5, 0.0)), Some(b"\x1b[D\x1b[D\x1b[D".to_vec()));
+    }
+
     /// `right_click_copy` is a Paste-scheme sub-option: a stale `true`
     /// under Menu / Extend (Settings hides the toggle there, so the
     /// user can't see or clear it) must not defer, i.e. suppress, the

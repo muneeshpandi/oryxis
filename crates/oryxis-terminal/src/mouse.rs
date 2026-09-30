@@ -17,7 +17,8 @@
 use alacritty_terminal::term::TermMode;
 
 /// Logical button for a report. Wheel is modelled as a button because
-/// that's exactly how the protocol encodes it (codes 64 / 65). `None`
+/// that's exactly how the protocol encodes it (codes 64 / 65, and 66 /
+/// 67 for a tilt wheel or a sideways touchpad swipe). `None`
 /// is the "no button" sentinel used for any-motion tracking (1003)
 /// while nothing is pressed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -27,6 +28,8 @@ pub enum MouseButton {
     Right,
     WheelUp,
     WheelDown,
+    WheelLeft,
+    WheelRight,
     None,
 }
 
@@ -39,6 +42,8 @@ impl MouseButton {
             MouseButton::Right => 2,
             MouseButton::WheelUp => 64,
             MouseButton::WheelDown => 65,
+            MouseButton::WheelLeft => 66,
+            MouseButton::WheelRight => 67,
             // "No button" shares the release code; only meaningful with
             // the motion bit set (any-motion tracking).
             MouseButton::None => 3,

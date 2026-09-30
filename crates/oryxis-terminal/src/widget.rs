@@ -199,6 +199,14 @@ pub struct TerminalWidgetState {
     /// covers, keep the remainder, and drop a stale opposite-sign residual
     /// so a reversal responds at once.
     scroll_line_residual: std::cell::Cell<f32>,
+    /// The horizontal twins of [`Self::scroll_line_residual`] and
+    /// [`Self::scroll_px_residual`], for a tilt wheel or a sideways
+    /// touchpad swipe. Only the paths that send something for that axis
+    /// read them (a wheel report, alternate scroll): the scrollback has
+    /// no columns to move. Kept apart from the vertical pair because a
+    /// diagonal swipe feeds both axes at once.
+    scroll_line_residual_x: std::cell::Cell<f32>,
+    scroll_px_residual_x: std::cell::Cell<f32>,
     /// Magnification carried across the moves of one touchpad pinch
     /// below a whole [`TerminalView::PINCH_STEP`]. Same shape as the two
     /// wheel residuals (accumulate, emit whole steps, keep the rest,
