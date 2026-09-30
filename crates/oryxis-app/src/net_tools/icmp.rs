@@ -25,7 +25,14 @@
 //! Packet building and reading are pure functions over bytes, tested
 //! without a network; the unsafe is confined to the send / receive.
 
-use std::net::{IpAddr, Ipv4Addr};
+use std::net::IpAddr;
+// `Ipv4Addr` is only touched on the platforms that build the native
+// probe themselves (Linux datagram-ICMP decode, the Windows
+// `IcmpSendEcho2` path) and in the tests; on macOS / the BSDs the whole
+// native path is absent and the import would sit unused, so gate it the
+// same way the packet-vocabulary constants below are gated.
+#[cfg(any(target_os = "linux", target_os = "windows", test))]
+use std::net::Ipv4Addr;
 use std::time::Duration;
 
 // The packet vocabulary belongs to the platforms that build echo
@@ -64,7 +71,15 @@ pub(crate) enum Unavailable {
 }
 
 /// What one probe got back.
+///
+/// The variants are CONSTRUCTED only where a native probe runs (the
+/// Linux and Windows paths) and in the tests; on macOS / the BSDs the
+/// enum is only matched (the `is_final` / `source` / `rtt_ms` readers),
+/// never built, so the same platform gate the packet constants use keeps
+/// it dead-code-clean there without hiding a real unused variant on the
+/// platforms that do construct it.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(not(any(target_os = "linux", target_os = "windows", test)), allow(dead_code))]
 pub(crate) enum Outcome {
     /// The target itself answered: an echo reply.
     Reply { from: IpAddr, rtt_ms: f32 },
