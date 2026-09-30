@@ -116,6 +116,50 @@ pub(crate) fn styled_button_owned<'a>(
     b.boxed()
 }
 
+/// A full-width footer button (the host-editor Save / Connect and the
+/// group-editor Save). Same compact type scale as [`styled_button`]
+/// (size-12 Bold label, radius 6) but stretched to fill its column and
+/// with a hair more vertical padding so a lone full-width bar doesn't
+/// read as a thin sliver. The caller supplies the background + optional
+/// border (primary vs secondary/ghost) via `bg` and `border`, and the
+/// foreground color for the label, so one definition covers the accent
+/// primary, the bordered secondary, and the muted-disabled variants the
+/// three footers use.
+///
+/// Exists because those footers had each hand-rolled a size-14 /
+/// padding-12 button (cta_button scale), which read oversized next to
+/// every other action in the app. Route footer buttons through here.
+pub(crate) fn footer_button<'a>(
+    label: String,
+    msg: Message,
+    fg: Color,
+    bg: Color,
+    border: Border,
+) -> Element<'a, Message> {
+    button(
+        container(
+            text(label)
+                .size(12)
+                .font(iced::Font {
+                    weight: iced::font::Weight::Bold,
+                    ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
+                })
+                .color(fg),
+        )
+        .padding(Padding { top: 7.0, right: 0.0, bottom: 7.0, left: 0.0 })
+        .width(Length::Fill)
+        .center_x(Length::Fill),
+    )
+    .on_press(msg)
+    .width(Length::Fill)
+    .style(move |_, _| button::Style {
+        background: Some(Background::Color(bg)),
+        border,
+        ..Default::default()
+    })
+    .boxed()
+}
+
 /// Like [`styled_button`] but with a leading icon glyph. The caller colors
 /// the icon (accent CTAs pair with `button_text`, like the label); the
 /// background carries the hover feedback, matching [`styled_button`], and

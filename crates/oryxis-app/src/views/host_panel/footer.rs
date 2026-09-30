@@ -25,8 +25,8 @@ impl Oryxis {
                 crate::keynav::RowAction::activate(Message::Editor(EditorMessage::EditorSave)),
                 8.0,
                 button(
-                    container(text(crate::i18n::t("save")).size(14).color(OryxisColors::t().text_primary))
-                        .padding(Padding { top: 12.0, right: 0.0, bottom: 12.0, left: 0.0 })
+                    container(text(crate::i18n::t("save")).size(12).color(OryxisColors::t().text_primary))
+                        .padding(Padding { top: 7.0, right: 0.0, bottom: 7.0, left: 0.0 })
                         .width(Length::Fill)
                         .center_x(Length::Fill),
                 )
@@ -44,10 +44,10 @@ impl Oryxis {
                         }
                     };
                     let border = if save_primary {
-                        Border { radius: Radius::from(8.0), ..Default::default() }
+                        Border { radius: Radius::from(6.0), ..Default::default() }
                     } else {
                         Border {
-                            radius: Radius::from(8.0),
+                            radius: Radius::from(6.0),
                             width: 1.0,
                             color: OryxisColors::t().border,
                         }
@@ -79,14 +79,14 @@ impl Oryxis {
                 button(
                     container(
                         text(crate::i18n::t("connect"))
-                            .size(14)
+                            .size(12)
                             .color(if has_address {
                                 OryxisColors::t().text_primary
                             } else {
                                 OryxisColors::t().text_muted
                             }),
                     )
-                    .padding(Padding { top: 12.0, right: 0.0, bottom: 12.0, left: 0.0 })
+                    .padding(Padding { top: 7.0, right: 0.0, bottom: 7.0, left: 0.0 })
                     .width(Length::Fill)
                     .center_x(Length::Fill),
                 )
@@ -96,7 +96,7 @@ impl Oryxis {
                     if quick_flow {
                         button::Style {
                             background: Some(Background::Color(connect_bg)),
-                            border: Border { radius: Radius::from(8.0), ..Default::default() },
+                            border: Border { radius: Radius::from(6.0), ..Default::default() },
                             ..Default::default()
                         }
                     } else {
@@ -109,7 +109,7 @@ impl Oryxis {
                         button::Style {
                             background: Some(Background::Color(bg)),
                             border: Border {
-                                radius: Radius::from(8.0),
+                                radius: Radius::from(6.0),
                                 width: 1.0,
                                 color: OryxisColors::t().border,
                             },
