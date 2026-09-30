@@ -300,7 +300,7 @@ impl Oryxis {
             }).color(OryxisColors::t().text_primary),
             Space::new().height(12),
             text(t("onboarding_import_body"))
-                .size(15)
+                .size(14)
                 .color(OryxisColors::t().text_secondary)
                 .align_x(iced::alignment::Horizontal::Center),
             Space::new().height(16),
@@ -348,7 +348,7 @@ impl Oryxis {
             }).color(OryxisColors::t().text_primary),
             Space::new().height(14),
             text(t("vault_importance_desc"))
-                .size(15)
+                .size(14)
                 .color(OryxisColors::t().text_secondary)
                 .align_x(iced::alignment::Horizontal::Center),
         ]
@@ -461,7 +461,7 @@ fn onboarding_bullet(label: &str) -> Element<'_, Message> {
         .into(),
         Space::new().width(12).into(),
         text(label.to_string())
-            .size(15)
+            .size(14)
             .color(OryxisColors::t().text_secondary)
             .into(),
     ])
