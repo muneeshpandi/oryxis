@@ -852,6 +852,15 @@ pub struct Oryxis {
     /// Same optimistic pattern as `window_maximized` because the OS-side
     /// transition is one-way from the app.
     pub(crate) window_fullscreen: bool,
+    /// Whether the fullscreen in effect was entered through OUR toggle
+    /// (F11 / its chord / the palette), which is the immersive mode that
+    /// hides the tab bar and the status bar. Off macOS that is the only
+    /// way in, so it always equals `window_fullscreen`. On macOS the green
+    /// button enters native fullscreen too, and that one keeps the app's
+    /// chrome like every Mac app (issue #238), so the two are told apart
+    /// here rather than guessed. Cleared whenever fullscreen ends, by any
+    /// door. Read through `immersive_fullscreen()`.
+    pub(crate) fullscreen_immersive: bool,
     /// True for ~3 s after entering fullscreen so the "Press F11 to
     /// exit" banner renders. Cleared by a scheduled
     /// `Message::Tabs(TabsMessage::FullscreenHintHide)`. Mirrors Chrome / Firefox where

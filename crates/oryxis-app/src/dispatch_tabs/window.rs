@@ -620,6 +620,9 @@ impl Oryxis {
             return;
         }
         self.window_fullscreen = fullscreen;
+        // Entered behind our back: the green button, never F11, so not
+        // immersive. Left by any door: nothing left to be immersive.
+        self.fullscreen_immersive = false;
         if !fullscreen {
             self.fullscreen_hint_visible = false;
         }
@@ -632,6 +635,8 @@ impl Oryxis {
         // cached bool stays in sync; on macOS the OS has doors of its
         // own and `WindowStateSynced` reconciles after every resize.
         self.window_fullscreen = !self.window_fullscreen;
+        // The toggle is the immersive door, on every platform.
+        self.fullscreen_immersive = self.window_fullscreen;
         // Same crash-safe checkpoint as the maximize toggle.
         self.persist_window_geometry();
         let entering = self.window_fullscreen;
@@ -648,9 +653,7 @@ impl Oryxis {
         // exit" for 3 s then auto-hide. Exiting fullscreen
         // also clears the flag in case the user toggled
         // out before the timer fired.
-        // macOS native fullscreen draws no hint of ours
-        // (`immersive_fullscreen`): it is left the way it was entered.
-        if entering && !crate::views::chrome::NATIVE_FRAME {
+        if entering {
             self.fullscreen_hint_visible = true;
             let hide_task = Task::perform(
                 async {
@@ -749,16 +752,16 @@ impl Oryxis {
                 if let Some(fullscreen) = fullscreen {
                     self.reconcile_window_fullscreen(fullscreen);
                 }
-                if self.window_fullscreen {
+                if crate::views::chrome::NATIVE_FRAME && self.window_fullscreen {
                     return Task::none();
                 }
                 // Deferred windowed-size commit: `size` is the snapped
                 // size of the `WindowResized` that triggered this
                 // query, recorded only now that the OS has said
                 // whether that rectangle was a real windowed size or a
-                // maximize transition's monitor-sized one (the
-                // fullscreen case already returned above).
-                if !maximized {
+                // maximize transition's monitor-sized one. Never while
+                // fullscreen: that rectangle is the monitor's.
+                if !maximized && !self.window_fullscreen {
                     self.window_windowed_size = size;
                 }
                 // Reconcile the optimistic flag with the OS truth

@@ -53,6 +53,7 @@ impl Oryxis {
         let mut restored_window_pos: Option<iced::Point> = None;
         let mut restored_maximized = false;
         let mut restored_fullscreen = false;
+        let mut restored_immersive = false;
         // Update-check settings, hydrated pre-unlock: the boot
         // `CheckForUpdate` fires while the vault can still be locked, so
         // reading these only in `load_data_from_vault` made a locked-vault
@@ -268,6 +269,13 @@ impl Oryxis {
                 v.get_setting("window_fullscreen").ok().flatten().as_deref(),
                 Some("true")
             );
+            // An absent row predates the green button (every saved
+            // fullscreen came from F11), so it reads as immersive.
+            restored_immersive = restored_fullscreen
+                && !matches!(
+                    v.get_setting("window_fullscreen_immersive").ok().flatten().as_deref(),
+                    Some("false")
+                );
         }
 
         // Plugin providers are kept twice: once as `Arc<dyn CloudProvider>`
@@ -467,10 +475,11 @@ impl Oryxis {
                 ssm_keepalive_base: None,
                 window_maximized: restored_maximized,
                 window_fullscreen: restored_fullscreen,
-                // Restoring straight into fullscreen re-shows the
-                // "Press F11 to exit" hint (auto-hide task below), so
+                fullscreen_immersive: restored_immersive,
+                // Restoring straight into immersive fullscreen re-shows
+                // the "Press F11 to exit" hint (auto-hide task below), so
                 // the user is never trapped in a chromeless window.
-                fullscreen_hint_visible: restored_fullscreen,
+                fullscreen_hint_visible: restored_immersive,
                 hotkey_bindings: crate::hotkeys::default_bindings(),
                 editing_hotkey: None,
                 modifiers: keyboard::Modifiers::default(),
@@ -899,7 +908,7 @@ impl Oryxis {
         // The boot constructor set the F11 hint visible when restoring
         // into fullscreen; schedule the same 3 s auto-hide the F11
         // toggle handler uses.
-        if app.window_fullscreen {
+        if app.fullscreen_immersive {
             tasks.push(Task::perform(
                 async {
                     tokio::time::sleep(std::time::Duration::from_secs(3)).await;

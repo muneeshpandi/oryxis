@@ -115,6 +115,10 @@ impl Oryxis {
             "window_fullscreen",
             if self.window_fullscreen { "true" } else { "false" },
         );
+        self.persist_setting(
+            "window_fullscreen_immersive",
+            if self.fullscreen_immersive { "true" } else { "false" },
+        );
     }
 
     /// Persist the current column template (visibility + order + widths) so

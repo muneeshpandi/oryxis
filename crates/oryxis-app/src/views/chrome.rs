@@ -54,14 +54,12 @@ pub(crate) fn traffic_light_gutter<'a>(width: f32, height: f32) -> Element<'a, M
 
 impl crate::app::Oryxis {
     /// Fullscreen that HIDES our chrome (tab bar, status bar, the
-    /// "press F11" hint and the hover X). That is the browser shape we
-    /// give an undecorated window. macOS native fullscreen is a Space of
-    /// its own that keeps the app's toolbar and tabs, reveals the menu
-    /// bar and the traffic lights at the top edge, and is left the way it
-    /// was entered, so there the flag only means "the window is
-    /// fullscreen".
+    /// "press F11" hint and the hover X): the mode F11 enters, on every
+    /// platform. The one fullscreen that is not immersive is macOS's
+    /// green button, a Space of its own that keeps the app's tabs like
+    /// every Mac app does (`fullscreen_immersive` tells the two apart).
     pub(crate) fn immersive_fullscreen(&self) -> bool {
-        self.window_fullscreen && !NATIVE_FRAME
+        self.window_fullscreen && self.fullscreen_immersive
     }
 
     /// Width of the traffic-light corner the top-most bar must leave
