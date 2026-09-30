@@ -244,6 +244,12 @@ impl Oryxis {
             )
             .width(NAV_RAIL_WIDTH_EXPANDED)
             .height(Length::Fill)
+            // A bottom inset on the rail itself so the section list has
+            // the same breathing room at the bottom edge as it does at
+            // the top (the col's own 8px bottom padding sits right after
+            // the last item, not against the rail's bottom, so a short
+            // list ran flush to the window edge).
+            .padding(Padding { top: 0.0, right: 0.0, bottom: 8.0, left: 0.0 })
             .style(|_| container::Style {
                 background: Some(Background::Color(OryxisColors::t().bg_sidebar)),
                 ..Default::default()

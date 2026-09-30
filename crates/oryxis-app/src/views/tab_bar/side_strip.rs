@@ -260,7 +260,9 @@ impl Oryxis {
             Background::Color(bar_base)
         };
         let mut bar: Element<'_, Message> = container(inner)
-            .padding(Padding { top: 6.0, right: 8.0, bottom: 6.0, left: 8.0 })
+            // 8px top/bottom to match the Settings nav rail's inset, so
+            // both sidebars breathe the same at top and bottom edges.
+            .padding(Padding { top: 8.0, right: 8.0, bottom: 8.0, left: 8.0 })
             .width(Length::Fixed(SIDE_STRIP_WIDTH))
             .height(Length::Fill)
             .style(move |_| container::Style {
