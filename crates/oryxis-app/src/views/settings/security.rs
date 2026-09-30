@@ -382,12 +382,12 @@ impl Oryxis {
                 button(
                     container(
                         dir_row(vec![
-                            iced_fonts::lucide::lock().size(14).color(OryxisColors::t().warning).into(),
-                            Space::new().width(10).into(),
-                            text(crate::i18n::t("lock_vault")).size(13).color(OryxisColors::t().warning).into(),
+                            iced_fonts::lucide::lock().size(13).color(OryxisColors::t().warning).into(),
+                            Space::new().width(8).into(),
+                            text(crate::i18n::t("lock_vault")).size(12).color(OryxisColors::t().warning).into(),
                         ]).align_y(iced::Alignment::Center),
                     )
-                    .padding(Padding { top: 10.0, right: 20.0, bottom: 10.0, left: 20.0 }),
+                    .padding(Padding { top: 6.0, right: 14.0, bottom: 6.0, left: 14.0 }),
                 )
                 .on_press(Message::Vault(VaultMessage::LockVaultConfirm))
                 .style(|_, status| {
@@ -397,7 +397,7 @@ impl Oryxis {
                     };
                     button::Style {
                         background: Some(Background::Color(bg)),
-                        border: Border { radius: Radius::from(8.0), color: OryxisColors::t().warning, width: 1.0 },
+                        border: Border { radius: Radius::from(6.0), color: OryxisColors::t().warning, width: 1.0 },
                         ..Default::default()
                     }
                 })
@@ -422,12 +422,12 @@ impl Oryxis {
                 button(
                     container(
                         dir_row(vec![
-                            iced_fonts::lucide::key_round().size(14).color(OryxisColors::t().accent).into(),
-                            Space::new().width(10).into(),
-                            text(crate::i18n::t("update_password")).size(13).color(OryxisColors::t().accent).into(),
+                            iced_fonts::lucide::key_round().size(13).color(OryxisColors::t().accent).into(),
+                            Space::new().width(8).into(),
+                            text(crate::i18n::t("update_password")).size(12).color(OryxisColors::t().accent).into(),
                         ]).align_y(iced::Alignment::Center),
                     )
-                    .padding(Padding { top: 10.0, right: 20.0, bottom: 10.0, left: 20.0 }),
+                    .padding(Padding { top: 6.0, right: 14.0, bottom: 6.0, left: 14.0 }),
                 )
                 .on_press(Message::Vault(VaultMessage::OpenChangeVaultPassword))
                 .style(|_, status| {
@@ -437,7 +437,7 @@ impl Oryxis {
                     };
                     button::Style {
                         background: Some(Background::Color(bg)),
-                        border: Border { radius: Radius::from(8.0), color: OryxisColors::t().accent, width: 1.0 },
+                        border: Border { radius: Radius::from(6.0), color: OryxisColors::t().accent, width: 1.0 },
                         ..Default::default()
                     }
                 })

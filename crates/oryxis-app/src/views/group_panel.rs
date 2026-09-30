@@ -214,20 +214,13 @@ impl Oryxis {
         let save_btn = self.panel_nav_slot(
             crate::keynav::RowAction::activate(Message::Tabs(TabsMessage::SaveGroupEdit)),
             8.0,
-            button(
-                container(text(crate::i18n::t("save")).size(14).color(OryxisColors::t().text_primary))
-                    .padding(Padding { top: 12.0, right: 0.0, bottom: 12.0, left: 0.0 })
-                    .width(Length::Fill)
-                    .center_x(Length::Fill),
-            )
-            .on_press(Message::Tabs(TabsMessage::SaveGroupEdit))
-            .width(Length::Fill)
-            .style(|_, _| button::Style {
-                background: Some(Background::Color(OryxisColors::t().accent)),
-                border: Border { radius: Radius::from(8.0), ..Default::default() },
-                ..Default::default()
-            })
-            .into(),
+            crate::widgets::footer_button(
+                crate::i18n::t("save").to_string(),
+                Message::Tabs(TabsMessage::SaveGroupEdit),
+                OryxisColors::t().button_text,
+                OryxisColors::t().accent,
+                Border { radius: Radius::from(6.0), ..Default::default() },
+            ),
         );
 
         let footer = container(save_btn)
