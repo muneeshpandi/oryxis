@@ -352,6 +352,13 @@ pub fn default_bindings() -> HotkeyMap {
     put(&mut m, ReopenClosedTab, primary_ctrl, true, false, primary_logo, Char('y'));
     put(&mut m, OpenPortForwards, primary_ctrl, false, false, primary_logo, Char('p'));
     put(&mut m, OpenSettings, primary_ctrl, false, false, primary_logo, Punct(","));
+    // Ctrl+Shift+H (Cmd+Shift+H on macOS): jump to the Hosts section.
+    // NOT bare Cmd+H / Ctrl+H: on macOS Cmd+H is the system Hide-window
+    // chord, and on every platform a bare Ctrl+H is a terminal control
+    // sequence (backspace) the control-sequence gate rightly leaves with
+    // the PTY. The Shift lifts it out of that gate so it fires
+    // everywhere, and off the OS chord. Rebindable in Settings.
+    put(&mut m, OpenHosts, primary_ctrl, true, false, primary_logo, Char('h'));
     put(&mut m, FocusViewSearch, primary_ctrl, false, false, primary_logo, Char('f'));
     // Ctrl+Shift+E (Cmd+Shift+E on macOS): Shift lifts it out of the terminal
     // control-sequence gate, same rationale as OpenLocalShell. Configurable.
