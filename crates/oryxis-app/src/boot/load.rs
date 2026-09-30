@@ -1333,6 +1333,11 @@ impl Oryxis {
             {
                 ov.terminal_font_size = parsed.clamp(10.0, 24.0);
             }
+            if let Ok(Some(v)) = vault.get_setting("host_badge_font_size")
+                && let Ok(parsed) = v.parse::<f32>()
+            {
+                ov.prefs.host_badge_font_size = parsed.clamp(10.0, 28.0);
+            }
             if let Ok(Some(v)) = vault.get_setting("terminal_font_name")
                 && !v.is_empty()
             {

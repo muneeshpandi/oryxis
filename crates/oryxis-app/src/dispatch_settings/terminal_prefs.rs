@@ -96,6 +96,22 @@ impl Oryxis {
                     &format!("{}", self.vaults.cur().terminal_font_size),
                 );
             }
+            SettingsMessage::HostBadgeFontSizeIncrease => {
+                self.vaults.cur_mut().prefs.host_badge_font_size =
+                    (self.vaults.cur().prefs.host_badge_font_size + 1.0).min(28.0);
+                self.persist_setting(
+                    "host_badge_font_size",
+                    &format!("{}", self.vaults.cur().prefs.host_badge_font_size),
+                );
+            }
+            SettingsMessage::HostBadgeFontSizeDecrease => {
+                self.vaults.cur_mut().prefs.host_badge_font_size =
+                    (self.vaults.cur().prefs.host_badge_font_size - 1.0).max(10.0);
+                self.persist_setting(
+                    "host_badge_font_size",
+                    &format!("{}", self.vaults.cur().prefs.host_badge_font_size),
+                );
+            }
             SettingsMessage::TerminalFontChanged(name) => {
                 self.vaults.cur_mut().terminal_font_name = name;
                 self.persist_setting("terminal_font_name", &self.vaults.cur().terminal_font_name);
