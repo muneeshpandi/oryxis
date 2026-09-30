@@ -579,18 +579,13 @@ impl Oryxis {
             Space::new().into()
         };
 
-        let save = button(
-            container(text(t("save")).size(13).color(c.button_text))
-                .center_x(Length::Fill)
-                .padding(Padding { top: 9.0, right: 0.0, bottom: 9.0, left: 0.0 }),
-        )
-        .on_press(Message::Snippet(SnippetMessage::SaveSnippet))
-        .width(Length::Fill)
-        .style(|_, _| button::Style {
-            background: Some(Background::Color(OryxisColors::t().accent)),
-            border: Border { radius: Radius::from(8.0), ..Default::default() },
-            ..Default::default()
-        });
+        let save = crate::widgets::footer_button(
+            t("save").to_string(),
+            Message::Snippet(SnippetMessage::SaveSnippet),
+            c.button_text,
+            OryxisColors::t().accent,
+            Border { radius: Radius::from(6.0), ..Default::default() },
+        );
 
         let mut form = column![
             header,
@@ -625,22 +620,13 @@ impl Oryxis {
         if let Some(edit_id) = self.snippet_form.editing_id
             && let Some(idx) = self.snippets.iter().position(|s| s.id == edit_id)
         {
-            let delete = button(
-                container(text(t("delete")).size(13).color(OryxisColors::t().error))
-                    .center_x(Length::Fill)
-                    .padding(Padding { top: 9.0, right: 0.0, bottom: 9.0, left: 0.0 }),
-            )
-            .on_press(Message::Snippet(SnippetMessage::RequestDeleteSnippet(idx)))
-            .width(Length::Fill)
-            .style(|_, _| button::Style {
-                background: Some(Background::Color(Color::TRANSPARENT)),
-                border: Border {
-                    radius: Radius::from(8.0),
-                    color: OryxisColors::t().error,
-                    width: 1.0,
-                },
-                ..Default::default()
-            });
+            let delete = crate::widgets::footer_button(
+                t("delete").to_string(),
+                Message::Snippet(SnippetMessage::RequestDeleteSnippet(idx)),
+                OryxisColors::t().error,
+                Color::TRANSPARENT,
+                Border { radius: Radius::from(6.0), color: OryxisColors::t().error, width: 1.0 },
+            );
             form = form.push(Space::new().height(8)).push(delete);
         }
 
