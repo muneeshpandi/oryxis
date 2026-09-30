@@ -2,6 +2,33 @@
 
 pub(super) fn lookup(key: &str) -> Option<&'static str> {
     Some(match key {
+        // SSH connection progress
+        "ssh_progress_start" => "Έναρξη νέας σύνδεσης στο «{host}», θύρα {port}",
+        "ssh_progress_connecting" => "Επίλυση διεύθυνσης και σύνδεση στο «{host}», θύρα {port}...",
+        "ssh_progress_handshake" => "Η σύνδεση έγινε, η διαπραγμάτευση SSH ολοκληρώθηκε και το κλειδί του διακομιστή επαληθεύτηκε",
+        "ssh_progress_authenticating" => "Έλεγχος ταυτότητας ως «{user}» με {method}...",
+        "ssh_progress_authenticated" => "Έγινε έλεγχος ταυτότητας ως «{user}»",
+        "ssh_progress_opening_session" => "Άνοιγμα συνεδρίας τερματικού και αίτημα PTY...",
+        "ssh_progress_connection_failed" => "Αποτυχία σύνδεσης στο «{host}», θύρα {port}: {error}",
+        "ssh_progress_auth_failed" => "Αποτυχία ελέγχου ταυτότητας για «{user}»: {error}",
+        "ssh_progress_session_failed" => "Αποτυχία δημιουργίας συνεδρίας τερματικού: {error}",
+        "ssh_progress_jump_hosts" => "Ενδιάμεσοι διακομιστές στη διαδρομή: {count}",
+        "ssh_progress_proxy" => "Χρήση διαμεσολαβητή {kind} {host}:{port}",
+        "ssh_progress_command_proxy" => "Χρήση διαμεσολαβητή εντολής",
+        "ssh_progress_forwards" => "Προωθήσεις θυρών: {forwards}",
+        "ssh_progress_instance_connect" => "Αποστολή προσωρινού δημόσιου κλειδιού στο {instance} μέσω EC2 Instance Connect…",
+        "ssh_progress_instance_connect_failed" => "Αποτυχία αποστολής μέσω EC2 Instance Connect: {error}",
+        "ssh_progress_pane_connecting" => "Σύνδεση στο {label} ({host}:{port})...",
+        "ssh_progress_error" => "Σφάλμα: {error}",
+        "ssh_progress_method_auto" => "αυτόματο εντοπισμό",
+        "ssh_progress_method_password" => "κωδικό πρόσβασης",
+        "ssh_progress_method_password_prompt" => "κωδικό πρόσβασης κατόπιν ερώτησης",
+        "ssh_progress_method_key" => "δημόσιο κλειδί",
+        "ssh_progress_method_agent" => "πράκτορα SSH",
+        "ssh_progress_method_interactive" => "keyboard-interactive",
+        "ssh_progress_method_certificate" => "πιστοποιητικό",
+        "ssh_progress_method_security_key" => "κλειδί ασφαλείας υλικού",
+
         // Navigation
         "expand" => "Ανάπτυξη",
         "collapse" => "Σύμπτυξη",

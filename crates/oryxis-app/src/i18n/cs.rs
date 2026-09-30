@@ -2,6 +2,33 @@
 
 pub(super) fn lookup(key: &str) -> Option<&'static str> {
     Some(match key {
+        // SSH connection progress
+        "ssh_progress_start" => "Zahajování nového připojení k „{host}“, port {port}",
+        "ssh_progress_connecting" => "Překlad adresy a připojování k „{host}“, port {port}...",
+        "ssh_progress_handshake" => "Spojení navázáno, vyjednávání SSH dokončeno a klíč hostitele ověřen",
+        "ssh_progress_authenticating" => "Ověřování uživatele „{user}“ pomocí {method}...",
+        "ssh_progress_authenticated" => "Uživatel „{user}“ ověřen",
+        "ssh_progress_opening_session" => "Otevírání relace terminálu a žádost o PTY...",
+        "ssh_progress_connection_failed" => "Připojení k „{host}“, port {port}, selhalo: {error}",
+        "ssh_progress_auth_failed" => "Ověření uživatele „{user}“ selhalo: {error}",
+        "ssh_progress_session_failed" => "Nastavení relace terminálu selhalo: {error}",
+        "ssh_progress_jump_hosts" => "Počet zprostředkujících hostitelů na trase: {count}",
+        "ssh_progress_proxy" => "Používá se proxy {kind} {host}:{port}",
+        "ssh_progress_command_proxy" => "Používá se příkazová proxy",
+        "ssh_progress_forwards" => "Přesměrování portů: {forwards}",
+        "ssh_progress_instance_connect" => "Odesílání dočasného veřejného klíče do {instance} přes EC2 Instance Connect…",
+        "ssh_progress_instance_connect_failed" => "Odeslání přes EC2 Instance Connect selhalo: {error}",
+        "ssh_progress_pane_connecting" => "Připojování k {label} ({host}:{port})...",
+        "ssh_progress_error" => "Chyba: {error}",
+        "ssh_progress_method_auto" => "automatické detekce",
+        "ssh_progress_method_password" => "hesla",
+        "ssh_progress_method_password_prompt" => "hesla zadaného při připojení",
+        "ssh_progress_method_key" => "veřejného klíče",
+        "ssh_progress_method_agent" => "agenta SSH",
+        "ssh_progress_method_interactive" => "keyboard-interactive",
+        "ssh_progress_method_certificate" => "certifikátu",
+        "ssh_progress_method_security_key" => "hardwarového bezpečnostního klíče",
+
         // Navigation
         "expand" => "Rozbalit",
         "collapse" => "Sbalit",

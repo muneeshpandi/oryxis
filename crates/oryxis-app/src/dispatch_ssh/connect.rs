@@ -324,9 +324,9 @@ impl Oryxis {
                     step: ConnectionStep::Starting,
                     logs: vec![(
                         ConnectionStep::Starting,
-                        format!(
-                            "Starting a new connection to \"{}\" port {}",
-                            conn.hostname, conn.port
+                        crate::i18n::t_fill(
+                            "ssh_progress_start",
+                            &[("host", &conn.hostname), ("port", &conn.port.to_string())],
                         ),
                     )],
                     failed: false,
@@ -461,24 +461,19 @@ impl Oryxis {
                     })
                     .unwrap_or_else(|| "root".into());
                 // Human wording for the "Authenticating as ... using ..."
-                // log line ({:?} printed enum variant names like
-                // "PasswordPrompt").
-                let auth_method_label = match conn.auth_method {
-                    oryxis_core::models::connection::AuthMethod::Auto => "auto-detect",
-                    oryxis_core::models::connection::AuthMethod::Password => "password",
-                    oryxis_core::models::connection::AuthMethod::PasswordPrompt => {
-                        "prompted password"
-                    }
-                    oryxis_core::models::connection::AuthMethod::Key => "public key",
-                    oryxis_core::models::connection::AuthMethod::Agent => "SSH agent",
-                    oryxis_core::models::connection::AuthMethod::Interactive => {
-                        "keyboard-interactive"
-                    }
-                    oryxis_core::models::connection::AuthMethod::Certificate => "certificate",
-                    oryxis_core::models::connection::AuthMethod::SecurityKey => {
-                        "hardware security key"
-                    }
-                }
+                // line: a phrase that reads inside a sentence, not the
+                // auth selector's capitalized labels ("using Auto").
+                use oryxis_core::models::connection::AuthMethod;
+                let auth_method_label = crate::i18n::t(match conn.auth_method {
+                    AuthMethod::Auto => "ssh_progress_method_auto",
+                    AuthMethod::Password => "ssh_progress_method_password",
+                    AuthMethod::PasswordPrompt => "ssh_progress_method_password_prompt",
+                    AuthMethod::Key => "ssh_progress_method_key",
+                    AuthMethod::Agent => "ssh_progress_method_agent",
+                    AuthMethod::Interactive => "ssh_progress_method_interactive",
+                    AuthMethod::Certificate => "ssh_progress_method_certificate",
+                    AuthMethod::SecurityKey => "ssh_progress_method_security_key",
+                })
                 .to_string();
                 let keepalive = self.effective_keepalive(&conn);
                 let address_family = conn.address_family;
@@ -749,8 +744,9 @@ impl Oryxis {
                                 let _ = sender
                                     .send(SshStreamMsg::Progress(
                                         ConnectionStep::Connecting,
-                                        format!(
-                                            "Pushing temporary public key to {instance_id} via EC2 Instance Connect…"
+                                        crate::i18n::t_fill(
+                                            "ssh_progress_instance_connect",
+                                            &[("instance", &instance_id)],
                                         ),
                                     ))
                                     .await;
@@ -765,8 +761,9 @@ impl Oryxis {
                                     .await
                                 {
                                     let _ = sender
-                                        .send(SshStreamMsg::Error(format!(
-                                            "EC2 Instance Connect push failed: {e}"
+                                        .send(SshStreamMsg::Error(crate::i18n::t_fill(
+                                            "ssh_progress_instance_connect_failed",
+                                            &[("error", &e.to_string())],
                                         )))
                                         .await;
                                     return;
@@ -805,10 +802,9 @@ impl Oryxis {
                             let n = conn.jump_chain.len();
                             let _ = sender.send(SshStreamMsg::Progress(
                                 ConnectionStep::Connecting,
-                                format!(
-                                    "Routing through {} jump host{}",
-                                    n,
-                                    if n == 1 { "" } else { "s" }
+                                crate::i18n::t_fill(
+                                    "ssh_progress_jump_hosts",
+                                    &[("count", &n.to_string())],
                                 ),
                             )).await;
                         }
@@ -817,13 +813,13 @@ impl Oryxis {
                             // embed credentials, so only its type is logged.
                             let via = match proxy.proxy_type {
                                 oryxis_core::models::connection::ProxyType::Socks5 =>
-                                    format!("Using SOCKS5 proxy {}:{}", proxy.host, proxy.port),
+                                    crate::i18n::t_fill("ssh_progress_proxy", &[("kind", "SOCKS5"), ("host", &proxy.host), ("port", &proxy.port.to_string())]),
                                 oryxis_core::models::connection::ProxyType::Socks4 =>
-                                    format!("Using SOCKS4 proxy {}:{}", proxy.host, proxy.port),
+                                    crate::i18n::t_fill("ssh_progress_proxy", &[("kind", "SOCKS4"), ("host", &proxy.host), ("port", &proxy.port.to_string())]),
                                 oryxis_core::models::connection::ProxyType::Http =>
-                                    format!("Using HTTP proxy {}:{}", proxy.host, proxy.port),
+                                    crate::i18n::t_fill("ssh_progress_proxy", &[("kind", "HTTP"), ("host", &proxy.host), ("port", &proxy.port.to_string())]),
                                 oryxis_core::models::connection::ProxyType::Command(_) =>
-                                    "Using command proxy".to_string(),
+                                    crate::i18n::t("ssh_progress_command_proxy").to_string(),
                             };
                             let _ = sender.send(SshStreamMsg::Progress(
                                 ConnectionStep::Connecting,
@@ -834,9 +830,9 @@ impl Oryxis {
                         // Step 1: TCP connection + SSH handshake + host key verification
                         let _ = sender.send(SshStreamMsg::Progress(
                             ConnectionStep::Connecting,
-                            format!(
-                                "Resolving address and connecting to \"{}\" port {}...",
-                                conn_host, conn_port
+                            crate::i18n::t_fill(
+                                "ssh_progress_connecting",
+                                &[("host", &conn_host), ("port", &conn_port.to_string())],
                             ),
                         )).await;
 
@@ -844,7 +840,7 @@ impl Oryxis {
                             Ok(h) => {
                                 let _ = sender.send(SshStreamMsg::Progress(
                                     ConnectionStep::Handshake,
-                                    "Connection established, SSH handshake complete and host key verified".to_string(),
+                                    crate::i18n::t("ssh_progress_handshake").to_string(),
                                 )).await;
                                 h
                             }
@@ -871,7 +867,7 @@ impl Oryxis {
                                     if let Some(s) = root.strip_prefix(&addr_prefix) {
                                         root = s;
                                     }
-                                    let mut msg = format!("Connection to \"{}\" port {} failed: {}", conn_host, conn_port, root);
+                                    let mut msg = crate::i18n::t_fill("ssh_progress_connection_failed", &[("host", &conn_host), ("port", &conn_port.to_string()), ("error", root)]);
                                     // Additive, never a pre-flight block:
                                     // the row is already saved and the
                                     // dial already ran, so this reaches
@@ -892,14 +888,14 @@ impl Oryxis {
                         // Step 2: Authentication
                         let _ = sender.send(SshStreamMsg::Progress(
                             ConnectionStep::Authenticating,
-                            format!("Authenticating as \"{}\" using {}...", username, auth_method_label),
+                            crate::i18n::t_fill("ssh_progress_authenticating", &[("user", &username), ("method", &auth_method_label)]),
                         )).await;
 
                         let auth_material = private_key
                             .as_deref()
                             .map(|pem| oryxis_ssh::KeyMaterial::new(pem, certificate.as_deref()));
                         if let Err(e) = engine.do_authenticate(&mut handle, &conn, password.as_deref(), auth_material).await {
-                            let mut msg = format!("Authentication failed for \"{}\": {}", username, e);
+                            let mut msg = crate::i18n::t_fill("ssh_progress_auth_failed", &[("user", &username), ("error", &e.to_string())]);
                             // Additive, like the host-field hint above:
                             // the engine names what was missing, this
                             // names the file that should have supplied
@@ -914,7 +910,7 @@ impl Oryxis {
 
                         let _ = sender.send(SshStreamMsg::Progress(
                             ConnectionStep::Authenticated,
-                            format!("Authenticated as \"{}\"", username),
+                            crate::i18n::t_fill("ssh_progress_authenticated", &[("user", &username)]),
                         )).await;
 
                         // Step 3: Open PTY session (+ port forwards)
@@ -924,12 +920,12 @@ impl Oryxis {
                                 .collect();
                             let _ = sender.send(SshStreamMsg::Progress(
                                 ConnectionStep::OpeningSession,
-                                format!("Port forwards: {}", fwd_summary.join(", ")),
+                                crate::i18n::t_fill("ssh_progress_forwards", &[("forwards", &fwd_summary.join(", "))]),
                             )).await;
                         }
                         let _ = sender.send(SshStreamMsg::Progress(
                             ConnectionStep::OpeningSession,
-                            "Opening terminal session and requesting a PTY...".to_string(),
+                            crate::i18n::t("ssh_progress_opening_session").to_string(),
                         )).await;
                         match engine.open_session(handle, DEFAULT_TERM_COLS, DEFAULT_TERM_ROWS, &conn.port_forwards).await {
                             Ok((session, mut rx)) => {
@@ -939,13 +935,13 @@ impl Oryxis {
                                 // the timeline explains the differing TERM.
                                 if let Some(fb) = session.term_fallback() {
                                     let line = match fb.used.as_deref() {
-                                        Some(used) => format!(
-                                            "Host has no terminfo entry for \"{}\"; using \"{}\" for this session",
-                                            fb.requested, used
+                                        Some(used) => crate::i18n::t_fill(
+                                            "term_fallback_toast",
+                                            &[("requested", &fb.requested), ("used", used)],
                                         ),
-                                        None => format!(
-                                            "Host has no terminfo entry for \"{}\" and no fallback was found; full-screen apps may misbehave",
-                                            fb.requested
+                                        None => crate::i18n::t_fill(
+                                            "term_missing_toast",
+                                            &[("requested", &fb.requested)],
                                         ),
                                     };
                                     let _ = sender.send(SshStreamMsg::Progress(
@@ -964,7 +960,7 @@ impl Oryxis {
                             }
                             Err(e) => {
                                 let _ = sender.send(SshStreamMsg::Error(
-                                    format!("Terminal session setup failed: {}", e),
+                                    crate::i18n::t_fill("ssh_progress_session_failed", &[("error", &e.to_string())]),
                                 )).await;
                             }
                         }
@@ -1181,10 +1177,7 @@ impl Oryxis {
             return Task::none();
         };
         term.set_palette(self.resolve_terminal_palette_for_connection(&conn));
-        term.process(
-            format!("Connecting to {} ({}:{})...\r\n", conn.label, conn.hostname, conn.port)
-                .as_bytes(),
-        );
+        term.process(pane_connecting_line(&conn).as_bytes());
         let terminal = Arc::new(Mutex::new(term));
         let Some(pane_id) = self.make_split_pane(
             tab_idx,
@@ -1219,10 +1212,7 @@ impl Oryxis {
             return Task::none();
         };
         term.set_palette(self.resolve_terminal_palette_for_connection(&conn));
-        term.process(
-            format!("Connecting to {} ({}:{})...\r\n", conn.label, conn.hostname, conn.port)
-                .as_bytes(),
-        );
+        term.process(pane_connecting_line(&conn).as_bytes());
         let terminal = Arc::new(Mutex::new(term));
         let Some(pane_id) = self.make_split_pane(
             tab_idx,
@@ -1771,6 +1761,18 @@ pub(crate) fn disk_key_hint(conn: &oryxis_core::models::Connection) -> Option<St
                 .replace("{error}", &err),
         ),
     }
+}
+
+/// The seed line a pane shows before its dial answers (split, session
+/// group restore, SFTP console): one owner so the three cannot drift.
+pub(crate) fn pane_connecting_line(conn: &oryxis_core::models::Connection) -> String {
+    format!(
+        "{}\r\n",
+        crate::i18n::t_fill(
+            "ssh_progress_pane_connecting",
+            &[("label", &conn.label), ("host", &conn.hostname), ("port", &conn.port.to_string())],
+        )
+    )
 }
 
 pub(crate) fn host_field_hint(host: &str) -> Option<String> {

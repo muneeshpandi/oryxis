@@ -331,6 +331,36 @@ pub fn t(key: &str) -> &'static str {
     translate(key, lang)
 }
 
+/// Fill a translated template's `{name}` placeholders in ONE pass, so a
+/// substituted value (a username, a raw server diagnostic) that happens
+/// to contain `{user}` is kept verbatim instead of being expanded by the
+/// next replacement, and a translation may reorder its parameters. An
+/// unknown placeholder is left as written.
+/// Usage: `t_fill("ssh_progress_authenticated", &[("user", &name)])`.
+pub fn t_fill(key: &str, values: &[(&str, &str)]) -> String {
+    fill(t(key), values)
+}
+
+pub(crate) fn fill(mut template: &str, values: &[(&str, &str)]) -> String {
+    let mut result = String::with_capacity(template.len());
+    while let Some(start) = template.find('{') {
+        result.push_str(&template[..start]);
+        template = &template[start..];
+        let Some(end) = template.find('}') else {
+            break;
+        };
+        let name = &template[1..end];
+        let replacement = values
+            .iter()
+            .find(|(key, _)| *key == name)
+            .map_or(&template[..=end], |(_, value)| *value);
+        result.push_str(replacement);
+        template = &template[end + 1..];
+    }
+    result.push_str(template);
+    result
+}
+
 /// English lookup, independent of the active-language global. Used by
 /// coverage tests that assert a key resolves (English is the table that
 /// always returns a value, `"???"` for an unknown key) and by the
@@ -420,7 +450,94 @@ fn translate(key: &str, lang: Language) -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use super::Language;
+    use super::*;
+
+    #[test]
+    fn ssh_progress_translations_cover_every_locale_and_keep_their_placeholders() {
+        type Lookup = fn(&str) -> Option<&'static str>;
+        let locales: &[(&str, Lookup)] = &[
+            ("en", |key| Some(en::lookup(key))),
+            ("zh", zh::lookup),
+            ("zh_tw", zh_tw::lookup),
+            ("de", de::lookup),
+            ("fr", fr::lookup),
+            ("es", es::lookup),
+            ("pt_br", pt_br::lookup),
+            ("it", it::lookup),
+            ("ja", ja::lookup),
+            ("ko", ko::lookup),
+            ("ru", ru::lookup),
+            ("uk", uk::lookup),
+            ("pl", pl::lookup),
+            ("tr", tr::lookup),
+            ("id", id::lookup),
+            ("vi", vi::lookup),
+            ("th", th::lookup),
+            ("hi", hi::lookup),
+            ("cs", cs::lookup),
+            ("el", el::lookup),
+            ("ar", ar::lookup),
+            ("fa", fa::lookup),
+            ("he", he::lookup),
+        ];
+        let keys = [
+            "ssh_progress_start",
+            "ssh_progress_connecting",
+            "ssh_progress_handshake",
+            "ssh_progress_authenticating",
+            "ssh_progress_authenticated",
+            "ssh_progress_opening_session",
+            "ssh_progress_connection_failed",
+            "ssh_progress_auth_failed",
+            "ssh_progress_session_failed",
+            "ssh_progress_jump_hosts",
+            "ssh_progress_proxy",
+            "ssh_progress_command_proxy",
+            "ssh_progress_forwards",
+            "ssh_progress_instance_connect",
+            "ssh_progress_instance_connect_failed",
+            "ssh_progress_pane_connecting",
+            "ssh_progress_error",
+            "ssh_progress_method_auto",
+            "ssh_progress_method_password",
+            "ssh_progress_method_password_prompt",
+            "ssh_progress_method_key",
+            "ssh_progress_method_agent",
+            "ssh_progress_method_interactive",
+            "ssh_progress_method_certificate",
+            "ssh_progress_method_security_key",
+        ];
+        fn placeholders(text: &str) -> std::collections::BTreeSet<&str> {
+            text.split('{')
+                .skip(1)
+                .filter_map(|part| part.split_once('}').map(|(name, _)| name))
+                .collect()
+        }
+        assert_eq!(locales.len(), Language::ALL.len());
+        for (locale, lookup) in locales {
+            for key in keys {
+                let text = lookup(key).unwrap_or_else(|| panic!("{locale} is missing {key}"));
+                assert_eq!(
+                    placeholders(text),
+                    placeholders(en::lookup(key)),
+                    "{locale}: {key}",
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn fill_reorders_parameters_without_rewriting_substituted_text() {
+        assert_eq!(
+            fill("{method}: {user}", &[("user", "name{method}"), ("method", "密钥")]),
+            "密钥: name{method}",
+        );
+        assert_eq!(
+            fill("{user}: {error}", &[("user", "root"), ("error", "拒绝 {user}: 🔑")]),
+            "root: 拒绝 {user}: 🔑",
+        );
+        assert_eq!(fill("{unknown} {", &[("user", "x")]), "{unknown} {");
+    }
 
     /// Every supported code resolves to itself, regardless of case or
     /// the `_` separator some platforms use.
