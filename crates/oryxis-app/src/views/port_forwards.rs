@@ -428,6 +428,7 @@ impl Oryxis {
                     text_input(placeholder, value)
                         .id(iced::widget::Id::new(id))
                         .on_input(on_input)
+                        .size(13)
                         .padding(10)
                         .style(crate::widgets::rounded_input_style)
                         .align_x(dir_align_x())
