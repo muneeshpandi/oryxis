@@ -13,8 +13,8 @@
 
 use iced::Widget as _;
 use iced::border::Radius;
-use iced::widget::{button, column, container, text, Column, Space};
-use iced::{Background, Border, Color, Element, Length, Padding};
+use iced::widget::{column, container, text, Column, Space};
+use iced::{Background, Border, Element, Length};
 
 use crate::app::{Message, Oryxis, SshMessage};
 use crate::i18n::t;
@@ -85,55 +85,19 @@ impl Oryxis {
     /// stray Enter must never spawn a local process.
     pub(crate) fn proxy_command_buttons(&self) -> Element<'_, Message> {
         self.modal_nav_reset();
-        let plain = |label: &'static str, msg: Message, outlined: bool| {
-            button(
-                container(text(t(label)).size(13).color(OryxisColors::t().text_primary)).padding(
-                    Padding { top: 10.0, right: 20.0, bottom: 10.0, left: 20.0 },
-                ),
-            )
-            .on_press(msg)
-            .style(move |_, status| button::Style {
-                background: Some(Background::Color(match status {
-                    button::Status::Hovered | button::Status::Pressed => OryxisColors::t().bg_hover,
-                    _ => OryxisColors::t().bg_surface,
-                })),
-                border: Border {
-                    radius: Radius::from(8.0),
-                    color: if outlined {
-                        OryxisColors::t().border
-                    } else {
-                        Color::TRANSPARENT
-                    },
-                    width: if outlined { 1.0 } else { 0.0 },
-                },
-                ..Default::default()
-            })
+        // The two secondary choices (Deny / Once) share the compact
+        // styled_button; `_outlined` is kept in the signature so the
+        // call sites below read unchanged, but the helper's own border
+        // is used for both now.
+        let plain = |label: &'static str, msg: Message, _outlined: bool| {
+            crate::widgets::styled_button(t(label), msg, OryxisColors::t().bg_hover)
         };
 
-        let always_fg = crate::theme::contrast_text_for(OryxisColors::t().accent);
-        let always = button(
-            container(
-                text(t("proxy_cmd_always"))
-                    .size(13)
-                    .font(iced::Font {
-                        weight: iced::font::Weight::Semibold,
-                        ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
-                    })
-                    .color(always_fg),
-            )
-            .padding(Padding { top: 10.0, right: 20.0, bottom: 10.0, left: 20.0 }),
-        )
-        .on_press(Message::Ssh(SshMessage::SshProxyCommandAlways))
-        .style(|_, status| button::Style {
-            background: Some(Background::Color(match status {
-                button::Status::Hovered | button::Status::Pressed => {
-                    OryxisColors::t().accent_hover
-                }
-                _ => OryxisColors::t().accent,
-            })),
-            border: Border { radius: Radius::from(8.0), ..Default::default() },
-            ..Default::default()
-        });
+        let always = crate::widgets::styled_button(
+            t("proxy_cmd_always"),
+            Message::Ssh(SshMessage::SshProxyCommandAlways),
+            OryxisColors::t().accent,
+        );
 
         use crate::keynav::RowAction;
         dir_row(vec![

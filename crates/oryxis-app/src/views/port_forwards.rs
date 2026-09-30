@@ -524,19 +524,13 @@ impl Oryxis {
             let del_btn = self.panel_nav_slot(
                 crate::keynav::RowAction::activate(Message::PortForward(PortForwardMessage::RequestDeletePortForwardRule(idx))),
                 8.0,
-                button(
-                    container(text(t("delete")).size(13).color(OryxisColors::t().error))
-                        .padding(Padding { top: 10.0, right: 0.0, bottom: 10.0, left: 0.0 })
-                        .width(Length::Fill).center_x(Length::Fill),
-                )
-                .on_press(Message::PortForward(PortForwardMessage::RequestDeletePortForwardRule(idx)))
-                .width(Length::Fill)
-                .style(|_, _| button::Style {
-                    background: Some(Background::Color(Color::TRANSPARENT)),
-                    border: Border { radius: Radius::from(8.0), color: OryxisColors::t().error, width: 1.0 },
-                    ..Default::default()
-                })
-                .boxed(),
+                crate::widgets::footer_button(
+                    t("delete").to_string(),
+                    Message::PortForward(PortForwardMessage::RequestDeletePortForwardRule(idx)),
+                    OryxisColors::t().error,
+                    Color::TRANSPARENT,
+                    Border { radius: Radius::from(6.0), color: OryxisColors::t().error, width: 1.0 },
+                ),
             );
             body = body.push(Space::new().height(20).boxed());
             body = body.push(del_btn);
@@ -636,61 +630,21 @@ impl Oryxis {
     /// stray Enter must never trust a host key.
     pub(crate) fn host_key_buttons(&self) -> Element<'_, Message> {
         self.modal_nav_reset();
-        let close_btn = button(
-            container(text(t("close")).size(13).color(OryxisColors::t().text_primary))
-                .padding(Padding { top: 10.0, right: 20.0, bottom: 10.0, left: 20.0 }),
-        )
-        .on_press(Message::Ssh(SshMessage::SshHostKeyReject))
-        .style(|_, status| button::Style {
-            background: Some(Background::Color(match status {
-                button::Status::Hovered | button::Status::Pressed => OryxisColors::t().bg_hover,
-                _ => OryxisColors::t().bg_surface,
-            })),
-            border: Border { radius: Radius::from(8.0), ..Default::default() },
-            ..Default::default()
-        });
-        let continue_btn = button(
-            container(text(t("hk_continue")).size(13).color(OryxisColors::t().text_primary))
-                .padding(Padding { top: 10.0, right: 20.0, bottom: 10.0, left: 20.0 }),
-        )
-        .on_press(Message::Ssh(SshMessage::SshHostKeyContinue))
-        .style(|_, status| button::Style {
-            background: Some(Background::Color(match status {
-                button::Status::Hovered | button::Status::Pressed => OryxisColors::t().bg_hover,
-                _ => OryxisColors::t().bg_surface,
-            })),
-            border: Border { radius: Radius::from(8.0), color: OryxisColors::t().border, width: 1.0 },
-            ..Default::default()
-        });
-        let accept_fg = crate::theme::contrast_text_for(OryxisColors::t().success);
-        let accept_btn = button(
-            container(
-                text(t("hk_add_and_continue"))
-                    .size(13)
-                    .font(iced::Font {
-                        weight: iced::font::Weight::Semibold,
-                        ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
-                    })
-                    .color(accept_fg),
-            )
-            .padding(Padding { top: 10.0, right: 20.0, bottom: 10.0, left: 20.0 }),
-        )
-        .on_press(Message::Ssh(SshMessage::SshHostKeyAcceptAndSave))
-        .style(|_, status| button::Style {
-            background: Some(Background::Color(match status {
-                // No dedicated success_hover in the palette; nudge the
-                // fill toward the text colour, which lightens on dark
-                // themes and darkens on light ones.
-                button::Status::Hovered | button::Status::Pressed => crate::theme::mix(
-                    OryxisColors::t().success,
-                    OryxisColors::t().text_primary,
-                    0.15,
-                ),
-                _ => OryxisColors::t().success,
-            })),
-            border: Border { radius: Radius::from(8.0), ..Default::default() },
-            ..Default::default()
-        });
+        let close_btn = crate::widgets::styled_button(
+            t("close"),
+            Message::Ssh(SshMessage::SshHostKeyReject),
+            OryxisColors::t().bg_hover,
+        );
+        let continue_btn = crate::widgets::styled_button(
+            t("hk_continue"),
+            Message::Ssh(SshMessage::SshHostKeyContinue),
+            OryxisColors::t().bg_hover,
+        );
+        let accept_btn = crate::widgets::styled_button(
+            t("hk_add_and_continue"),
+            Message::Ssh(SshMessage::SshHostKeyAcceptAndSave),
+            OryxisColors::t().success,
+        );
 
         use crate::keynav::RowAction;
         dir_row(vec![
@@ -773,32 +727,21 @@ impl Oryxis {
         }
         body = body.push(Space::new().height(6).boxed());
 
-        let cancel_btn = button(
-            container(text(t("cancel")).size(13).color(OryxisColors::t().text_primary))
-                .padding(Padding { top: 9.0, right: 18.0, bottom: 9.0, left: 18.0 }),
-        )
-        .on_press(Message::Ssh(SshMessage::SshKbiCancel))
-        .style(|_, _| button::Style {
-            background: Some(Background::Color(OryxisColors::t().bg_surface)),
-            border: Border { radius: Radius::from(8.0), ..Default::default() },
-            ..Default::default()
-        });
-        let submit_fg = crate::theme::contrast_text_for(OryxisColors::t().accent);
-        let submit_btn = button(
-            container(text(t("kbi_submit")).size(13).color(submit_fg))
-                .padding(Padding { top: 9.0, right: 18.0, bottom: 9.0, left: 18.0 }),
-        )
-        .on_press(Message::Ssh(SshMessage::SshKbiSubmit))
-        .style(|_, _| button::Style {
-            background: Some(Background::Color(OryxisColors::t().accent)),
-            border: Border { radius: Radius::from(8.0), ..Default::default() },
-            ..Default::default()
-        });
+        let cancel_btn = crate::widgets::styled_button(
+            t("cancel"),
+            Message::Ssh(SshMessage::SshKbiCancel),
+            OryxisColors::t().bg_hover,
+        );
+        let submit_btn = crate::widgets::styled_button(
+            t("kbi_submit"),
+            Message::Ssh(SshMessage::SshKbiSubmit),
+            OryxisColors::t().accent,
+        );
 
         let buttons = dir_row(vec![
-            cancel_btn.boxed(),
+            cancel_btn,
             Space::new().width(Length::Fill).boxed(),
-            submit_btn.boxed(),
+            submit_btn,
         ])
         .align_y(iced::Alignment::Center);
 

@@ -4,7 +4,7 @@
 use iced::Widget as _;
 use iced::alignment::Horizontal;
 use iced::border::Radius;
-use iced::widget::{button, column, container, pick_list, row, scrollable, text, text_input, Space};
+use iced::widget::{column, container, pick_list, row, scrollable, text, text_input, Space};
 use iced::{Background, Border, Color, Element, Length, Padding};
 
 use crate::app::{SshMessage, Message, Oryxis};
@@ -235,24 +235,15 @@ impl Oryxis {
             if self.progress_privacy_on(progress) {
                 header_children.push(Space::new().width(8).boxed());
             }
-            let edit_btn: Element<'_, Message> = button(
-                container(text(crate::i18n::t("edit_host")).size(13).color(OryxisColors::t().text_primary))
-                    .padding(Padding { top: 8.0, right: 16.0, bottom: 8.0, left: 16.0 }),
-            )
-            .on_press(Message::Ssh(SshMessage::SshEditFromProgress))
-            .style(|_, status| button::Style {
-                background: Some(Background::Color(match status {
-                    button::Status::Hovered | button::Status::Pressed => OryxisColors::t().bg_hover,
-                    _ => OryxisColors::t().bg_surface,
-                })),
-                border: Border { radius: Radius::from(8.0), ..Default::default() },
-                ..Default::default()
-            })
-            .boxed();
+            let edit_btn: Element<'_, Message> = crate::widgets::styled_button(
+                crate::i18n::t("edit_host"),
+                Message::Ssh(SshMessage::SshEditFromProgress),
+                OryxisColors::t().bg_hover,
+            );
             header_children.push(self.progress_slot(
                 owned,
                 Message::Ssh(SshMessage::SshEditFromProgress),
-                8.0,
+                6.0,
                 false,
                 edit_btn,
             ));
@@ -565,50 +556,17 @@ impl Oryxis {
                 })
                 .boxed();
 
-            let cancel_btn = button(
-                container(text(crate::i18n::t("cancel")).size(13).color(OryxisColors::t().text_primary))
-                    .padding(Padding { top: 10.0, right: 24.0, bottom: 10.0, left: 24.0 }),
-            )
-            .on_press(Message::Ssh(SshMessage::SshKbiCancel))
-            .style(|_, status| button::Style {
-                background: Some(Background::Color(match status {
-                    button::Status::Hovered | button::Status::Pressed => OryxisColors::t().bg_hover,
-                    _ => OryxisColors::t().bg_surface,
-                })),
-                border: Border { radius: Radius::from(8.0), ..Default::default() },
-                ..Default::default()
-            });
+            let cancel_btn = crate::widgets::styled_button(
+                crate::i18n::t("cancel"),
+                Message::Ssh(SshMessage::SshKbiCancel),
+                OryxisColors::t().bg_hover,
+            );
 
-            let submit_btn = {
-                let fg = crate::theme::contrast_text_for(OryxisColors::t().accent);
-                button(
-                    container(
-                        text(crate::i18n::t("kbi_submit"))
-                            .size(13)
-                            .font(iced::Font {
-                                weight: iced::font::Weight::Semibold,
-                                ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
-                            })
-                            .color(fg),
-                    )
-                    .padding(Padding { top: 10.0, right: 24.0, bottom: 10.0, left: 24.0 }),
-                )
-                .on_press(Message::Ssh(SshMessage::SshKbiSubmit))
-                .style(|_, status| button::Style {
-                    background: Some(Background::Color(match status {
-                        // No dedicated hover tone in the palette; nudge the fill
-                        // toward the text colour, as the host-key buttons do.
-                        button::Status::Hovered | button::Status::Pressed => crate::theme::mix(
-                            OryxisColors::t().accent,
-                            OryxisColors::t().text_primary,
-                            0.15,
-                        ),
-                        _ => OryxisColors::t().accent,
-                    })),
-                    border: Border { radius: Radius::from(8.0), ..Default::default() },
-                    ..Default::default()
-                })
-            };
+            let submit_btn = crate::widgets::styled_button(
+                crate::i18n::t("kbi_submit"),
+                Message::Ssh(SshMessage::SshKbiSubmit),
+                OryxisColors::t().accent,
+            );
 
             let btm: Element<'_, Message> = row![
                 cancel_btn,
@@ -1064,94 +1022,50 @@ impl Oryxis {
             payload.push('\n');
         }
 
-        let copy_btn = button(
-            container(
-                row![
-                    iced_fonts::lucide::copy().size(13).color(OryxisColors::t().text_secondary),
-                    Space::new().width(8),
-                    text(crate::i18n::t("copy_logs")).size(13).color(OryxisColors::t().text_primary),
-                ]
-                .align_y(iced::Alignment::Center),
-            )
-            .padding(Padding { top: 10.0, right: 18.0, bottom: 10.0, left: 18.0 }),
-        )
-        .on_press(Message::CopyToClipboard(payload.clone()))
-        .style(|_, status| button::Style {
-            background: Some(Background::Color(match status {
-                button::Status::Hovered | button::Status::Pressed => OryxisColors::t().bg_hover,
-                _ => OryxisColors::t().bg_surface,
-            })),
-            border: Border { radius: Radius::from(8.0), ..Default::default() },
-            ..Default::default()
-        });
+        let copy_btn = crate::widgets::styled_icon_button(
+            iced_fonts::lucide::copy()
+                .size(13)
+                .color(OryxisColors::t().text_secondary)
+                .boxed(),
+            crate::i18n::t("copy_logs"),
+            Message::CopyToClipboard(payload.clone()),
+            OryxisColors::t().bg_hover,
+        );
 
-        let close_btn = button(
-            container(text(crate::i18n::t("close")).size(13).color(OryxisColors::t().text_primary))
-                .padding(Padding { top: 10.0, right: 24.0, bottom: 10.0, left: 24.0 }),
-        )
-        .on_press(Message::Ssh(SshMessage::SshCloseProgress))
-        .style(|_, status| button::Style {
-            background: Some(Background::Color(match status {
-                button::Status::Hovered | button::Status::Pressed => OryxisColors::t().bg_hover,
-                _ => OryxisColors::t().bg_surface,
-            })),
-            border: Border { radius: Radius::from(8.0), ..Default::default() },
-            ..Default::default()
-        });
+        let close_btn = crate::widgets::styled_button(
+            crate::i18n::t("close"),
+            Message::Ssh(SshMessage::SshCloseProgress),
+            OryxisColors::t().bg_hover,
+        );
 
-        let start_over_btn = {
-            let fg = crate::theme::contrast_text_for(OryxisColors::t().success);
-            button(
-                container(
-                    text(crate::i18n::t("start_over"))
-                        .size(13)
-                        .font(iced::Font {
-                            weight: iced::font::Weight::Semibold,
-                            ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
-                        })
-                        .color(fg),
-                )
-                .padding(Padding { top: 10.0, right: 24.0, bottom: 10.0, left: 24.0 }),
-            )
-            .on_press(Message::Ssh(SshMessage::SshRetry))
-            .style(|_, status| button::Style {
-                background: Some(Background::Color(match status {
-                    // No dedicated hover tone in the palette; nudge the fill
-                    // toward the text colour, as the host-key buttons do.
-                    button::Status::Hovered | button::Status::Pressed => crate::theme::mix(
-                        OryxisColors::t().success,
-                        OryxisColors::t().text_primary,
-                        0.15,
-                    ),
-                    _ => OryxisColors::t().success,
-                })),
-                border: Border { radius: Radius::from(8.0), ..Default::default() },
-                ..Default::default()
-            })
-        };
+        let start_over_btn = crate::widgets::styled_button(
+            crate::i18n::t("start_over"),
+            Message::Ssh(SshMessage::SshRetry),
+            OryxisColors::t().success,
+        );
 
         // Recorded in reading order (Copy, Close, Start over), the same
         // logical order `dir_row` lays out and mirrors under RTL.
         let copy_btn = self.progress_slot(
             owned,
             Message::CopyToClipboard(payload),
-            8.0,
+            6.0,
             false,
-            copy_btn.boxed(),
+            copy_btn,
         );
         let close_btn = self.progress_slot(
             owned,
             Message::Ssh(SshMessage::SshCloseProgress),
-            8.0,
+            6.0,
             false,
-            close_btn.boxed(),
+            close_btn,
         );
         let start_over_btn = self.progress_slot(
             owned,
             Message::Ssh(SshMessage::SshRetry),
-            8.0,
+            6.0,
             true,
-            start_over_btn.boxed(),
+            start_over_btn,
         );
         let buttons = crate::widgets::dir_row(vec![
             copy_btn,
