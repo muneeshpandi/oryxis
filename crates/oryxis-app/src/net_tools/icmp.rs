@@ -26,9 +26,12 @@
 //! without a network; the unsafe is confined to the send / receive.
 
 use std::net::IpAddr;
-// Read by the Linux and Windows probes and by the tests; the other
-// platforms answer `Unavailable::Platform` before an address is parsed.
-#[cfg(any(test, target_os = "linux", target_os = "windows"))]
+// `Ipv4Addr` is only touched on the platforms that build the native
+// probe themselves (Linux datagram-ICMP decode, the Windows
+// `IcmpSendEcho2` path) and in the tests; on macOS / the BSDs the whole
+// native path is absent and the import would sit unused, so gate it the
+// same way the packet-vocabulary constants below are gated.
+#[cfg(any(target_os = "linux", target_os = "windows", test))]
 use std::net::Ipv4Addr;
 use std::time::Duration;
 
@@ -67,12 +70,16 @@ pub(crate) enum Unavailable {
     Failed(String),
 }
 
-/// What one probe got back. Only the Linux and Windows probes build
-/// one; elsewhere the walk stops at `Unavailable::Platform`, so the
-/// variants are read but never constructed and `-D warnings` on a
-/// macOS build would refuse the enum without the allowance.
+/// What one probe got back.
+///
+/// The variants are CONSTRUCTED only where a native probe runs (the
+/// Linux and Windows paths) and in the tests; on macOS / the BSDs the
+/// enum is only matched (the `is_final` / `source` / `rtt_ms` readers),
+/// never built, so the same platform gate the packet constants use keeps
+/// it dead-code-clean there without hiding a real unused variant on the
+/// platforms that do construct it.
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(not(any(test, target_os = "linux", target_os = "windows")), allow(dead_code))]
+#[cfg_attr(not(any(target_os = "linux", target_os = "windows", test)), allow(dead_code))]
 pub(crate) enum Outcome {
     /// The target itself answered: an echo reply.
     Reply { from: IpAddr, rtt_ms: f32 },
