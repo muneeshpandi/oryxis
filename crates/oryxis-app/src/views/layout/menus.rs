@@ -710,11 +710,16 @@ impl Oryxis {
             indent(item(
                 "hosts",
                 // Mirrors the Hosts sub-nav pill (same list, same
-                // destination) and the shortcut this row renders next to
-                // itself: the vault section, at its root. The Home tab is
-                // the door that keeps the folder (`GoHome`).
+                // destination): the vault section, at its root. The Home
+                // tab is the door that keeps the folder (`GoHome`).
                 Message::Navigation(NavigationMessage::ChangeView(View::Dashboard)),
-                self.hotkey_label_for_vault_slot(1)
+                // Show the dedicated OpenHosts shortcut (Cmd+Shift+H),
+                // the one purpose-built for this row, rather than the
+                // positional Cmd+Shift+1 vault-slot family. Falls back to
+                // the slot hint if OpenHosts is unbound, so the row never
+                // loses its shortcut affordance.
+                self.hotkey_label_for_action(crate::hotkeys::HotkeyAction::OpenHosts)
+                    .or_else(|| self.hotkey_label_for_vault_slot(1))
             )),
             indent(item(
                 "keychain",
