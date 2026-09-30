@@ -296,10 +296,96 @@ impl Oryxis {
         // (`root_view.rs`), so notifications raised while the user sits
         // in the Dashboard / Settings views are visible too.
         let mut stack = iced::widget::Stack::<iced::Element<'_, _>>::new().push(base.boxed());
+        // iTerm2-style host badge: the active pane's saved connection
+        // label, floating at the top-right of the terminal viewport.
+        // Pushed under the transfer card so an in-flight transfer's UI
+        // is never covered by it.
+        if let Some(badge) = self.host_badge_overlay() {
+            stack = stack.push(badge);
+        }
         if let Some(zm) = self.transfer_overlay() {
             stack = stack.push(zm);
         }
         stack.boxed()
+    }
+
+    /// The iTerm2-style host badge floating at the top-right of the
+    /// terminal content: the active pane's SAVED connection label
+    /// ("jumpserver"), so a glance names which host this session is on
+    /// regardless of what the remote prompt shows.
+    ///
+    /// `None` for panes with no saved connection (local shells,
+    /// quick-connect, cloud/ephemeral): there is no curated host name to
+    /// show, and the pane label already reads "Local Shell". Redacted
+    /// under Privacy Mode like the pane header and link chip, since a
+    /// label routinely embeds the hostname.
+    fn host_badge_overlay(&self) -> Option<Element<'_, Message>> {
+        let conn = self
+            .active_tab
+            .and_then(|i| self.tabs.get(i))
+            .map(|t| t.active())
+            .and_then(|p| match &p.origin {
+                crate::state::PaneOrigin::Host(id) => {
+                    self.connections.iter().find(|c| c.id == *id)
+                }
+                _ => None,
+            })?;
+
+        let colors = OryxisColors::t();
+        let shown = if self.privacy_active(conn) {
+            crate::widgets::redact_for_display(
+                &conn.label,
+                &self.privacy_terms(),
+                self.privacy_classes(),
+            )
+        } else {
+            conn.label.clone()
+        };
+        // Cap it so a very long label can't stretch across the viewport.
+        let label = truncate_middle(&shown, 40);
+
+        // Per-host color so each host's badge is its own hue. A host with
+        // an explicit color (custom or saved) uses it; otherwise we
+        // DERIVE a stable hue from the connection id, so every host gets
+        // a distinct color automatically without the user configuring one
+        // (the fallback to the single global accent made every badge the
+        // same blue). Run through the contrast validator against the
+        // terminal background so a near-black color can't render invisible.
+        let host_color = conn
+            .custom_color
+            .as_deref()
+            .or(conn.color.as_deref())
+            .and_then(crate::widgets::parse_hex_color)
+            .unwrap_or_else(|| badge_hue_for(conn.id));
+        let badge_color =
+            crate::theme::readable_accent_on(host_color, colors.terminal_bg);
+
+        // iTerm2-style badge: bare BOLD text floating over the terminal,
+        // no pill/box. Size is user-adjustable (Settings > Interface);
+        // bright in the host's own color so it reads clearly over a dark
+        // terminal without a background plate; right-aligned so a long
+        // label runs toward the corner.
+        let badge = text(label)
+            .size(self.prefs.host_badge_font_size)
+            .font(iced::Font {
+                weight: iced::font::Weight::Bold,
+                ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
+            })
+            .color(badge_color)
+            .align_x(iced::alignment::Horizontal::Right);
+
+        // Float at the top-right of the terminal viewport, with a small
+        // inset. Non-interactive (no MouseArea) so it stays click-through
+        // over the canvas.
+        Some(
+            container(badge)
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .align_x(iced::alignment::Horizontal::Right)
+                .align_y(iced::alignment::Vertical::Top)
+                .padding(Padding { top: 8.0, right: 12.0, bottom: 0.0, left: 0.0 })
+                .boxed(),
+        )
     }
 
     /// Bottom-center transfer card over the terminal while the active
@@ -1687,6 +1773,42 @@ impl Oryxis {
             .height(Length::Fill)
             .boxed()
     }
+}
+
+/// A stable, distinct badge color derived from a connection id, used
+/// for the host badge when the host has no explicit color of its own.
+/// Hashing the id to a hue gives every host a different, deterministic
+/// color (same host → same color across restarts) so the badges are
+/// visually distinguishable without the user configuring anything.
+///
+/// Fixed high saturation / lightness so the result is always a bright,
+/// readable color; the caller still runs it through the contrast
+/// validator against the terminal background as a final safety net.
+fn badge_hue_for(id: uuid::Uuid) -> iced::Color {
+    // Fold the 16 id bytes into a hue in [0, 360). Any byte mix works;
+    // the id is random enough that a plain sum spreads hosts around the
+    // wheel well.
+    let sum: u32 = id.as_bytes().iter().map(|b| *b as u32).sum();
+    let hue = (sum % 360) as f32;
+    hsl_to_color(hue, 0.65, 0.6)
+}
+
+/// Minimal HSL→RGB for [`badge_hue_for`]. `h` in degrees, `s`/`l` in
+/// [0, 1]. Kept local since this is the only caller.
+fn hsl_to_color(h: f32, s: f32, l: f32) -> iced::Color {
+    let c = (1.0 - (2.0 * l - 1.0).abs()) * s;
+    let hp = h / 60.0;
+    let x = c * (1.0 - (hp % 2.0 - 1.0).abs());
+    let (r1, g1, b1) = match hp as u32 {
+        0 => (c, x, 0.0),
+        1 => (x, c, 0.0),
+        2 => (0.0, c, x),
+        3 => (0.0, x, c),
+        4 => (x, 0.0, c),
+        _ => (c, 0.0, x),
+    };
+    let m = l - c / 2.0;
+    iced::Color::from_rgb(r1 + m, g1 + m, b1 + m)
 }
 
 /// One icon tab in the sidebar's tab strip. Active tab gets an accent
