@@ -452,7 +452,7 @@ impl Oryxis {
             badge,
             Space::new().height(14),
             text(crate::i18n::t("delete_folder_question"))
-                .size(17)
+                .size(16)
                 .font(iced::Font {
                     weight: iced::font::Weight::Semibold,
                     ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)

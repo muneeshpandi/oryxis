@@ -130,7 +130,7 @@ pub(super) fn sync_host_picker_modal(app: &Oryxis, target: HostPickerTarget) -> 
         column![
             dir_row(vec![
                 text(t("select_a_host"))
-                    .size(15)
+                    .size(16)
                     .color(OryxisColors::t().text_primary)
                     .boxed(),
                 Space::new().width(Length::Fill).boxed(),

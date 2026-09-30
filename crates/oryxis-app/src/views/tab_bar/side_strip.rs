@@ -247,17 +247,15 @@ impl Oryxis {
         ])
         .spacing(TAB_SPACING);
 
-        // Strip surface: the accent wash runs top -> bottom here (the
-        // horizontal bars wash along their leading edge), fading toward
-        // the status bar; same gate and tint as `tab_bar_background`.
+        // Strip surface: a UNIFORM accent tint, not a gradient. The old
+        // top->bottom fade (accent at the top fading to base by 90% down)
+        // read as a washed-out, dimmer lower half — the strip looked
+        // like it was fading into the status bar. A single flat tint
+        // keeps the accent character the `tab_accent_wash` setting asks
+        // for while rendering the whole column evenly, top to bottom.
         let bar_base = OryxisColors::t().bg_sidebar;
         let bar_bg = if self.prefs.tab_accent_wash {
-            let washed = crate::theme::mix(bar_base, self.top_accent_tint(), 0.16);
-            Background::Gradient(iced::Gradient::Linear(
-                iced::gradient::Linear::new(iced::Radians(std::f32::consts::PI))
-                    .add_stop(0.0, washed)
-                    .add_stop(0.9, bar_base),
-            ))
+            Background::Color(crate::theme::mix(bar_base, self.top_accent_tint(), 0.16))
         } else {
             Background::Color(bar_base)
         };

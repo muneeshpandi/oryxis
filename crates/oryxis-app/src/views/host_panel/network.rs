@@ -458,7 +458,7 @@ impl Oryxis {
                         checkbox(checked)
                             .label(algo)
                             .on_toggle(move |_| Message::Editor(EditorMessage::EditorAlgoToggle(cat, name.clone())))
-                            .size(15)
+                            .size(16)
                             .text_size(12)
                             .boxed(),
                     ));

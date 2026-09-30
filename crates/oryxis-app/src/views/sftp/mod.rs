@@ -861,7 +861,7 @@ impl Oryxis {
                         .color(OryxisColors::t().text_muted),
                     Space::new().height(16),
                     text(t("pick_host_to_start"))
-                        .size(15)
+                        .size(14)
                         .color(OryxisColors::t().text_primary),
                     Space::new().height(16),
                     crate::widgets::styled_button(
@@ -1195,7 +1195,7 @@ impl Oryxis {
         let dialog = container(
             column![
                 crate::widgets::dir_row(vec![
-                    text(t("select_a_host")).size(15).color(OryxisColors::t().text_primary).boxed(),
+                    text(t("select_a_host")).size(16).color(OryxisColors::t().text_primary).boxed(),
                     Space::new().width(Length::Fill).boxed(),
                     button(
                         iced_fonts::lucide::x()

@@ -1175,7 +1175,7 @@ impl Oryxis {
                 badge,
                 Space::new().height(14),
                 text(crate::i18n::t("lock_vault_confirm_title"))
-                    .size(17)
+                    .size(16)
                     .font(iced::Font {
                         weight: iced::font::Weight::Semibold,
                         ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
@@ -1269,7 +1269,7 @@ impl Oryxis {
             badge,
             Space::new().height(14),
             text(crate::i18n::t("monitor_kill_title"))
-                .size(17)
+                .size(16)
                 .font(iced::Font {
                     weight: iced::font::Weight::Semibold,
                     ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
