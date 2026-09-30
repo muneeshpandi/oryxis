@@ -3,6 +3,8 @@
 # own target dir); its Cargo.lock IS committed, its target isn't.
 /crates/oryxis-gif/target/
 .idea
+# macOS Finder folder-metadata clutter, never project data.
+.DS_Store
 .env
 signaling-worker/wrangler.jsonc
 signaling-worker/.wrangler/
