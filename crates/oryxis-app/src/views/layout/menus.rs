@@ -856,9 +856,17 @@ impl Oryxis {
                 )
             }
         } else {
+            // macOS: the burger sits after the traffic lights' corner of
+            // the top bar, which is always the physical left, so it only
+            // moves the LTR anchor (under RTL the burger is on the right).
             (
                 dir_align_x(),
-                Padding { top: 44.0, right: 6.0, bottom: 0.0, left: 6.0 },
+                Padding {
+                    top: 44.0,
+                    right: 6.0,
+                    bottom: 0.0,
+                    left: 6.0 + self.traffic_light_inset(),
+                },
             )
         };
         let pinned = container(menu_panel)

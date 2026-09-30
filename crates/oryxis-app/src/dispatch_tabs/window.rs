@@ -257,10 +257,11 @@ impl Oryxis {
             // reason: the green button (and the Window menu, and a
             // Mission Control gesture) enter and leave native
             // fullscreen without `WindowFullscreenToggle`, and every
-            // transition resizes the window. Elsewhere the flag is
-            // handed back unchanged, F11 being its only writer.
-            let ours = self.window_fullscreen;
-            return iced::window::latest().then(move |id_opt| match id_opt {
+            // transition resizes the window. A second, delayed read
+            // (`WindowFullscreenSettled`) catches the exit, whose state
+            // only clears after its last resize. Elsewhere F11 is the
+            // only writer and the sync leaves the flag alone.
+            let sync = iced::window::latest().then(move |id_opt| match id_opt {
                 Some(id) => iced::window::is_maximized(id).then(move |maximized| {
                     let synced = move |fullscreen| {
                         Message::Tabs(TabsMessage::WindowStateSynced {
@@ -271,13 +272,31 @@ impl Oryxis {
                     };
                     if crate::views::chrome::NATIVE_FRAME {
                         iced::window::mode(id)
-                            .map(move |mode| synced(mode == iced::window::Mode::Fullscreen))
+                            .map(move |mode| synced(Some(mode == iced::window::Mode::Fullscreen)))
                     } else {
-                        Task::done(synced(ours))
+                        Task::done(synced(None))
                     }
                 }),
                 None => Task::none(),
             });
+            if !crate::views::chrome::NATIVE_FRAME {
+                return sync;
+            }
+            // AppKit's fullscreen animation runs ~0.5 s; read again past it.
+            let settled = Task::perform(
+                async { tokio::time::sleep(std::time::Duration::from_millis(900)).await },
+                |_| (),
+            )
+            .then(|_| iced::window::latest())
+            .then(|id_opt| match id_opt {
+                Some(id) => iced::window::mode(id).map(|mode| {
+                    Message::Tabs(TabsMessage::WindowFullscreenSettled(
+                        mode == iced::window::Mode::Fullscreen,
+                    ))
+                }),
+                None => Task::none(),
+            });
+            return Task::batch([sync, settled]);
         }
         Task::none()
     }
@@ -593,6 +612,20 @@ impl Oryxis {
         })
     }
 
+    /// Adopt the OS's word on fullscreen (macOS, where it has doors of
+    /// its own). A change is persisted like the toggle's, so a window
+    /// left in native fullscreen by the green button reopens that way.
+    fn reconcile_window_fullscreen(&mut self, fullscreen: bool) {
+        if self.window_fullscreen == fullscreen {
+            return;
+        }
+        self.window_fullscreen = fullscreen;
+        if !fullscreen {
+            self.fullscreen_hint_visible = false;
+        }
+        self.persist_window_geometry();
+    }
+
     pub(super) fn handle_window_fullscreen_toggle(&mut self) -> Task<Message> {
         // Optimistic local flip mirrors `WindowMaximizeToggle`. Off
         // macOS this handler is the only way fullscreen changes, so the
@@ -703,22 +736,20 @@ impl Oryxis {
             }
             TabsMessage::WindowExpandVertical => return self.handle_window_expand_vertical(),
             TabsMessage::WindowMinimize => return self.handle_window_minimize(),
+            TabsMessage::WindowFullscreenSettled(fullscreen) => {
+                self.reconcile_window_fullscreen(fullscreen);
+            }
             TabsMessage::WindowStateSynced { maximized, fullscreen, size } => {
                 // Fullscreen first, because it decides whether the rest
                 // means anything: AppKit reports a window in native
                 // fullscreen as zoomed, and its rectangle is the whole
                 // screen. Neither may be recorded as the windowed state
                 // the next launch restores, so while fullscreen both
-                // wait for the transition out, which resizes (and
-                // therefore reconciles) again.
-                if self.window_fullscreen != fullscreen {
-                    self.window_fullscreen = fullscreen;
-                    if !fullscreen {
-                        self.fullscreen_hint_visible = false;
-                    }
-                    self.persist_window_geometry();
+                // wait for the transition out.
+                if let Some(fullscreen) = fullscreen {
+                    self.reconcile_window_fullscreen(fullscreen);
                 }
-                if fullscreen {
+                if self.window_fullscreen {
                     return Task::none();
                 }
                 // Deferred windowed-size commit: `size` is the snapped
