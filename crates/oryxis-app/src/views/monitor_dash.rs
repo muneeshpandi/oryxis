@@ -55,7 +55,7 @@ impl Oryxis {
             return container(
                 column![
                     text(t(empty))
-                        .size(15)
+                        .size(14)
                         .color(OryxisColors::t().text_primary),
                     Space::new().height(8),
                     text(t(hint))
@@ -514,7 +514,7 @@ impl Oryxis {
             column![
                 dir_row(vec![
                     text(label)
-                        .size(15)
+                        .size(14)
                         .color(OryxisColors::t().text_primary)
                         .width(Length::Fill)
                         .boxed(),
