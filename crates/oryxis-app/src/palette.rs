@@ -98,7 +98,7 @@ fn hotkey_category(action: HotkeyAction) -> PaletteCategory {
         | DuplicateInNewWindow | MoveTabToNewWindow | RenameTab | ToggleTabPin
         | CopyTabAddress | CloseOtherTabs | CloseAllTabs => PaletteCategory::Tabs,
         OpenPortForwards | FocusViewSearch | NewHost | ShowQuickConnect | NewKey | NewIdentity
-        | VaultSectionPrev | VaultSectionNext | VaultSectionSlot | ConnectInNewWindow => {
+        | OpenHosts | VaultSectionPrev | VaultSectionNext | VaultSectionSlot | ConnectInNewWindow => {
             PaletteCategory::Vault
         }
         FontZoomIn | FontZoomOut | FontZoomReset | SplitPaneVertical | SplitPaneHorizontal
