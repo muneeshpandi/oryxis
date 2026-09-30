@@ -24,6 +24,11 @@ pub enum HotkeyAction {
     CloseActiveTab,
     OpenPortForwards,
     OpenSettings,
+    /// Jump to the Hosts section of the vault (the burger menu's
+    /// "Hosts" entry as a standalone chord). Distinct from the
+    /// positional `VaultSectionSlot` family so it can carry a letter
+    /// key (Cmd+H) the user can rebind on its own.
+    OpenHosts,
     FocusViewSearch,
     /// Open a new SFTP browser tab.
     OpenSftp,
@@ -171,6 +176,7 @@ impl HotkeyAction {
             CloseActiveTab,
             OpenPortForwards,
             OpenSettings,
+            OpenHosts,
             FocusViewSearch,
             OpenSftp,
             OpenSftpConsole,
@@ -221,6 +227,7 @@ impl HotkeyAction {
             CloseActiveTab => "close_active_tab",
             OpenPortForwards => "open_port_forwards",
             OpenSettings => "open_settings",
+            OpenHosts => "open_hosts",
             FocusViewSearch => "focus_view_search",
             OpenSftp => "open_sftp",
             OpenSftpConsole => "open_sftp_console",
@@ -275,6 +282,9 @@ impl HotkeyAction {
             CloseActiveTab => "hotkey_close_active_tab",
             OpenPortForwards => "hotkey_open_port_forwards",
             OpenSettings => "hotkey_open_settings",
+            // Reuse the vault section's own label (translated
+            // everywhere), same pattern as NewHost/ReconnectTab.
+            OpenHosts => "hosts",
             FocusViewSearch => "hotkey_focus_view_search",
             OpenSftp => "hotkey_open_sftp",
             OpenSftpConsole => "hotkey_open_sftp_console",

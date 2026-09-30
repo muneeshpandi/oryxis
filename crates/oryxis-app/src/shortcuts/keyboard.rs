@@ -605,6 +605,10 @@ impl Oryxis {
                 }
             }
             OpenSettings => Task::done(Message::Navigation(NavigationMessage::ChangeView(View::Settings))),
+            // Hosts lives on the Dashboard view (the vault's Hosts
+            // section), same target the burger menu's "Hosts" row and
+            // VaultSectionSlot digit 1 resolve to.
+            OpenHosts => Task::done(Message::Navigation(NavigationMessage::ChangeView(View::Dashboard))),
             FocusViewSearch => Task::done(Message::Tabs(TabsMessage::FocusViewSearch)),
             OpenSftp => {
                 if self.sftp_enabled {
