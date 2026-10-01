@@ -633,8 +633,12 @@ impl Oryxis {
             Space::new().height(10),
         ];
 
+        // The warning fills a slot that is always there: the probe
+        // answers on its own, and a line inserted above the inputs below
+        // dropped the focus of whichever one was being typed into.
+        let mut no_git_slot = column![];
         if self.sync.git.git_available == Some(false) {
-            col = col
+            no_git_slot = no_git_slot
                 .push(
                     text(t("git_sync_no_git"))
                         .size(11)
@@ -642,6 +646,7 @@ impl Oryxis {
                 )
                 .push(Space::new().height(10));
         }
+        col = col.push(no_git_slot);
 
         col = col
             .push(

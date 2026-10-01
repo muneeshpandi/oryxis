@@ -298,16 +298,17 @@ impl Oryxis {
         } else {
             None
         };
+        // Always a Stack, the page at layer 0: wrapping it only while
+        // the picker is up re-parented the whole page on every open and
+        // close, which reset its scroll to the top behind the modal.
+        let mut page = iced::widget::Stack::new()
+            .push(layout)
+            .width(Length::Fill)
+            .height(Length::Fill);
         if let Some(target) = picker {
-            iced::widget::Stack::new()
-                .push(layout)
-                .push(sync_host_picker_modal(self, target))
-                .width(Length::Fill)
-                .height(Length::Fill)
-                .into()
-        } else {
-            layout.into()
+            page = page.push(sync_host_picker_modal(self, target));
         }
+        page.into()
     }
 }
 

@@ -1645,14 +1645,14 @@ impl Oryxis {
         });
 
         // Base is the scrollable message list; the Stop pill (when present)
-        // floats over its bottom edge via a Stack.
-        let messages_area: Element<'_, Message> = match stop_overlay {
-            Some(overlay) => iced::widget::Stack::new()
-                .push(messages_scroll)
-                .push(overlay)
-                .into(),
-            None => messages_scroll.into(),
-        };
+        // floats over its bottom edge. Always a Stack with the list at
+        // layer 0: wrapping it only while a reply streams re-parented the
+        // list when a message was sent and again when the reply ended,
+        // resetting its scroll each time.
+        let mut messages_area = iced::widget::Stack::new().push(messages_scroll);
+        if let Some(overlay) = stop_overlay {
+            messages_area = messages_area.push(overlay);
+        }
 
         column![messages_area, input_separator, mode_row, chat_disclaimer, input_row]
             .width(Length::Fill)

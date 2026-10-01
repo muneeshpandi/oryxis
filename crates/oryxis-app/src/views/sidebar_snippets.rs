@@ -440,6 +440,10 @@ impl Oryxis {
         .width(Length::Fill)
         .height(Length::Fill);
 
+        // Always a Stack, the list at layer 0: wrapping it only while the
+        // sort popover is up re-parented the list on every open and close,
+        // which reset its scroll to the top.
+        let mut stack = iced::widget::Stack::new().push(base);
         if self.sidebar_sort_open {
             use crate::state::{ListSort, SortMenuKind};
             let menu = container(column![
@@ -499,14 +503,9 @@ impl Oryxis {
             )
             .on_press(Message::Ai(AiMessage::ToggleSidebarSort))
             .into();
-            iced::widget::Stack::new()
-                .push(base)
-                .push(backdrop)
-                .push(positioned)
-                .into()
-        } else {
-            base.into()
+            stack = stack.push(backdrop).push(positioned);
         }
+        stack.into()
     }
 
     /// Compact New / Edit snippet form rendered inline in the Snippets
