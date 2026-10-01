@@ -41,30 +41,30 @@ pub(crate) fn panel_field<'a>(label: &'a str, input: Element<'a, Message>) -> El
 /// greyed value in the box reads as something already typed, and the
 /// user needs to see both that the field is empty and what will be used
 /// because it is.
+///
+/// The widget tree has the SAME shape with or without the hint: the
+/// input sits at a fixed index of one column and the hint is only ever
+/// appended after it. The hint comes and goes with the first keystroke
+/// (it shows only while the field is empty), and iced matches widget
+/// state by position and kind, so returning the bare input in one case
+/// and a column in the other dropped the input's state, focus included,
+/// on every keystroke that crossed empty (issue #241).
 pub(crate) fn panel_field_inherited<'a>(
     label: &'a str,
     input: Element<'a, Message>,
     inherited: Option<(String, String)>,
 ) -> Element<'a, Message> {
-    let Some((value, group)) = inherited else {
-        // An empty label means the caller already has its own row
-        // header (or needs none), so it gets the bare input back
-        // instead of a blank line above it.
-        return if label.is_empty() {
-            input
-        } else {
-            panel_field(label, input)
-        };
-    };
+    // An empty label means the caller already has its own row header
+    // (or needs none), so no blank line goes above the input.
     let mut col = iced::widget::column![];
     if !label.is_empty() {
         col = col
             .push(text(label).size(12).color(OryxisColors::t().text_muted))
             .push(Space::new().height(4));
     }
-    col.push(input)
-        .push(Space::new().height(3))
-        .push(
+    col = col.push(input);
+    if let Some((value, group)) = inherited {
+        col = col.push(Space::new().height(3)).push(
             text(
                 crate::i18n::t("inherited_from")
                     .replace("{value}", &value)
@@ -72,10 +72,9 @@ pub(crate) fn panel_field_inherited<'a>(
             )
             .size(10)
             .color(OryxisColors::t().accent),
-        )
-        .width(Length::Fill)
-        .align_x(dir_align_x())
-        .into()
+        );
+    }
+    col.width(Length::Fill).align_x(dir_align_x()).into()
 }
 
 /// `panel_field` for a credential input: standardizes the tri-state
