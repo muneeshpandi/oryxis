@@ -1567,6 +1567,11 @@ impl Oryxis {
                 test_btn
             };
             wizard_col = wizard_col.push(test_btn);
+            // The verdict lands on its own (the probe answers up to
+            // seconds later), so it fills a slot that is always there:
+            // two children pushed only once it arrived shifted the
+            // deploy block below and dropped its inputs' focus.
+            let mut result_slot = column![];
             if let Some(result) = &w.result {
                 let (txt, color) = match result {
                     Ok(()) => (
@@ -1581,10 +1586,11 @@ impl Oryxis {
                         OryxisColors::t().error,
                     ),
                 };
-                wizard_col = wizard_col
+                result_slot = result_slot
                     .push(Space::new().height(8))
                     .push(text(txt).size(11).color(color));
             }
+            wizard_col = wizard_col.push(result_slot);
             // Level 2: the app installs the relay itself, on a vault
             // host, over SSH (E3). Below the manual path so the domain
             // and token typed above are what it deploys.

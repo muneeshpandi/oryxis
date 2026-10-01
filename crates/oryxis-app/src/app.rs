@@ -327,6 +327,10 @@ pub struct Oryxis {
     /// strip whichever kind it was. See [`crate::state::ClosedTab`] for
     /// why it holds a pin spec and why it is not persisted.
     pub(crate) closed_tabs: Vec<crate::state::ClosedTab>,
+    /// Every inline rename open at the end of the last `update`, with
+    /// what was drawn above its row; the funnel re-focuses one whose
+    /// row a re-list moved. See `inline_edit_focus`.
+    pub(crate) inline_edit_anchors: Vec<crate::inline_edit_focus::InlineEditAnchor>,
     /// Signature of the strip the `open_tabs` setting was last written
     /// from (issue #206). The snapshot is taken after every `update`
     /// that CHANGED the strip, the way `refresh_jumplist` gates its own

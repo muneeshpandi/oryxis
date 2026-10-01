@@ -75,7 +75,13 @@ impl Oryxis {
         // Stack the panes with the optional progress strip below, when a
         // folder transfer is running we surface a thin status bar with
         // counts + a cancel button, otherwise the panes own all the space.
-        let panes_area: Element<'_, Message> = if let Some(transfer) = &self.sftp.transfer.state {
+        // The panes sit at index 0 of the same column either way: a
+        // transfer starts and ends on its own, and a column that only
+        // existed while one ran re-parented both panes, dropping every
+        // input's state (the filter, the path bar, an inline rename) and
+        // the lists' scroll positions.
+        let mut panes_area = column![panes].width(Length::Fill).height(Length::Fill);
+        if let Some(transfer) = &self.sftp.transfer.state {
             // Clicking the strip toggles a per-file panel that rises above
             // it. (Clicking the inner Cancel button also cancels, which
             // clears the transfer and hides both, so the extra toggle is
@@ -90,14 +96,11 @@ impl Oryxis {
                 false,
             ))
             .on_press(Message::Sftp(SftpMessage::SftpToggleTransferPanel));
-            let mut col = column![panes].width(Length::Fill).height(Length::Fill);
             if self.sftp.transfer.panel_open {
-                col = col.push(transfer_file_panel(transfer, &self.sftp.transfer.done_log));
+                panes_area = panes_area.push(transfer_file_panel(transfer, &self.sftp.transfer.done_log));
             }
-            col.push(strip).into()
-        } else {
-            panes.into()
-        };
+            panes_area = panes_area.push(strip);
+        }
 
         // Footer: the optional message-log panel (FileZilla-style) above a
         // always-visible thin bar carrying the log toggle. The panes own the

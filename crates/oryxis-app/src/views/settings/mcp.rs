@@ -415,15 +415,21 @@ fn mcp_info_panel(app: &crate::app::Oryxis) -> Element<'_, Message> {
             );
     }
 
+    // The install verdict arrives on its own, so it fills a slot that
+    // is always there: pushed only once it landed, it shifted the vault
+    // password block below and dropped the focus of its typed
+    // confirmation.
+    let mut install_slot = column![];
     if let Some(Err(e)) = install_status {
-        info_col = info_col
+        install_slot = install_slot
             .push(Space::new().height(4))
             .push(text(e.clone()).size(11).color(OryxisColors::t().error));
     } else if let Some(Ok(path)) = install_status {
-        info_col = info_col
+        install_slot = install_slot
             .push(Space::new().height(4))
             .push(text(format!("{} {path}", crate::i18n::t("mcp_installed_to"))).size(11).color(OryxisColors::t().success));
     }
+    info_col = info_col.push(install_slot);
 
     // ── Vault password (ORYXIS_VAULT_PASSWORD) ──
     // A password-protected vault makes the MCP server exit at startup

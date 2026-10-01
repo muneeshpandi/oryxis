@@ -167,6 +167,11 @@ impl Oryxis {
         if self.sync.passphrase_input.as_str() == sealed.as_str() {
             self.exit_passphrase_edit();
         } else {
+            // On a first setup the field was open because nothing was
+            // stored, not because an edit was: `passphrase_known` just
+            // flipped, so without this the field would turn into the
+            // read-only display under the user's cursor.
+            self.sync.passphrase_editing = true;
             self.refresh_passphrase_match();
         }
     }

@@ -50,6 +50,14 @@ impl Oryxis {
         // Identity suggestion dropdown (only when username field is
         // focused). Identities are an SSH-auth concept, so the reduced
         // Telnet form never offers them.
+        //
+        // The rows live in ONE column that is always pushed, empty when
+        // nothing is offered: the list comes and goes with typing (and
+        // with the first keystroke in the password field, which is what
+        // clears `username_focused`), and pushing its rows straight into
+        // `cred_items` moved every row below it, so the password input
+        // lost its state, focus included, on that keystroke.
+        let mut suggestions = column![];
         if is_ssh && self.editor_form.username_focused && self.editor_form.selected_identity.is_none() && !self.identities.is_empty() {
             let search = self.editor_form.username.to_lowercase();
             let matching: Vec<&Identity> = if search.is_empty() {
@@ -74,7 +82,7 @@ impl Oryxis {
                         } else { String::new() },
                     );
                     let ident_label = identity.label.clone();
-                    cred_items = cred_items.push(self.panel_nav_slot(
+                    suggestions = suggestions.push(self.panel_nav_slot(
                         crate::keynav::RowAction::activate(Message::Editor(EditorMessage::EditorIdentityChanged(
                             ident_label.clone(),
                         ))),
@@ -112,10 +120,11 @@ impl Oryxis {
                         })
                         .into(),
                     ));
-                    cred_items = cred_items.push(Space::new().height(2));
+                    suggestions = suggestions.push(Space::new().height(2));
                 }
             }
         }
+        cred_items = cred_items.push(suggestions);
 
         // Identity selected -> the "managed by identity" banner replaces
         // both the password (Credentials) and the key (SSH Authentication).
@@ -176,9 +185,15 @@ impl Oryxis {
                 .padding(Padding { top: 2.0, right: 0.0, bottom: 0.0, left: 0.0 })
                 .into()
             });
-        if let Some(note) = inherited_identity_note {
-            cred_items = cred_items.push(note);
-        }
+        // Always one slot, empty when there is no note: the note leaves
+        // with the first character typed into the password below it
+        // (a typed password answers the credential family, see
+        // `editor_form_answers_credentials`), and a child that came
+        // and went above the password row cost that row its focus.
+        cred_items = cred_items.push(match inherited_identity_note {
+            Some(note) => column![note],
+            None => column![],
+        });
 
         // Credentials body: password row when no identity, else the
         // "managed by identity" banner (both belong with the login).

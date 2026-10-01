@@ -81,6 +81,7 @@ mod fonts;
 mod harness;
 mod highlight_rules;
 mod i18n;
+mod inline_edit_focus;
 mod key_encode;
 mod keynav;
 mod logging;

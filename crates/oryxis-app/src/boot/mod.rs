@@ -347,6 +347,7 @@ impl Oryxis {
                 quick_host_input: String::new(),
                 tabs: Vec::new(),
                 closed_tabs: Vec::new(),
+                inline_edit_anchors: Vec::new(),
                 open_tabs_signature: 0,
                 open_tabs_restored: false,
                 launch_dials: std::collections::VecDeque::new(),

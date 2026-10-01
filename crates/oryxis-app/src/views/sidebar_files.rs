@@ -416,16 +416,20 @@ impl Oryxis {
         // transfer differently is how they start disagreeing about it.
         // Cancel is owner-routed, so it cancels THIS pane's transfer even
         // when another SFTP surface is the focused one.
-        let mut col = column![header].width(Length::Fill).height(Length::Fill);
-        if let Some(hint) = drop_hint {
-            col = col.push(container(hint).padding(Padding {
+        // The hint fills a slot that is always there (empty while no
+        // drag hovers): it comes and goes with the OS drag, and a child
+        // inserted above `body` would shift it and drop an inline
+        // rename's focus.
+        let hint_slot = match drop_hint {
+            Some(hint) => column![container(hint).padding(Padding {
                 top: 0.0,
                 right: 8.0,
                 bottom: 4.0,
                 left: 8.0,
-            }));
-        }
-        col = col.push(body);
+            })],
+            None => column![],
+        };
+        let mut col = column![header, hint_slot, body].width(Length::Fill).height(Length::Fill);
         if let Some(transfer) = files.transfer.state.as_ref() {
             let cancel = Message::SftpFor(
                 pane_id,

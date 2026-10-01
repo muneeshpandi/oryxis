@@ -236,6 +236,9 @@ impl Oryxis {
         // A batch connect from the host list (issue #230) drains the same
         // way and under the same in-flight rule, one dial at a time.
         extra.extend(self.advance_batch_dials());
+        // An inline rename whose row a listing moved gets its focus back
+        // (see `inline_edit_focus`), whichever arm replaced the listing.
+        extra.extend(self.refocus_displaced_inline_edits());
         // One-shot Privacy Mode hint (issue #78): the first time a
         // redaction bar actually draws, spell out how the reveal works
         // ("hover to peek, click to pin"); getting silently masked with

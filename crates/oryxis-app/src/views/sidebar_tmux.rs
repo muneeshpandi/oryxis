@@ -58,18 +58,24 @@ impl Oryxis {
                 body = body.push(hint(e));
             }
             TmuxStatus::Ready(sessions) => {
+                // The sessions are ONE child of `body`, so the new-session
+                // input below keeps its index however many there are: a
+                // listing lands on its own (a refresh, an attach elsewhere)
+                // and a count change used to shift the input and drop the
+                // name being typed into it.
+                let mut list = column![].spacing(8).width(Length::Fill);
                 if sessions.is_empty() {
-                    body = body.push(hint(t("tmux_no_sessions")));
+                    list = list.push(hint(t("tmux_no_sessions")));
                 }
                 let confirming = entry.and_then(|e| e.confirm_kill.as_deref());
                 for (idx, session) in sessions.iter().enumerate() {
-                    body = body.push(if confirming == Some(session.name.as_str()) {
+                    list = list.push(if confirming == Some(session.name.as_str()) {
                         self.tmux_kill_confirm(pane_id, session)
                     } else {
                         self.tmux_session_row(tab_idx, pane_id, idx, session)
                     });
                 }
-                body = body.push(self.tmux_new_session_row(pane_id));
+                body = body.push(list).push(self.tmux_new_session_row(pane_id));
             }
         }
 
