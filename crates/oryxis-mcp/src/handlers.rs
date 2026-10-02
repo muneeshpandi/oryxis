@@ -310,7 +310,7 @@ fn resolve_credentials(
     let private_key = conn
         .key_id
         .and_then(|kid| vault.get_key_private(&kid).ok().flatten());
-    let conn_cert = conn.key_id.as_ref().and_then(&cert_for);
+    let conn_cert = conn.key_id.as_ref().and_then(cert_for);
 
     // If identity linked (the host's own or a group-inherited one), get
     // identity credentials
@@ -318,7 +318,7 @@ fn resolve_credentials(
         let ident_pw = vault.get_identity_password(&iid).unwrap_or(None);
         let ident_key_id = identities.iter().find(|i| i.id == iid).and_then(|i| i.key_id);
         let ident_pk = ident_key_id.and_then(|kid| vault.get_key_private(&kid).ok().flatten());
-        let ident_cert = ident_key_id.as_ref().and_then(&cert_for);
+        let ident_cert = ident_key_id.as_ref().and_then(cert_for);
         (ident_pw, ident_pk, ident_cert)
     } else {
         (None, None, None)
