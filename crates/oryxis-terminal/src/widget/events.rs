@@ -792,9 +792,12 @@ where
     /// with mouse reporting off, the Shift bypass, an unfocused pane),
     /// and arrows in place of the report it asked for move vim's
     /// cursor, so it gets nothing, which is also what xterm and
-    /// alacritty send it. Shift keeps a pager's wheel local too, as in
-    /// alacritty. The alternate screen has no history, so a notch that
-    /// sends nothing is consumed and nothing moves.
+    /// alacritty send it. A host with mouse reporting off sends no
+    /// arrows to anyone either: the toggle says nothing the mouse does
+    /// reaches the remote, and these arrows are the wheel's, so a pager
+    /// on that host does not page with it. Shift keeps a pager's wheel
+    /// local too, as in alacritty. The alternate screen has no history,
+    /// so a notch that sends nothing is consumed and nothing moves.
     fn on_wheel_scroll(
         &self,
         widget_state: &mut TerminalWidgetState,
@@ -862,6 +865,7 @@ where
                     None
                 } else if mode.contains(TermMode::ALTERNATE_SCROLL)
                     && !mode.intersects(TermMode::MOUSE_MODE)
+                    && self.mouse_reporting
                     && !widget_state.modifiers.shift()
                 {
                     Some(mode.contains(TermMode::APP_CURSOR))

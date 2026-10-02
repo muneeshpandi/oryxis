@@ -10,6 +10,9 @@ impl Oryxis {
         self.load_vault_locale_ai_sync();
         self.load_vault_terminal_settings();
         self.load_vault_hotkeys_and_defaults();
+        // An edited host's terminal quirks reach its open sessions now,
+        // not at the next connect.
+        self.refresh_live_pane_quirks();
 
         // Run cloud-layout migration after the immutable `vault` borrow
         // ends. Idempotent; only writes rows that need fixing.

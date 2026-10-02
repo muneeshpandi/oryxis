@@ -228,14 +228,23 @@
     }
 
     /// The report itself, and alternate scroll for an app that never
-    /// asked for the mouse, which is not a mouse report and so pages a
-    /// pager whatever the host's reporting says, as in every terminal.
+    /// asked for the mouse.
     #[test]
     fn a_tracking_app_gets_its_report_and_a_pager_gets_arrows() {
         assert_eq!(notch_up(VIM_MOUSE, true, false), Some(b"\x1b[<64;4;2M".to_vec()));
-        for reporting in [true, false] {
-            assert_eq!(notch_up(PAGER, reporting, false), Some(b"\x1b[A\x1b[A\x1b[A".to_vec()));
-        }
+        assert_eq!(notch_up(PAGER, true, false), Some(b"\x1b[A\x1b[A\x1b[A".to_vec()));
+    }
+
+    /// A host with mouse reporting off sends nothing for the wheel, not
+    /// even alternate scroll to an app that never asked for the mouse
+    /// (vim without `mouse=a`, a pager): the arrows are the wheel's,
+    /// and the toggle keeps the mouse off the remote (issue #240).
+    #[test]
+    fn reporting_off_sends_no_arrows_to_anyone() {
+        assert_eq!(notch_up(PAGER, false, false), None);
+        assert_eq!(notch_up(b"\x1b[?1049h\x1b[?1h", false, false), None);
+        let left = mouse::ScrollDelta::Lines { x: 1.0, y: 0.0 };
+        assert_eq!(wheel_sends(PAGER, false, false, left), None);
     }
 
     /// Alternate scroll follows its own mode (`?1007l` turns it off) and

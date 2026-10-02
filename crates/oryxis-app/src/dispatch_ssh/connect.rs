@@ -1276,6 +1276,42 @@ impl Oryxis {
             .unwrap_or(oryxis_core::models::terminal_quirks::DEFAULT_QUIRKS)
     }
 
+    /// Re-resolve the quirks of every open pane of a SAVED host, so an
+    /// edit (the host editor, a sync round, a vault reload, all of which
+    /// pass through `load_data_from_vault`) reaches the sessions already
+    /// open instead of waiting for the next connect. A user who turns
+    /// "Report mouse to remote" off with vim on screen expects the next
+    /// wheel notch to obey it. Only `PaneOrigin::Host` panes: a
+    /// quick-connect host lives outside `connections`, and an ephemeral
+    /// pane names no host, so both keep what they were born with. A pane
+    /// whose quirks did not change is left alone, the OSC 52 override
+    /// included.
+    pub(crate) fn refresh_live_pane_quirks(&mut self) {
+        let resolved: std::collections::HashMap<uuid::Uuid, _> = self
+            .connections
+            .iter()
+            .map(|c| (c.id, self.resolve_quirks(c)))
+            .collect();
+        for tab in &mut self.tabs {
+            for pane in tab.pane_grid.panes.values_mut() {
+                let crate::state::PaneOrigin::Host(id) = pane.origin else {
+                    continue;
+                };
+                let Some(quirks) = resolved.get(&id).copied() else {
+                    continue;
+                };
+                if pane.quirks == quirks {
+                    continue;
+                }
+                pane.quirks = quirks;
+                if let Ok(term) = pane.terminal.lock() {
+                    let (w, r) = quirks.osc52.map(|o| o.overrides()).unwrap_or((None, None));
+                    term.set_osc52_override(w, r);
+                }
+            }
+        }
+    }
+
     /// Collapse the effective proxy and the group's inherited settings
     /// (D4) onto the working copy the engine reads.
     ///

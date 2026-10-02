@@ -29,10 +29,12 @@ click "Compatibility"
 settle 300
 expect "Legacy algorithms"
 expect "Advanced terminal"
+expect "Changes reach this host's open sessions at once. The rekey limit applies on the next connection."
 expect "Backspace key"
 expect "Home/End keys"
 expect "Function keys"
 expect "Report mouse to remote"
+expect "Off: the mouse stays here. Clicks select and paste locally, the wheel scrolls the scrollback, and in full-screen apps like vim or less it sends nothing, not even arrow keys. On: hold Shift to keep one gesture local."
 expect "Clipboard (OSC 52)"
 expect "Rekey limit (MB)"
 screenshot quirks-editor

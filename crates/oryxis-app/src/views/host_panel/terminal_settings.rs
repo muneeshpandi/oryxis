@@ -675,6 +675,18 @@ impl Oryxis {
             !q.disable_mouse_reporting,
             |v| Message::Editor(EditorMessage::EditorQuirkMouseReportingChanged(v)),
         );
+        // What "off" means for the wheel is not guessable from the
+        // label: it also stops the arrow keys full-screen apps get from
+        // the wheel (alternate scroll), which is the surprise issue #240
+        // was. Always shown, so the column keeps its shape.
+        let mouse_hint: Element<'_, Message> = container(
+            text(t("quirks_mouse_reporting_hint"))
+                .size(11)
+                .color(OryxisColors::t().text_muted),
+        )
+        .width(Length::Fill)
+        .align_x(dir_align_x())
+        .into();
         let title_row = self.hp_quirk_toggle_row(
             iced_fonts::lucide::r#type(),
             t("quirks_title_change"),
@@ -740,7 +752,7 @@ impl Oryxis {
         column![
             section_header(t("quirks_section_title")),
             Space::new().height(2),
-            text(t("quirks_applies_next_connect"))
+            text(t("quirks_applies_live"))
                 .size(11)
                 .color(OryxisColors::t().text_muted),
             Space::new().height(4),
@@ -748,6 +760,8 @@ impl Oryxis {
             home_end_row,
             fn_keys_row,
             mouse_row,
+            mouse_hint,
+            Space::new().height(4),
             title_row,
             osc52_row,
             option_meta_row,

@@ -197,6 +197,15 @@ coming next, see the [Roadmap](../README.md#roadmap).
 - **Embedded emulator.**
   [alacritty_terminal](https://github.com/alacritty/alacritty) with
   256-color, truecolor, mouse selection, scrollback.
+- **The mouse in full-screen apps.** An app that asks for the mouse
+  (vim with `mouse=a`, tmux `mouse on`, htop, mc) gets clicks and the
+  wheel, tilt included; one that does not (less, man) gets the wheel as
+  arrow keys, xterm's alternate scroll, in the cursor-key form the app
+  selected and off when it sends `?1007l`. Shift keeps a gesture local.
+  The per-host "Report mouse to remote" switch keeps all of it local:
+  clicks select and paste here, and the wheel scrolls the scrollback
+  and sends nothing to a full-screen app, arrow keys included. A change
+  reaches the host's open sessions at once.
 - **Split panes.** Split a tab into a tmux/iTerm-style grid; each pane is
   its own session (saved host or local shell), with keyboard / paste /
   snippets / AI targeting the focused pane. Drag a pane by its header to
