@@ -80,6 +80,34 @@ pub struct Group {
     pub defaults: Option<GroupDefaults>,
 }
 
+/// Depth ceiling for an ancestry walk. Far above any real nesting, so
+/// it never truncates valid data; it exists only so a corrupted chain
+/// cannot spin forever.
+pub const MAX_ANCESTRY_DEPTH: usize = 1024;
+
+/// Why an ancestry walk stopped before reaching a root, with the group
+/// it stopped at. The chain walked up to that point is still handed
+/// back; the fault is for the callers that log or degrade.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AncestryFault {
+    /// `parent_id` names a group that is not in the list. Transient
+    /// mid-sync (the parent's own record may not have arrived yet) and
+    /// self-healing, which is why it is not a cycle.
+    Dangling(Uuid),
+    /// A group was reached twice: a sync-merged parent loop.
+    Loop(Uuid),
+    /// Deeper than [`MAX_ANCESTRY_DEPTH`].
+    TooDeep(Uuid),
+}
+
+/// The result of [`Group::ancestry`]: the chain, nearest first, and
+/// whether it ended at a root or at a fault.
+#[derive(Debug, Clone)]
+pub struct Ancestry<'a> {
+    pub chain: Vec<&'a Group>,
+    pub fault: Option<AncestryFault>,
+}
+
 impl Group {
     /// Collect `root` plus every descendant reachable through
     /// `parent_id` links. Used by re-parenting UIs to exclude a
@@ -107,9 +135,8 @@ impl Group {
     /// longer present in `groups`), revisits a group (a sync-merged
     /// parent cycle: device A sets G1.parent = G2 while device B sets
     /// G2.parent = G1, and LWW merges both into a loop), or exceeds a
-    /// sane depth cap. Cycle-safe: the visited set is the loop guard;
-    /// the depth cap is a belt-and-suspenders ceiling that sits far
-    /// above any real folder nesting, so it never detaches valid data.
+    /// sane depth cap. The walk itself is [`Group::ancestry`]; this is
+    /// its verdict with the chain discarded.
     ///
     /// The dashboard root pass uses this to degrade any group whose
     /// ancestry is broken (dangling OR cyclic) to rendering AT root, so
@@ -120,30 +147,43 @@ impl Group {
     /// `parent_id.is_none()` branch, so this only distinguishes
     /// well-nested subgroups (`true`) from broken ones (`false`).
     pub fn is_reachable_from_root(groups: &[Group], gid: Uuid) -> bool {
-        const MAX_DEPTH: usize = 1024;
+        Self::ancestry(groups, gid).fault.is_none()
+    }
+
+    /// The ancestry of `gid`, nearest first: the group itself, then its
+    /// parent, up to the root.
+    ///
+    /// ONE walk for every reader of the chain (the vault's inheritance
+    /// resolver, the host editor's "inherits from" hints, the listing's
+    /// effective login, the dashboard's root pass), so no two of them
+    /// can disagree about which groups a host sits under. Cycle-safe by
+    /// the same construction `subtree_ids` uses: the visited set IS the
+    /// loop guard. A parent loop is not hypothetical (two devices each
+    /// re-parent one of a pair and LWW merges both edges), so the walk
+    /// must terminate on data no user could have created by hand.
+    ///
+    /// It returns what it has rather than an error, because a corrupt
+    /// hierarchy must never be the reason a host cannot connect or be
+    /// drawn: the chain is whatever was walked before the fault, and
+    /// the fault is reported beside it for the callers that log.
+    pub fn ancestry(groups: &[Group], gid: Uuid) -> Ancestry<'_> {
+        let mut chain: Vec<&Group> = Vec::new();
         let mut seen = std::collections::HashSet::new();
         let mut cursor = Some(gid);
-        let mut depth = 0usize;
         while let Some(id) = cursor {
-            if depth >= MAX_DEPTH {
-                // Pathologically deep chain: treat as broken.
-                return false;
+            if chain.len() >= MAX_ANCESTRY_DEPTH {
+                return Ancestry { chain, fault: Some(AncestryFault::TooDeep(id)) };
             }
-            depth += 1;
             if !seen.insert(id) {
-                // Revisited a group: the chain loops, no real root.
-                return false;
+                return Ancestry { chain, fault: Some(AncestryFault::Loop(id)) };
             }
-            let Some(g) = groups.iter().find(|g| g.id == id) else {
-                // Dangling parent id: the chain never reaches a root.
-                return false;
+            let Some(group) = groups.iter().find(|g| g.id == id) else {
+                return Ancestry { chain, fault: Some(AncestryFault::Dangling(id)) };
             };
-            match g.parent_id {
-                None => return true,
-                Some(p) => cursor = Some(p),
-            }
+            chain.push(group);
+            cursor = group.parent_id;
         }
-        false
+        Ancestry { chain, fault: None }
     }
 
     /// For every distinct parent CYCLE in `groups`, the id of the
@@ -396,6 +436,60 @@ mod tests {
         g.parent_id = parent;
         g.updated_at = chrono::DateTime::from_timestamp(secs, 0).expect("valid stamp");
         g
+    }
+
+    #[test]
+    fn ancestry_is_nearest_first_and_ends_at_the_root() {
+        let root = Group::new("root");
+        let mid = child_of("mid", root.id);
+        let leaf = child_of("leaf", mid.id);
+        let groups = vec![root.clone(), mid.clone(), leaf.clone()];
+        let walk = Group::ancestry(&groups, leaf.id);
+        let ids: Vec<Uuid> = walk.chain.iter().map(|g| g.id).collect();
+        assert_eq!(ids, vec![leaf.id, mid.id, root.id]);
+        assert_eq!(walk.fault, None);
+    }
+
+    /// A dangling parent is the ordinary mid-sync state: the chain up
+    /// to it is still handed back, and the fault names the missing id.
+    #[test]
+    fn ancestry_stops_at_a_dangling_parent_with_what_it_walked() {
+        let missing = Uuid::new_v4();
+        let leaf = child_of("leaf", missing);
+        let groups = vec![leaf.clone()];
+        let walk = Group::ancestry(&groups, leaf.id);
+        assert_eq!(walk.chain.len(), 1);
+        assert_eq!(walk.fault, Some(AncestryFault::Dangling(missing)));
+    }
+
+    /// A sync-merged parent loop terminates with every member visited
+    /// once; the fault names the group that would have been revisited.
+    #[test]
+    fn ancestry_terminates_on_a_loop() {
+        let mut a = Group::new("a");
+        let mut b = Group::new("b");
+        a.parent_id = Some(b.id);
+        b.parent_id = Some(a.id);
+        let groups = vec![a.clone(), b.clone()];
+        let walk = Group::ancestry(&groups, a.id);
+        let ids: Vec<Uuid> = walk.chain.iter().map(|g| g.id).collect();
+        assert_eq!(ids, vec![a.id, b.id]);
+        assert_eq!(walk.fault, Some(AncestryFault::Loop(a.id)));
+    }
+
+    /// A group with no parent and an unknown id are the two trivial
+    /// walks: a chain of one, and an empty chain that is dangling.
+    #[test]
+    fn ancestry_of_a_root_and_of_an_unknown_id() {
+        let root = Group::new("root");
+        let groups = vec![root.clone()];
+        let walk = Group::ancestry(&groups, root.id);
+        assert_eq!(walk.chain.len(), 1);
+        assert_eq!(walk.fault, None);
+        let unknown = Uuid::new_v4();
+        let walk = Group::ancestry(&groups, unknown);
+        assert!(walk.chain.is_empty());
+        assert_eq!(walk.fault, Some(AncestryFault::Dangling(unknown)));
     }
 
     #[test]

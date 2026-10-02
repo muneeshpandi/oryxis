@@ -438,10 +438,59 @@ impl Oryxis {
         self.quick_connects.retain(|id, _| live.contains(id));
     }
 
+    /// Whether `conn` answers the credential parameter itself: a key of
+    /// its own, or a stored password (the cached set, never a query:
+    /// this runs inside `view()`). The gate `effective_login` applies to
+    /// a group's identity default, answered here from app state the way
+    /// the vault answers it from its column.
+    pub(crate) fn host_answers_credentials(&self, conn: &Connection) -> bool {
+        conn.key_id.is_some() || self.connections_with_password.contains(&conn.id)
+    }
+
+    /// The login `conn` will dial with once its groups have had their
+    /// say (D4): the SAME ordering `apply_group_inheritance` collapses
+    /// onto the dial copy, computed from the lists the app holds. Cheap
+    /// enough for `view()`: an ancestry walk over a handful of groups
+    /// and a lookup or two, no database behind it.
+    ///
+    /// Everything that SAYS who a host logs in as reads this, never the
+    /// raw field: the card subtitle, the hosts trees, the tab's second
+    /// line, the OS badge's username hint, the copied URL, the privacy
+    /// mask. A host that inherits `deploy` from its folder dialled as
+    /// deploy while every one of those said root (issue #242).
+    pub(crate) fn effective_login(
+        &self,
+        conn: &Connection,
+    ) -> oryxis_core::models::inheritance::EffectiveLogin {
+        let chain = conn
+            .group_id
+            .map(|gid| oryxis_core::models::Group::ancestry(&self.groups, gid).chain)
+            .unwrap_or_default();
+        oryxis_core::models::inheritance::effective_login(
+            conn,
+            &chain,
+            &self.identities,
+            self.host_answers_credentials(conn),
+        )
+    }
+
+    /// The effective username alone, `None` when nothing names one (the
+    /// engine then logs in as `DEFAULT_USERNAME`, and so says the label).
+    pub(crate) fn effective_username(&self, conn: &Connection) -> Option<String> {
+        self.effective_login(conn).username.map(|(u, _)| u)
+    }
+
+    /// `util::host_address_label` over the effective login: the one
+    /// address string the card, the trees and the tab share.
+    pub(crate) fn host_address_label(&self, conn: &Connection) -> String {
+        crate::util::host_address_label(conn, self.effective_username(conn).as_deref())
+    }
+
     /// Canonical `ssh://` URL for a saved host ("Copy SSH URL" card
-    /// action). Mirrors connect-time username resolution (the linked
-    /// identity's username fills an empty field); the default port 22 is
-    /// omitted and IPv6 hosts take brackets, both via `SshTarget`.
+    /// action). Mirrors connect-time username resolution (a group's
+    /// default or the linked identity's username fills an empty field,
+    /// `effective_login`); the default port 22 is omitted and IPv6 hosts
+    /// take brackets, both via `SshTarget`.
     pub(crate) fn host_ssh_url(&self, conn: &Connection) -> String {
         use oryxis_core::models::connection::ConnectionProtocol;
         // Serial has no network URL; hand back the bare port path so the
@@ -455,14 +504,7 @@ impl Oryxis {
         if conn.protocol == ConnectionProtocol::Local {
             return conn.label.clone();
         }
-        let username = conn.username.clone().or_else(|| {
-            conn.identity_id.and_then(|iid| {
-                self.identities
-                    .iter()
-                    .find(|i| i.id == iid)
-                    .and_then(|i| i.username.clone())
-            })
-        });
+        let username = self.effective_username(conn);
         // Telnet's default port is 23, SSH's is 22: omit the port only
         // when it matches the scheme's default. RemoteDesktop hosts carry
         // an rdp/vnc endpoint; use the kind's scheme (the copy action is

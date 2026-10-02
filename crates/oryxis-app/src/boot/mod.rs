@@ -496,6 +496,7 @@ impl Oryxis {
                 history_filter_tags: Vec::new(),
                 identities: Vec::new(),
                 identities_with_password: std::collections::HashSet::new(),
+                connections_with_password: std::collections::HashSet::new(),
                 identity_form: crate::state::IdentityForm::default(),
                 identity_context_menu: None,
                 hosts_sort: crate::state::ListSort::default(),

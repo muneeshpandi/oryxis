@@ -1005,12 +1005,21 @@ pub(crate) fn resolve_keepalive(
 /// stays short), and `port @ baud` for a serial line, where a TCP port and
 /// a username are meaningless.
 ///
-/// Shared by the dashboard card subtitle (`show_host_address`) and the
-/// tab's second line (`show_tab_host_address`) so the two can never
-/// disagree about what a host's address looks like. Privacy masking is
-/// the caller's, because the two surfaces reveal on different gestures
-/// (card hover vs tab hover).
-pub(crate) fn host_address_label(conn: &oryxis_core::models::Connection) -> String {
+/// `username` is the EFFECTIVE one (`Oryxis::effective_username`: the
+/// host's own, else its folder's default, else its identity's), never
+/// `conn.username` read raw, which is why the app-side wrapper
+/// `Oryxis::host_address_label` is what the views call. `None` shows
+/// what the engine will do with it: log in as `DEFAULT_USERNAME`.
+///
+/// Shared by the dashboard card subtitle (`show_host_address`), the two
+/// hosts trees and the tab's second line (`show_tab_host_address`) so
+/// none of them can disagree about what a host's address looks like.
+/// Privacy masking is the caller's, because the surfaces reveal on
+/// different gestures (card hover vs tab hover).
+pub(crate) fn host_address_label(
+    conn: &oryxis_core::models::Connection,
+    username: Option<&str>,
+) -> String {
     use oryxis_core::models::connection::ConnectionProtocol;
     match conn.protocol {
         ConnectionProtocol::Serial => {
@@ -1047,7 +1056,7 @@ pub(crate) fn host_address_label(conn: &oryxis_core::models::Connection) -> Stri
             };
             format!(
                 "{}@{}{}",
-                conn.username.as_deref().unwrap_or("root"),
+                username.unwrap_or(oryxis_core::models::inheritance::DEFAULT_USERNAME),
                 conn.hostname,
                 port_part
             )
@@ -1061,8 +1070,13 @@ pub(crate) fn host_address_label(conn: &oryxis_core::models::Connection) -> Stri
 /// never find a host on one surface and miss it on another (the two
 /// #102 trees shipped with divergent field sets: tags on one,
 /// username on the other; this is their union).
+///
+/// `username` is the effective one (`Oryxis::effective_username`), the
+/// same word the card shows: a host inheriting `deploy` from its folder
+/// is found by "deploy" because that is who it logs in as.
 pub(crate) fn host_matches_search(
     conn: &oryxis_core::models::Connection,
+    username: Option<&str>,
     needle_lower: &str,
 ) -> bool {
     if needle_lower.is_empty() {
@@ -1071,10 +1085,7 @@ pub(crate) fn host_matches_search(
     conn.label.to_lowercase().contains(needle_lower)
         || conn.hostname.to_lowercase().contains(needle_lower)
         || conn.tags.iter().any(|tg| tg.to_lowercase().contains(needle_lower))
-        || conn
-            .username
-            .as_deref()
-            .is_some_and(|u| u.to_lowercase().contains(needle_lower))
+        || username.is_some_and(|u| u.to_lowercase().contains(needle_lower))
 }
 
 // ── New-connection default helpers ──

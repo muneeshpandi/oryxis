@@ -48,21 +48,12 @@ impl Oryxis {
             return ctx;
         };
 
-        let mut cursor = Some(gid);
-        let mut seen = std::collections::HashSet::new();
-        while let Some(id) = cursor {
-            // Same cycle guard the vault resolver uses: a synced parent
-            // loop must not spin the editor's render.
-            if !seen.insert(id) {
-                break;
-            }
-            let Some(group) = self.groups.iter().find(|g| g.id == id) else {
-                break;
-            };
+        // The one ancestry walk (`Group::ancestry`, cycle-safe), nearest
+        // first, so the hint and the dial read the same chain.
+        for group in oryxis_core::models::Group::ancestry(&self.groups, gid).chain {
             if let Some(defaults) = group.defaults.as_ref() {
                 self.absorb(&mut ctx, defaults, &group.label);
             }
-            cursor = group.parent_id;
         }
         ctx
     }

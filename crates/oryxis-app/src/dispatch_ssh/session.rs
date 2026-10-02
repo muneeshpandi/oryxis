@@ -544,7 +544,7 @@ impl Oryxis {
                         let inherited = self
                             .vault
                             .as_ref()
-                            .and_then(|v| v.resolve_effective(c, &self.groups).ok())
+                            .and_then(|v| v.resolve_effective(c, &self.groups, &self.identities).ok())
                             .and_then(|e| e.startup_snippet_id.map(|(id, _)| id));
                         (c.startup_snippet_id.or(inherited), c.initial_command.clone())
                     })

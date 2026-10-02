@@ -70,6 +70,9 @@ impl Oryxis {
                 }
             }
             self.connections = vault.list_connections().unwrap_or_default();
+            self.connections_with_password = vault
+                .list_connection_ids_with_password()
+                .unwrap_or_default();
             self.groups = vault.list_groups().unwrap_or_default();
             // Repair invalid parent links before anything renders. Only a
             // manual folder is a container: a dynamic (cloud_query) group

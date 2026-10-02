@@ -154,7 +154,12 @@ impl Oryxis {
             true
         };
         let host_search_match = |i: usize| -> bool {
-            !searching || crate::util::host_matches_search(&self.connections[i], &search_lower)
+            !searching
+                || crate::util::host_matches_search(
+                    &self.connections[i],
+                    self.effective_username(&self.connections[i]).as_deref(),
+                    &search_lower,
+                )
         };
         let group_passes = |g: &oryxis_core::models::Group| -> bool {
             !hidden_groups.contains(&g.id)
@@ -478,9 +483,12 @@ impl Oryxis {
         };
         let is_connected = self.tabs.iter().any(|t| t.label == conn.label);
         let auth_label = crate::util::auth_method_label(&conn.auth_method);
+        // The login the dial will use (folder default, identity), not
+        // the raw field: it names the row and hints the OS badge.
+        let username = self.effective_username(conn);
         let subtitle = if self.prefs.show_host_address {
             use oryxis_core::models::connection::ConnectionProtocol;
-            let address = crate::util::host_address_label(conn);
+            let address = crate::util::host_address_label(conn, username.as_deref());
             let address = if self.privacy_active(conn) && self.hover.card != Some(idx) {
                 crate::widgets::mask_blocks(&address)
             } else {
@@ -510,7 +518,7 @@ impl Oryxis {
             conn.detected_os.as_deref(),
             conn.custom_icon.as_deref(),
             conn.custom_color.as_deref(),
-            conn.username.as_deref(),
+            username.as_deref(),
             default_fallback,
         );
         let host_style = crate::widgets::resolve_host_icon_style(
@@ -935,7 +943,12 @@ fn search_visible_entry(
         };
         let v = group.label.to_lowercase().contains(search_lower)
             || app.connections.iter().any(|c| {
-                c.group_id == Some(gid) && crate::util::host_matches_search(c, search_lower)
+                c.group_id == Some(gid)
+                    && crate::util::host_matches_search(
+                        c,
+                        app.effective_username(c).as_deref(),
+                        search_lower,
+                    )
             })
             || app.session_groups.iter().any(|sg| {
                 sg.group_id == Some(gid) && sg.label.to_lowercase().contains(search_lower)

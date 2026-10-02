@@ -437,7 +437,7 @@ impl Oryxis {
             && tab.custom_name.is_none()
         {
             self.pane_origin_connection(tab.active().id).map(|c| {
-                let address = crate::util::host_address_label(c);
+                let address = self.host_address_label(c);
                 if self.privacy_active(c) && !is_hovered {
                     crate::widgets::mask_blocks(&address)
                 } else {

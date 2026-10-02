@@ -493,7 +493,11 @@ impl Oryxis {
                 } else if conn.group_id.is_some() && !flatten {
                     return false;
                 }
-                if !crate::util::host_matches_search(conn, &search_lower) {
+                if !crate::util::host_matches_search(
+                    conn,
+                    self.effective_username(conn).as_deref(),
+                    &search_lower,
+                ) {
                     return false;
                 }
                 if let Some(filter_pid) = self.host_filter_cloud_profile

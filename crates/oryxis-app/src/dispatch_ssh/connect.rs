@@ -452,14 +452,14 @@ impl Oryxis {
                 // Resolved here for the same reason as `host_hint`, and
                 // only when the vault supplied no key of its own.
                 let disk_hint = (private_key.is_none()).then(|| disk_key_hint(&conn)).flatten();
-                let username = conn.username.clone()
-                    .or_else(|| {
-                        conn.identity_id.and_then(|iid| {
-                            self.identities.iter().find(|i| i.id == iid)
-                                .and_then(|i| i.username.clone())
-                        })
-                    })
-                    .unwrap_or_else(|| "root".into());
+                // `resolve_connect_plan` already collapsed the group
+                // defaults and the identity's username onto `conn`, so
+                // the field IS the effective login; what remains is the
+                // engine's own fallback.
+                let username = conn
+                    .username
+                    .clone()
+                    .unwrap_or_else(|| oryxis_core::models::inheritance::DEFAULT_USERNAME.into());
                 // Human wording for the "Authenticating as ... using ..."
                 // line: a phrase that reads inside a sentence, not the
                 // auth selector's capitalized labels ("using Auto").

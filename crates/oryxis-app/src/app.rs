@@ -916,6 +916,15 @@ pub struct Oryxis {
     // for every identity on every view() rebuild and slow the main
     // loop enough to fill iced's 100-slot subscription channel.
     pub(crate) identities_with_password: std::collections::HashSet<Uuid>,
+    /// Cached set of connection ids whose `password` column holds a
+    /// value, hydrated by `load_data_from_vault` like the identity set
+    /// above. It answers `host_answers_credentials` for the listing's
+    /// effective login (a group's identity default is gated on it), so
+    /// the card can say per frame what the dial will do without a
+    /// query per host. Every `save_connection` site that does not
+    /// reload passes `None` for the password, which is what keeps the
+    /// set true between loads.
+    pub(crate) connections_with_password: std::collections::HashSet<Uuid>,
     pub(crate) identity_form: crate::state::IdentityForm,
     pub(crate) identity_context_menu: Option<usize>,
 

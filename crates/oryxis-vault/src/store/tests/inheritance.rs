@@ -32,7 +32,7 @@ fn the_host_wins_over_every_group() {
     conn.username = Some("from-host".to_string());
 
     let effective = vault
-        .resolve_effective(&conn, &[root, mid, leaf])
+        .resolve_effective(&conn, &[root, mid, leaf], &vault.list_identities().unwrap())
         .unwrap();
     assert_eq!(
         effective.username,
@@ -50,7 +50,7 @@ fn the_nearest_ancestor_wins_over_a_farther_one() {
     conn.group_id = Some(leaf.id);
 
     let effective = vault
-        .resolve_effective(&conn, &[root, mid.clone(), leaf])
+        .resolve_effective(&conn, &[root, mid.clone(), leaf], &vault.list_identities().unwrap())
         .unwrap();
     assert_eq!(
         effective.username,
@@ -66,7 +66,7 @@ fn a_field_no_one_sets_stays_unset() {
     conn.group_id = Some(leaf.id);
 
     let effective = vault
-        .resolve_effective(&conn, &[root, mid, leaf])
+        .resolve_effective(&conn, &[root, mid, leaf], &vault.list_identities().unwrap())
         .unwrap();
     assert!(effective.username.is_none());
     assert!(effective.terminal_theme.is_none());
@@ -88,7 +88,7 @@ fn fields_resolve_independently_of_each_other() {
     conn.group_id = Some(leaf.id);
 
     let effective = vault
-        .resolve_effective(&conn, &[root.clone(), mid.clone(), leaf])
+        .resolve_effective(&conn, &[root.clone(), mid.clone(), leaf], &vault.list_identities().unwrap())
         .unwrap();
     assert_eq!(
         effective.username,
@@ -122,7 +122,7 @@ fn env_vars_merge_by_name_with_the_host_winning() {
     conn.env_vars = vec![EnvVar { key: "HOST_ONLY".into(), value: "yes".into() }];
 
     let effective = vault
-        .resolve_effective(&conn, &[root, mid, leaf])
+        .resolve_effective(&conn, &[root, mid, leaf], &vault.list_identities().unwrap())
         .unwrap();
     let get = |k: &str| {
         effective
@@ -152,7 +152,7 @@ fn a_host_env_var_overrides_the_group_one() {
     conn.env_vars = vec![EnvVar { key: "TERM".into(), value: "xterm-256color".into() }];
 
     let effective = vault
-        .resolve_effective(&conn, &[root, mid, leaf])
+        .resolve_effective(&conn, &[root, mid, leaf], &vault.list_identities().unwrap())
         .unwrap();
     assert_eq!(effective.env_vars.len(), 1);
     assert_eq!(effective.env_vars[0].value, "xterm-256color");
@@ -174,7 +174,7 @@ fn a_parent_cycle_terminates_and_still_resolves() {
     conn.group_id = Some(a.id);
     conn.terminal_theme = Some("dracula".to_string());
 
-    let effective = vault.resolve_effective(&conn, &[a, b.clone()]).unwrap();
+    let effective = vault.resolve_effective(&conn, &[a, b.clone()], &vault.list_identities().unwrap()).unwrap();
     // The host's own value is never at the mercy of the hierarchy.
     assert_eq!(
         effective.terminal_theme,
@@ -199,7 +199,7 @@ fn a_dangling_parent_stops_the_walk_without_failing() {
     let mut conn = Connection::new("web", "example.com");
     conn.group_id = Some(leaf.id);
 
-    let effective = vault.resolve_effective(&conn, &[leaf.clone()]).unwrap();
+    let effective = vault.resolve_effective(&conn, &[leaf.clone()], &vault.list_identities().unwrap()).unwrap();
     assert_eq!(
         effective.username,
         Some(("from-leaf".to_string(), Origin::Group(leaf.id)))
@@ -216,7 +216,7 @@ fn a_host_in_no_group_resolves_to_its_own_fields() {
     conn.username = Some("solo".to_string());
 
     let effective = vault
-        .resolve_effective(&conn, &[root, mid, leaf])
+        .resolve_effective(&conn, &[root, mid, leaf], &vault.list_identities().unwrap())
         .unwrap();
     assert_eq!(
         effective.username,
@@ -238,7 +238,7 @@ fn a_dangling_group_proxy_identity_resolves_to_none() {
     let mut conn = Connection::new("web", "example.com");
     conn.group_id = Some(group.id);
 
-    let effective = vault.resolve_effective(&conn, &[group]).unwrap();
+    let effective = vault.resolve_effective(&conn, &[group], &vault.list_identities().unwrap()).unwrap();
     assert!(effective.proxy.is_none());
 }
 
@@ -280,7 +280,7 @@ fn a_host_proxy_wins_over_the_group_default() {
     conn.group_id = Some(group.id);
     conn.proxy_identity_id = Some(host_ident.id);
 
-    let effective = vault.resolve_effective(&conn, &[group]).unwrap();
+    let effective = vault.resolve_effective(&conn, &[group], &vault.list_identities().unwrap()).unwrap();
     let (proxy, origin) = effective.proxy.expect("a proxy resolved");
     assert_eq!(proxy.host, "host-proxy.internal");
     assert_eq!(origin, Origin::Host);
@@ -309,7 +309,7 @@ fn the_group_proxy_applies_when_the_host_has_none() {
     let mut conn = Connection::new("web", "example.com");
     conn.group_id = Some(group.id);
 
-    let effective = vault.resolve_effective(&conn, &[group.clone()]).unwrap();
+    let effective = vault.resolve_effective(&conn, &[group.clone()], &vault.list_identities().unwrap()).unwrap();
     let (proxy, origin) = effective.proxy.expect("the group's proxy resolved");
     assert_eq!(proxy.host, "group-proxy.internal");
     assert_eq!(proxy.username.as_deref(), Some("bastion"));
@@ -334,7 +334,7 @@ fn the_group_identity_applies_to_a_bare_host() {
     let mut conn = Connection::new("web", "example.com");
     conn.group_id = Some(group.id);
 
-    let effective = vault.resolve_effective(&conn, &[group.clone()]).unwrap();
+    let effective = vault.resolve_effective(&conn, &[group.clone()], &vault.list_identities().unwrap()).unwrap();
     assert_eq!(effective.identity_id, Some((ident.id, Origin::Group(group.id))));
 }
 
@@ -354,7 +354,7 @@ fn a_dangling_group_identity_default_is_not_inherited() {
     let mut conn = Connection::new("web", "example.com");
     conn.group_id = Some(group.id);
 
-    let effective = vault.resolve_effective(&conn, &[group]).unwrap();
+    let effective = vault.resolve_effective(&conn, &[group], &vault.list_identities().unwrap()).unwrap();
     assert!(effective.identity_id.is_none());
 }
 
@@ -377,7 +377,7 @@ fn a_host_with_its_own_password_blocks_the_group_identity() {
     conn.group_id = Some(group.id);
     vault.save_connection(&conn, Some("host-pw")).unwrap();
 
-    let effective = vault.resolve_effective(&conn, &[group]).unwrap();
+    let effective = vault.resolve_effective(&conn, &[group], &vault.list_identities().unwrap()).unwrap();
     assert!(effective.identity_id.is_none());
 }
 
@@ -397,7 +397,7 @@ fn a_host_with_its_own_key_blocks_the_group_identity() {
     conn.group_id = Some(group.id);
     conn.key_id = Some(Uuid::new_v4());
 
-    let effective = vault.resolve_effective(&conn, &[group]).unwrap();
+    let effective = vault.resolve_effective(&conn, &[group], &vault.list_identities().unwrap()).unwrap();
     assert!(effective.identity_id.is_none());
 }
 
@@ -420,6 +420,6 @@ fn the_hosts_own_identity_is_untouched_by_the_gate() {
     conn.identity_id = Some(own.id);
     vault.save_connection(&conn, Some("host-pw")).unwrap();
 
-    let effective = vault.resolve_effective(&conn, &[group]).unwrap();
+    let effective = vault.resolve_effective(&conn, &[group], &vault.list_identities().unwrap()).unwrap();
     assert_eq!(effective.identity_id, Some((own.id, Origin::Host)));
 }

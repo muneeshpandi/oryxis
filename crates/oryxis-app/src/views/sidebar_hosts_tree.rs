@@ -141,7 +141,7 @@ impl Oryxis {
             |(_, c)| c.created_at,
         );
         for (idx, conn) in root_hosts {
-            if crate::util::host_matches_search(conn, &needle) {
+            if crate::util::host_matches_search(conn, self.effective_username(conn).as_deref(), &needle) {
                 rows.push(self.tree_host_row(idx, conn, 0));
             }
         }
@@ -236,7 +236,9 @@ impl Oryxis {
         for (idx, conn) in hosts {
             // A matching group shows its whole host list; otherwise
             // only the hosts that match themselves.
-            if label_match || crate::util::host_matches_search(conn, needle) {
+            if label_match
+                || crate::util::host_matches_search(conn, self.effective_username(conn).as_deref(), needle)
+            {
                 rows.push(self.tree_host_row(idx, conn, depth + 1));
             }
         }
@@ -309,7 +311,11 @@ impl Oryxis {
                     group.label.to_lowercase().contains(needle)
                         || app.connections.iter().any(|c| {
                             c.group_id == Some(gid)
-                                && crate::util::host_matches_search(c, needle)
+                                && crate::util::host_matches_search(
+                                    c,
+                                    app.effective_username(c).as_deref(),
+                                    needle,
+                                )
                         })
                         || app
                             .session_groups
@@ -473,11 +479,14 @@ impl Oryxis {
         // connected-green fallback: the live DOT is the tree's only
         // "connected" signal (owner call: colour on the badge AND a
         // bullet reads twice).
+        // The login the dial will use (folder default, identity), not
+        // the raw field: it names the row and hints the OS badge.
+        let username = self.effective_username(conn);
         let (os_glyph, icon_color) = crate::os_icon::resolve_for(
             conn.detected_os.as_deref(),
             conn.custom_icon.as_deref(),
             conn.custom_color.as_deref(),
-            conn.username.as_deref(),
+            username.as_deref(),
             c.accent,
         );
         let host_style = crate::widgets::resolve_host_icon_style(
@@ -525,7 +534,7 @@ impl Oryxis {
             // the card subtitle (no hover reveal here: tree rows are
             // click-to-connect, a reveal gesture would sit one pixel
             // from a connect).
-            let address = crate::util::host_address_label(conn);
+            let address = crate::util::host_address_label(conn, username.as_deref());
             let address = if self.privacy_active(conn) {
                 crate::widgets::mask_blocks(&address)
             } else {

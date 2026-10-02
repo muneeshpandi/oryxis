@@ -39,6 +39,11 @@ impl Oryxis {
         };
         let is_connected = self.tabs.iter().any(|t| t.label == conn.label);
         let auth_label = crate::util::auth_method_label(&conn.auth_method);
+        // The login the dial will use (folder default, identity), not
+        // the raw field: it names the card and hints the OS badge. A
+        // host inheriting its user from the folder showed root here
+        // while dialling as the folder said (issue #242).
+        let username = self.effective_username(conn);
         // Address shown only when the (off-by-default) setting is on,
         // so addresses stay out of screenshots / screen shares by
         // default. Port 22 is the SSH default, so it's always omitted.
@@ -46,7 +51,7 @@ impl Oryxis {
             use oryxis_core::models::connection::ConnectionProtocol;
             // Shared with the tab strip's second line, so the two
             // surfaces render the same address for the same host.
-            let address = crate::util::host_address_label(conn);
+            let address = crate::util::host_address_label(conn, username.as_deref());
             // Privacy Mode masks the address behind muted blocks,
             // revealed when the card is hovered. The auth method label
             // is not sensitive, so it stays readable.
@@ -87,7 +92,7 @@ impl Oryxis {
             conn.detected_os.as_deref(),
             conn.custom_icon.as_deref(),
             conn.custom_color.as_deref(),
-            conn.username.as_deref(),
+            username.as_deref(),
             default_fallback,
         );
         // Fixed 32x32 badge. Shape and color come from the per-host

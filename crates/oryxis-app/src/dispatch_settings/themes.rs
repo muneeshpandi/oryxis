@@ -373,7 +373,7 @@ impl Oryxis {
         if let Some(name) = self
             .vault
             .as_ref()
-            .and_then(|v| v.resolve_effective(conn, &self.groups).ok())
+            .and_then(|v| v.resolve_effective(conn, &self.groups, &self.identities).ok())
             .and_then(|e| e.terminal_theme.map(|(name, _)| name))
             && let Some(palette) = self.terminal_palette_for_name(&name)
         {

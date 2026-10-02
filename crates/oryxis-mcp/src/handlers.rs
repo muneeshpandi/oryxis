@@ -397,7 +397,10 @@ pub fn resolve_dial_plan(vault: &VaultStore, id: Uuid) -> Result<DialPlan, PlanE
     let all_keys = vault.list_keys().unwrap_or_default();
     let (final_password, final_key, final_cert) =
         resolve_credentials(vault, conn, &identities, &all_keys);
-    let username = conn.username.clone().unwrap_or_else(|| "root".into());
+    let username = conn
+        .username
+        .clone()
+        .unwrap_or_else(|| oryxis_core::models::inheritance::DEFAULT_USERNAME.into());
 
     // Build a temporary Connection with resolved username for auth. The
     // effective proxy is already collapsed onto `conn.proxy` by

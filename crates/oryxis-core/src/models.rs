@@ -6,6 +6,7 @@ pub mod local;
 pub mod remote_desktop;
 pub mod key;
 pub mod group;
+pub mod inheritance;
 pub mod highlight_rule;
 pub mod snippet;
 pub mod port_forward_rule;

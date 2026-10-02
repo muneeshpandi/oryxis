@@ -18,15 +18,11 @@
 use super::*;
 use oryxis_core::models::connection::{Connection, EnvVar, ProxyConfig};
 
-/// Where a resolved value came from, so the editor can say "inherited
-/// from <group>" instead of pretending the host set it.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Origin {
-    /// The host names it itself.
-    Host,
-    /// A group in the host's ancestry, nearest first.
-    Group(Uuid),
-}
+/// Where a resolved value came from. The credential half of the
+/// resolution is `oryxis_core::models::inheritance` (one pure ordering
+/// shared with the app's listing, see that module); the proxy, the
+/// theme and the snippet resolve here, over the same enum.
+pub use oryxis_core::models::inheritance::Origin;
 
 /// A connection's settings after its groups have been applied. Each
 /// field carries its `Origin` so the UI can grey what is inherited and
@@ -45,56 +41,41 @@ pub struct EffectiveConfig {
     pub startup_snippet_id: Option<(Uuid, Origin)>,
 }
 
-/// Depth ceiling for the ancestry walk. Far above any real nesting, so
-/// it never truncates valid data; it exists only so a corrupted chain
-/// cannot spin forever.
-const MAX_DEPTH: usize = 64;
-
 impl VaultStore {
-    /// The ancestry of `group_id`, nearest first.
-    ///
-    /// Cycle-safe by the same construction `Group::subtree_ids` uses:
-    /// the visited set IS the loop guard. A parent loop is not
-    /// hypothetical, two devices can each re-parent one of a pair and
-    /// LWW merges both edges, so the walk must terminate on data no
-    /// user could have created by hand. It returns what it has rather
-    /// than an error, because a corrupt hierarchy must never be the
-    /// reason a host cannot connect.
+    /// The ancestry of `group_id`, nearest first: `Group::ancestry`,
+    /// the one walk every reader of the chain shares, plus the log line
+    /// for a chain that did not end at a root. A loop or a runaway
+    /// depth is corrupt data worth a warning; a dangling parent is the
+    /// ordinary mid-sync state (the ancestor's own record may simply not
+    /// have arrived yet) and is not. Either way the chain walked so far
+    /// is used, because a corrupt hierarchy must never be the reason a
+    /// host cannot connect.
     fn ancestry<'a>(&self, groups: &'a [Group], group_id: Uuid) -> Vec<&'a Group> {
-        let mut chain = Vec::new();
-        let mut seen = std::collections::HashSet::new();
-        let mut cursor = Some(group_id);
-        while let Some(id) = cursor {
-            if chain.len() >= MAX_DEPTH {
-                tracing::warn!(
-                    group = %id,
-                    "group ancestry hit the depth cap; resolving with what was walked so far"
-                );
-                break;
-            }
-            if !seen.insert(id) {
-                tracing::warn!(
-                    group = %id,
-                    "group ancestry loops; resolving with what was walked so far"
-                );
-                break;
-            }
-            let Some(group) = groups.iter().find(|g| g.id == id) else {
-                // Dangling parent: mid-sync the ancestor's own record
-                // may simply not have arrived yet. Stop, don't fail.
-                break;
-            };
-            chain.push(group);
-            cursor = group.parent_id;
+        use oryxis_core::models::group::AncestryFault;
+        let walk = Group::ancestry(groups, group_id);
+        match walk.fault {
+            Some(AncestryFault::TooDeep(id)) => tracing::warn!(
+                group = %id,
+                "group ancestry hit the depth cap; resolving with what was walked so far"
+            ),
+            Some(AncestryFault::Loop(id)) => tracing::warn!(
+                group = %id,
+                "group ancestry loops; resolving with what was walked so far"
+            ),
+            Some(AncestryFault::Dangling(_)) | None => {}
         }
-        chain
+        walk.chain
     }
 
     /// Resolve `conn` against its group chain.
     ///
-    /// `groups` is passed in rather than listed here because this runs
-    /// inside `view()`: the app already holds the list, and a query per
-    /// frame per host would be a database read in the render path.
+    /// `groups` and `identities` are passed in rather than listed here
+    /// because the app already holds both lists, and a query per call
+    /// would be a database read for nothing. The username and the
+    /// identity are `effective_login`'s answer (the core ordering the
+    /// listing also draws from), with the two facts only the vault can
+    /// supply: whether the host stores a password of its own, and the
+    /// warning for a group default that names a deleted identity.
     ///
     /// Note what is NOT resolved: the port. A group's port applies when
     /// a host is CREATED inside it, never at connect time, so a host
@@ -104,19 +85,44 @@ impl VaultStore {
         &self,
         conn: &Connection,
         groups: &[Group],
+        identities: &[oryxis_core::models::Identity],
     ) -> Result<EffectiveConfig, VaultError> {
         let chain: Vec<&Group> = match conn.group_id {
             Some(gid) => self.ancestry(groups, gid),
             None => Vec::new(),
         };
 
+        // Credentials are ONE parameter family: a host that stores its
+        // own password or names its own key has answered it, so a group
+        // identity default must not eclipse what it can already do. The
+        // key is on the row; the password is a column only the vault can
+        // ask, and `NotFound` (a host not yet saved) reads as "none".
+        let host_answers_credentials =
+            conn.key_id.is_some() || self.connection_has_password(&conn.id).unwrap_or(false);
+        for group in &chain {
+            if let Some(id) = group.defaults.as_ref().and_then(|d| d.identity_id)
+                && !identities.iter().any(|i| i.id == id)
+            {
+                // The resolver skips it (a dangling reference would take
+                // the credential branch and resolve to no credentials at
+                // all); the warning is what tells the user why.
+                tracing::warn!(
+                    identity = %id,
+                    group = %group.id,
+                    "group default identity not found, leaving the host on its own credentials"
+                );
+            }
+        }
+        let login = oryxis_core::models::inheritance::effective_login(
+            conn,
+            &chain,
+            identities,
+            host_answers_credentials,
+        );
+
         let mut effective = EffectiveConfig {
-            username: conn
-                .username
-                .clone()
-                .filter(|u| !u.is_empty())
-                .map(|u| (u, Origin::Host)),
-            identity_id: conn.identity_id.map(|id| (id, Origin::Host)),
+            username: login.username,
+            identity_id: login.identity_id,
             terminal_theme: conn
                 .terminal_theme
                 .clone()
@@ -136,40 +142,6 @@ impl VaultStore {
                 continue;
             };
             let origin = Origin::Group(group.id);
-            if effective.username.is_none()
-                && let Some(u) = defaults.username.clone().filter(|u| !u.is_empty())
-            {
-                effective.username = Some((u, origin));
-            }
-            if effective.identity_id.is_none()
-                && let Some(id) = defaults.identity_id
-            {
-                // Two gates, both about not eclipsing what the host can
-                // already do. (1) Credentials are ONE parameter family:
-                // the engine's credential resolution takes the identity
-                // branch wholesale, so inheriting an identity onto a
-                // host that stores its own password or names its own
-                // key would silently disable those the day the group
-                // gains a default. (2) Same forgiveness as the proxy
-                // identity below (and the editor hint, which already
-                // skips it): a deleted identity names nothing, and a
-                // dangling reference would ALSO take the credential
-                // branch and resolve to no credentials at all.
-                let host_answers_credentials =
-                    conn.key_id.is_some() || self.connection_has_password(&conn.id).unwrap_or(false);
-                if host_answers_credentials {
-                    // Nothing to inherit: the host's own credentials
-                    // stand, exactly as if the group had no default.
-                } else if self.identity_exists(&id)? {
-                    effective.identity_id = Some((id, origin));
-                } else {
-                    tracing::warn!(
-                        identity = %id,
-                        group = %group.id,
-                        "group default identity not found, leaving the host on its own credentials"
-                    );
-                }
-            }
             if effective.terminal_theme.is_none()
                 && let Some(t) = defaults.terminal_theme.clone().filter(|t| !t.is_empty())
             {
@@ -220,10 +192,11 @@ impl VaultStore {
     /// username / identity fills the empty fields, and the merged env
     /// set replaces the host's own.
     ///
-    /// `identities` also answers the username an identity carries: the
-    /// SSH engine reads `connection.username` and falls back to "root",
-    /// it never looks inside an identity, so a host that names no user
-    /// and resolves to an identity takes the identity's username here.
+    /// The SSH engine reads `connection.username` and falls back to
+    /// `DEFAULT_USERNAME`, it never looks inside an identity, so a host
+    /// that names no user and resolves to an identity takes the
+    /// identity's username here (`effective_login` resolves it, which is
+    /// also what the listing shows).
     ///
     /// Resolution failing must not stop a connect that would otherwise
     /// work: the fallback is the host's own proxy, exactly the pre-D4
@@ -235,7 +208,7 @@ impl VaultStore {
         groups: &[Group],
         identities: &[oryxis_core::models::Identity],
     ) {
-        let effective = match self.resolve_effective(conn, groups) {
+        let effective = match self.resolve_effective(conn, groups, identities) {
             Ok(effective) => effective,
             Err(e) => {
                 tracing::warn!(
@@ -252,15 +225,6 @@ impl VaultStore {
         }
         if conn.identity_id.is_none() {
             conn.identity_id = effective.identity_id.map(|(id, _)| id);
-        }
-        if conn.username.as_deref().unwrap_or_default().is_empty()
-            && let Some(iid) = conn.identity_id
-        {
-            conn.username = identities
-                .iter()
-                .find(|i| i.id == iid)
-                .and_then(|i| i.username.clone())
-                .filter(|u| !u.is_empty());
         }
         // Already merged by name with the host winning, so this is the
         // whole set rather than an override.

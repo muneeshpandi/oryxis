@@ -9,7 +9,10 @@ use russh::{MethodKind, MethodSet};
 /// the same fallback would let a proxy be told about a user the session
 /// never logs in as.
 pub(crate) fn effective_username(connection: &Connection) -> &str {
-    connection.username.as_deref().unwrap_or("root")
+    connection
+        .username
+        .as_deref()
+        .unwrap_or(oryxis_core::models::inheritance::DEFAULT_USERNAME)
 }
 
 /// A security-key failure as the engine reports it. A dead SSH transport

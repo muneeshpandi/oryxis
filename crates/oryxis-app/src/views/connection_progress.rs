@@ -96,8 +96,10 @@ impl Oryxis {
             if !c.hostname.is_empty() {
                 out = out.replace(&c.hostname, &crate::widgets::mask_blocks(&c.hostname));
             }
-            if let Some(u) = c.username.as_deref().filter(|u| !u.is_empty()) {
-                out = out.replace(u, &crate::widgets::mask_blocks(u));
+            // The effective login (folder default, identity), which is
+            // the word the progress lines actually carry.
+            if let Some(u) = self.effective_username(c) {
+                out = out.replace(&u, &crate::widgets::mask_blocks(&u));
             }
             // The route-context log line names the proxy endpoint, whose
             // DNS hostname the generic regex can't catch. Resolve it the
@@ -171,11 +173,12 @@ impl Oryxis {
         // Two-step color, mirroring the dashboard host card: resolve the
         // brand color from detected OS / custom icon, then let an explicit
         // custom_color / legacy color hex override it.
+        let username = conn.and_then(|c| self.effective_username(c));
         let (glyph, icon_color) = crate::os_icon::resolve_for(
             conn.and_then(|c| c.detected_os.as_deref()),
             conn.and_then(|c| c.custom_icon.as_deref()),
             conn.and_then(|c| c.custom_color.as_deref()),
-            conn.and_then(|c| c.username.as_deref()),
+            username.as_deref(),
             OryxisColors::t().accent,
         );
         let badge_color = conn

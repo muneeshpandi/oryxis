@@ -618,7 +618,13 @@ impl VaultStore {
     /// [`Self::list_identity_ids_with_password`]: an existence check, so
     /// no decrypt and no `require_unlocked()`. The password-autofill
     /// popup (issue #117) uses it to decide which hosts have anything to
-    /// offer without paying a decrypt per candidate.
+    /// offer without paying a decrypt per candidate, and the app caches
+    /// it (`connections_with_password`, hydrated by `load_data_from_vault`)
+    /// because the listing resolves each host's effective login per
+    /// frame, which gates a group's identity default on the host having
+    /// a password of its own: the same predicate as
+    /// [`Self::connection_has_password`], answered once for the table
+    /// rather than per card in the render path.
     pub fn list_connection_ids_with_password(
         &self,
     ) -> Result<std::collections::HashSet<Uuid>, VaultError> {
