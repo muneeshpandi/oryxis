@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use russh::keys::{PublicKey, HashAlg, PrivateKeyWithHashAlg};
+use russh::keys::{HashAlg, PrivateKeyWithHashAlg};
 use russh::{client, ChannelMsg};
 use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
 use tokio::net::TcpStream;

@@ -83,7 +83,21 @@ impl client::Handler for ClientHandler {
         Ok(())
     }
 
-    async fn check_server_key(&mut self, key: &PublicKey) -> Result<bool, Self::Error> {
+    async fn check_server_key(
+        &mut self,
+        key: &russh::keys::PublicKeyOrCertificate,
+    ) -> Result<bool, Self::Error> {
+        // There is no CA trust store here, so a host certificate is
+        // demoted to the key it certifies (OpenSSH's fallback for an
+        // authority it does not trust): the same known-hosts entry and
+        // the same fingerprint as a plain dial, never trust by the CA.
+        if key.certificate().is_some() {
+            tracing::info!(
+                "{}:{} offered a host certificate, checking the key it certifies",
+                self.hostname, self.port
+            );
+        }
+        let key = key.public_key();
         let key_type = key.algorithm().to_string();
         let fingerprint = key.fingerprint(russh::keys::ssh_key::HashAlg::Sha256).to_string();
 
