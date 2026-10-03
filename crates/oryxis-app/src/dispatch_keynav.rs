@@ -574,7 +574,10 @@ impl Oryxis {
         // the saved one, credentials included.
         let exact = self.connections.iter().position(|c| {
             c.label.eq_ignore_ascii_case(&input)
-                || c.username.as_deref().is_some_and(|u| {
+                // The effective login (folder default, identity), the
+                // word the card shows: `deploy@web01` names the saved
+                // host that inherits deploy, not an ad-hoc dial.
+                || self.effective_username(c).is_some_and(|u| {
                     format!("{}@{}", u, c.hostname).eq_ignore_ascii_case(&input)
                 })
         });

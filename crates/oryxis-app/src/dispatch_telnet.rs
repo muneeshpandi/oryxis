@@ -24,11 +24,19 @@ impl Oryxis {
     /// with the same identity-over-inline precedence as SSH (a synced
     /// host may carry an identity even though the reduced editor hides
     /// it), quick-connect secrets overlaid for ad-hoc hosts.
+    ///
+    /// The folder's defaults are collapsed onto the dial copy first
+    /// (`apply_group_inheritance`, the one collapse every dial site
+    /// runs), so a Telnet host that names no user answers the login
+    /// prompt as its folder says, which is also what its card shows
+    /// (`effective_login`). It lives HERE, in the one function both
+    /// Telnet dial sites call, so neither can be written without it.
     fn telnet_config(
         &self,
         conn: &mut oryxis_core::models::Connection,
         quick_id: Option<Uuid>,
     ) -> TelnetConfig {
+        self.apply_group_inheritance(conn);
         let (username, mut password) = if let Some(iid) = conn.identity_id {
             let identity = self.identities.iter().find(|i| i.id == iid);
             (

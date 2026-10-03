@@ -79,6 +79,12 @@ pub(crate) fn observe_password_prompt(
 /// would put it one Enter away from a host that did not earn it. Then
 /// the named host's own rows lead, identities follow (the named account
 /// first), and the pane's host goes last.
+///
+/// `login_of` answers who a host logs in as (`Oryxis::effective_username`:
+/// its own user, else its folder's default, else its identity's). It is
+/// handed in so this stays a pure function, and it is what both the
+/// row's second line and "the named account first" read: a host that
+/// inherits `deploy` is the `deploy@host` a prompt names.
 pub(crate) fn rank_password_sources(
     conn: Option<&oryxis_core::models::Connection>,
     target: Option<&oryxis_terminal::prompt_detect::PromptTarget>,
@@ -86,10 +92,11 @@ pub(crate) fn rank_password_sources(
     identities: &[oryxis_core::models::Identity],
     with_password: &std::collections::HashSet<uuid::Uuid>,
     identities_with_password: &std::collections::HashSet<uuid::Uuid>,
+    login_of: &dyn Fn(&oryxis_core::models::Connection) -> Option<String>,
 ) -> Vec<PasswordSource> {
     let conn_source = |c: &oryxis_core::models::Connection| PasswordSource {
         label: c.label.clone(),
-        sublabel: c.username.clone().unwrap_or_default(),
+        sublabel: login_of(c).unwrap_or_default(),
         kind: PasswordSourceKind::Connection(c.id),
     };
     let ident_source = |i: &oryxis_core::models::Identity| PasswordSource {
@@ -106,7 +113,7 @@ pub(crate) fn rank_password_sources(
             .iter()
             .filter(|c| names_host(c, &target.host) && with_password.contains(&c.id))
             .collect();
-        named.sort_by_key(|c| (not_named_user(&c.username), c.label.to_lowercase()));
+        named.sort_by_key(|c| (not_named_user(&login_of(c)), c.label.to_lowercase()));
         out.extend(named.into_iter().map(conn_source));
         let mut idents: Vec<&oryxis_core::models::Identity> = identities
             .iter()
@@ -210,6 +217,7 @@ impl Oryxis {
             &self.identities,
             &with_password,
             &identities_with_password,
+            &|c| self.effective_username(c),
         );
         (entries, prompt_target_label(target.as_ref()))
     }
@@ -579,10 +587,54 @@ mod tests {
         let with: std::collections::HashSet<uuid::Uuid> = conns.iter().map(|c| c.id).collect();
         let iwith: std::collections::HashSet<uuid::Uuid> = idents.iter().map(|i| i.id).collect();
         let target = oryxis_terminal::prompt_detect::prompt_target(prompt);
-        rank_password_sources(Some(&conns[pane_host]), target.as_ref(), conns, idents, &with, &iwith)
-            .into_iter()
-            .map(|s| s.label)
-            .collect()
+        rank_password_sources(
+            Some(&conns[pane_host]),
+            target.as_ref(),
+            conns,
+            idents,
+            &with,
+            &iwith,
+            &|c| c.username.clone(),
+        )
+        .into_iter()
+        .map(|s| s.label)
+        .collect()
+    }
+
+    /// A host that leaves its username to its folder is still the
+    /// `deploy@host` a prompt names: the resolved login ranks it first
+    /// and labels its row, where the raw field would have ranked it
+    /// after a host that merely sorts earlier and shown nothing.
+    #[test]
+    fn an_inherited_login_ranks_and_labels_like_a_typed_one() {
+        use oryxis_core::models::Connection;
+        let pane = Connection::new("pane", "10.0.0.9");
+        let mut other = Connection::new("aaa-other", "10.0.0.2");
+        other.username = Some("admin".into());
+        let inheriting = Connection::new("zzz-inherits", "10.0.0.2");
+        let inheriting_id = inheriting.id;
+        let conns = vec![pane, other, inheriting];
+        let with: std::collections::HashSet<uuid::Uuid> = conns.iter().map(|c| c.id).collect();
+        let target = oryxis_terminal::prompt_detect::prompt_target("deploy@10.0.0.2's password:");
+        let login_of = |c: &Connection| {
+            if c.id == inheriting_id {
+                Some("deploy".to_string())
+            } else {
+                c.username.clone()
+            }
+        };
+        let out = rank_password_sources(
+            Some(&conns[0]),
+            target.as_ref(),
+            &conns,
+            &[],
+            &with,
+            &std::collections::HashSet::new(),
+            &login_of,
+        );
+        assert_eq!(out[0].label, "zzz-inherits");
+        assert_eq!(out[0].sublabel, "deploy");
+        assert_eq!(out[1].label, "aaa-other");
     }
 
     #[test]

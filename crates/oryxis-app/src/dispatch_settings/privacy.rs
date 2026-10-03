@@ -69,19 +69,26 @@ impl Oryxis {
         // source, so every terms consumer (terminal spans, display
         // redactor, AI context) honours it for free. The always-mask
         // list is class-less: an explicit user entry always masks.
+        //
+        // The username is the EFFECTIVE one (`effective_username`: the
+        // host's own, else its folder's default, else its identity's):
+        // that is the word the prompt, the progress lines and the card
+        // carry, and a host that inherits it has nothing in the field.
+        let users: Vec<String> = if self.privacy.mask_usernames {
+            self.connections
+                .iter()
+                .filter_map(|c| self.effective_username(c))
+                .collect()
+        } else {
+            Vec::new()
+        };
+        let hosts = self
+            .connections
+            .iter()
+            .filter(|_| self.privacy.mask_hostnames)
+            .map(|c| c.hostname.as_str());
         crate::widgets::assemble_privacy_terms(
-            self.connections.iter().flat_map(|c| {
-                let host = self
-                    .privacy
-                    .mask_hostnames
-                    .then_some(c.hostname.as_str());
-                let user = if self.privacy.mask_usernames {
-                    c.username.as_deref()
-                } else {
-                    None
-                };
-                host.into_iter().chain(user)
-            }),
+            hosts.chain(users.iter().map(String::as_str)),
             &self.privacy.always_mask,
             &self.privacy.never_mask,
         )

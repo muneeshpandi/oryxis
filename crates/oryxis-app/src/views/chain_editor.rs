@@ -253,7 +253,8 @@ impl Oryxis {
                     .and_then(|gid| self.groups.iter().find(|g| g.id == gid))
                     .map(|g| g.label.to_lowercase())
                     .unwrap_or_default();
-                let user = c.username.as_deref().unwrap_or("").to_lowercase();
+                // The effective login, like the hosts search.
+                let user = self.effective_username(c).unwrap_or_default().to_lowercase();
                 c.label.to_lowercase().contains(&needle)
                     || c.hostname.to_lowercase().contains(&needle)
                     || user.contains(&needle)
