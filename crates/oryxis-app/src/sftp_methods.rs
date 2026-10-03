@@ -1287,19 +1287,41 @@ impl Oryxis {
             other => other,
         };
         // The closed tab owned the live buffer: `self.sftp` now holds its
-        // (discarded) state. Adopt the nearest remaining tab, else reset.
+        // (discarded) state. Adopt the nearest remaining tab OF THIS
+        // WINDOW, else reset: a tab in another window's strip is that
+        // window's to show, and hoisting it here would put it on screen
+        // in a window whose strip does not hold it.
+        let next = (idx..self.sftp_tabs.len())
+            .chain((0..idx.min(self.sftp_tabs.len())).rev())
+            .find(|&i| self.shows_sftp_tab(i));
         if was_owner {
-            if !self.sftp_tabs.is_empty() {
-                let next = idx.min(self.sftp_tabs.len() - 1);
-                self.sftp = std::mem::take(&mut self.sftp_tabs[next].state);
-                self.active_sftp = Some(next);
-            } else {
-                self.sftp = crate::state::SftpState::default();
+            match next {
+                Some(next) => {
+                    self.sftp = std::mem::take(&mut self.sftp_tabs[next].state);
+                    self.active_sftp = Some(next);
+                }
+                None => self.sftp = crate::state::SftpState::default(),
             }
         }
         if was_focused_surface {
-            if self.sftp_tabs.is_empty() {
-                return Task::done(Message::Navigation(NavigationMessage::ChangeView(crate::state::View::Dashboard)));
+            if next.is_none() {
+                // No SFTP tab left in this window. The main window goes
+                // home; an extra window shows one of its terminal tabs
+                // (and closes by itself when it has none).
+                if self.window_ctx.is_none() {
+                    return Task::done(Message::Navigation(NavigationMessage::ChangeView(crate::state::View::Dashboard)));
+                }
+                self.active_view = crate::state::View::Terminal;
+                let first = self.tab_order.iter().find_map(|r| match r {
+                    crate::state::TabRef::Terminal(t) => {
+                        self.tabs.iter().position(|tab| tab._id == *t)
+                    }
+                    _ => None,
+                });
+                return match first {
+                    Some(i) => Task::done(Message::Tabs(crate::app::TabsMessage::SelectTab(i))),
+                    None => Task::none(),
+                };
             }
             self.refresh_sftp_local(crate::state::SftpPaneSide::Left);
             self.refresh_sftp_local(crate::state::SftpPaneSide::Right);
@@ -1307,7 +1329,9 @@ impl Oryxis {
         Task::none()
     }
 
-    /// Close every SFTP tab except the one at `keep_idx`. Reuses
+    /// Close every SFTP tab of THIS window's strip except the one at
+    /// `keep_idx`: another window's tabs are not on screen here to be
+    /// closed from here (the terminal tabs' rule, `shows_tab`). Reuses
     /// `close_sftp_tab` per dropped tab so `active_sftp`, buffer adoption and
     /// `tab_order` stay consistent (instead of a hand-rolled `retain` that
     /// hard-codes `active_sftp = Some(0)`).
@@ -1316,7 +1340,9 @@ impl Oryxis {
             return Task::none();
         };
         let mut task = Task::none();
-        while let Some(idx) = self.sftp_tabs.iter().position(|t| t.id != keep_id) {
+        while let Some(idx) = (0..self.sftp_tabs.len())
+            .find(|&i| self.sftp_tabs[i].id != keep_id && self.shows_sftp_tab(i))
+        {
             // Each dropped tab lands on the reopen stack, same as closing
             // it on its own would (issue #186).
             self.remember_closed_sftp_tab(idx);
@@ -1325,10 +1351,18 @@ impl Oryxis {
         task
     }
 
+    /// Whether "Close other tabs" has anything to close from `keep_idx`:
+    /// another SFTP tab in this window's strip.
+    pub(crate) fn has_other_sftp_tabs(&self, keep_idx: usize) -> bool {
+        (0..self.sftp_tabs.len()).any(|i| i != keep_idx && self.shows_sftp_tab(i))
+    }
+
     /// Whether closing every tab but `keep_idx` would drop unsaved work, i.e.
-    /// any other tab has an in-flight transfer or a dirty edit-session.
+    /// any other tab of this window has an in-flight transfer or a dirty
+    /// edit-session.
     pub(crate) fn other_sftp_tabs_have_unsaved(&self, keep_idx: usize) -> bool {
-        (0..self.sftp_tabs.len()).any(|i| i != keep_idx && self.sftp_tab_has_unsaved(i))
+        (0..self.sftp_tabs.len())
+            .any(|i| i != keep_idx && self.shows_sftp_tab(i) && self.sftp_tab_has_unsaved(i))
     }
 
     /// Owning tab id to stamp on an SFTP async-continuation message: the tab

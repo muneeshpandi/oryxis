@@ -518,7 +518,7 @@ impl Oryxis {
         if !self.closed_tabs.is_empty() {
             items = items.push(self.menu_item(iced_fonts::lucide::rotate_ccw(), crate::i18n::t("reopen_closed_tab"), Message::Tabs(TabsMessage::ReopenClosedTab), OryxisColors::t().text_secondary));
         }
-        if self.sftp_tabs.len() > 1 {
+        if self.has_other_sftp_tabs(idx) {
             items = items.push(self.menu_item(iced_fonts::lucide::x(), crate::i18n::t("close_other_tabs"), Message::Sftp(SftpMessage::CloseOtherSftpTabs(idx)), OryxisColors::t().text_secondary));
         }
         items.into()

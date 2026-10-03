@@ -314,6 +314,18 @@ impl Oryxis {
         }
     }
 
+    /// Whether the SFTP tab at `idx` is in the strip of the current
+    /// window. Reads through `cur_tab_order`, so a menu being drawn and
+    /// the handler it fires agree. Always true with a single window.
+    pub(crate) fn shows_sftp_tab(&self, idx: usize) -> bool {
+        if self.extra_windows.is_empty() && self.window_ctx.is_none() {
+            return true;
+        }
+        self.sftp_tabs
+            .get(idx)
+            .is_some_and(|t| self.cur_tab_order().contains(&TabRef::Sftp(t.id)))
+    }
+
     /// The window that shows the tab with strip id `id` (terminal or
     /// SFTP): `None` is the main one.
     pub(crate) fn window_of_tab(&self, id: Uuid) -> Option<window::Id> {
