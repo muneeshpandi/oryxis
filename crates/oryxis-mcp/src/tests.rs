@@ -212,6 +212,61 @@ mod tests {
         assert_eq!(host["port"], 22);
     }
 
+    /// A host that leaves its user to its folder lists the login the
+    /// dial will use beside the (empty) field, and the two tools and the
+    /// dial plan give one answer.
+    #[tokio::test]
+    async fn the_listing_names_the_login_the_dial_uses() {
+        let server = Server::new(test_vault());
+        let mut group = Group::new("prod");
+        group.defaults = Some(oryxis_core::models::group::GroupDefaults {
+            username: Some("deploy".into()),
+            ..Default::default()
+        });
+        server.vault().save_group(&group).unwrap();
+        let mut inherits = Connection::new("inherits", "10.0.0.1");
+        inherits.group_id = Some(group.id);
+        inherits.mcp_enabled = true;
+        server.vault().save_connection(&inherits, None).unwrap();
+        let mut bare = Connection::new("bare", "10.0.0.2");
+        bare.mcp_enabled = true;
+        server.vault().save_connection(&bare, None).unwrap();
+
+        let resp = server.handle_request(
+            "tools/call",
+            json!(40),
+            Some(&json!({"name": "list_hosts", "arguments": {}})),
+            no_cancel(),
+        )
+        .await;
+        let result = resp.result.unwrap();
+        let hosts: Vec<Value> =
+            serde_json::from_str(result["content"][0]["text"].as_str().unwrap()).unwrap();
+        let by_label = |label: &str| hosts.iter().find(|h| h["label"] == label).unwrap();
+        assert!(by_label("inherits")["username"].is_null());
+        assert_eq!(by_label("inherits")["effective_username"], "deploy");
+        // Nothing names a user: the engine's fallback, said out loud.
+        assert_eq!(by_label("bare")["effective_username"], "root");
+
+        let resp = server.handle_request(
+            "tools/call",
+            json!(41),
+            Some(&json!({"name": "get_host", "arguments": {"id": inherits.id.to_string()}})),
+            no_cancel(),
+        )
+        .await;
+        let result = resp.result.unwrap();
+        let host: Value =
+            serde_json::from_str(result["content"][0]["text"].as_str().unwrap()).unwrap();
+        assert!(host["username"].is_null());
+        assert_eq!(host["effective_username"], "deploy");
+
+        let Ok(plan) = resolve_dial_plan(&server.vault(), inherits.id) else {
+            panic!("the host is exposed to MCP and must resolve");
+        };
+        assert_eq!(plan.auth_conn.username.as_deref(), Some("deploy"));
+    }
+
     #[tokio::test]
     async fn get_host_not_found() {
         let server = Server::new(test_vault());

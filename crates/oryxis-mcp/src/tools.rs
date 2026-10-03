@@ -4,7 +4,7 @@ pub fn tool_definitions() -> Vec<Value> {
     vec![
         json!({
             "name": "list_hosts",
-            "description": "List all MCP-enabled SSH hosts in the vault",
+            "description": "List all MCP-enabled SSH hosts in the vault. `username` is the host's own field (null when it leaves the user to its group or identity); `effective_username` is the login ssh_execute will use.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -21,7 +21,7 @@ pub fn tool_definitions() -> Vec<Value> {
         }),
         json!({
             "name": "get_host",
-            "description": "Get detailed information about a specific SSH host",
+            "description": "Get detailed information about a specific SSH host. `username` is the host's own field (null when inherited); `effective_username` is the login ssh_execute will use.",
             "inputSchema": {
                 "type": "object",
                 "properties": {

@@ -9,6 +9,7 @@ project uses [SemVer](https://semver.org/spec/v2.0.0.html).
 ### Added
 - Security keys sign natively, no ssh-agent: Ed25519-SK and ECDSA-SK on Windows, Linux and macOS, with PIN, and a hardware-only Security Key method (#236, #237, by @Rulio723).
 - The MCP plugin 0.1.6 reads hosts set to Security Key, and refuses them: a touch needs a person at the keyboard.
+- The MCP plugin 0.1.7 lists `effective_username` beside `username`: the login `ssh_execute` uses when a host leaves the user to its group or identity.
 - Tabs move between windows with their session intact: drag a tab out of the window, or use "Move to New Window" / "Move to Main Window" on the tab menu. Extra windows hold terminal and SFTP tabs; Settings and the vault stay in the main one.
 - Drag a host card (or a selection) out of the window to connect it in a new one, or use "Connect in New Window" on the card menu.
 
@@ -17,6 +18,7 @@ project uses [SemVer](https://semver.org/spec/v2.0.0.html).
 - A command proxy line runs as `exec <line>`, the way OpenSSH runs it, and stopping a dial ends the proxy together with anything it started.
 
 ### Fixed
+- A host that leaves its username to its group shows, finds and masks that user everywhere it is named (card, hosts tree, tab, search, copied URL, Privacy Mode), and a Telnet host logs in with it (#242, reported by @anojoyman).
 - "Duplicate in New Window" works for a local terminal and a cloud exec session, not only saved hosts.
 - A command proxy that logs in first (an expired SSO session, a browser URL) no longer fails the dial; its output shows on the connect card (#223, reported by @guptakanishka90).
 - A host-key or command-proxy prompt no longer times the connection out while you read it; closing the connect card stops the dial and its proxy.

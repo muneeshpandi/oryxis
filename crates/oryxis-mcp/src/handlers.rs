@@ -43,8 +43,57 @@ fn make_host_key_check(vault: &VaultStore) -> oryxis_ssh::HostKeyCheckCallback {
     })
 }
 
+/// Who a host logs in as, for the listing tools.
+///
+/// `username` in a host's JSON is the FIELD, and it is null on a host
+/// that leaves the user to its folder or its identity; a client reading
+/// only that would report (or reason about) a login the dial never
+/// uses. `effective_username` is the resolution, from the same core
+/// ordering `VaultStore::apply_effective` collapses onto the dial copy
+/// (`oryxis_core::models::inheritance::effective_login`), so what a
+/// listing says and what `ssh_execute` authenticates as are one answer.
+///
+/// Loaded once per call: the groups, the identities and the set of
+/// hosts that store a password (the gate on a folder's identity
+/// default), three reads however many hosts are listed.
+struct LoginResolver {
+    groups: Vec<oryxis_core::models::Group>,
+    identities: Vec<oryxis_core::models::Identity>,
+    with_password: std::collections::HashSet<Uuid>,
+}
+
+impl LoginResolver {
+    fn load(vault: &VaultStore) -> Self {
+        Self {
+            groups: vault.list_groups().unwrap_or_default(),
+            identities: vault.list_identities().unwrap_or_default(),
+            with_password: vault.list_connection_ids_with_password().unwrap_or_default(),
+        }
+    }
+
+    /// The name the dial offers the server, the engine's own fallback
+    /// included: never empty, because a dial always logs in as someone.
+    fn username(&self, conn: &Connection) -> String {
+        let chain = conn
+            .group_id
+            .map(|gid| oryxis_core::models::Group::ancestry(&self.groups, gid).chain)
+            .unwrap_or_default();
+        let answers_credentials =
+            conn.key_id.is_some() || self.with_password.contains(&conn.id);
+        oryxis_core::models::inheritance::effective_login(
+            conn,
+            &chain,
+            &self.identities,
+            answers_credentials,
+        )
+        .username_or_default()
+        .to_string()
+    }
+}
+
 pub fn handle_list_hosts(vault: &VaultStore, params: Option<&Value>) -> Result<Value, String> {
     let conns = vault.list_mcp_connections().map_err(|e| e.to_string())?;
+    let logins = LoginResolver::load(vault);
 
     let group_filter = params
         .and_then(|p| p.get("group_id"))
@@ -77,6 +126,7 @@ pub fn handle_list_hosts(vault: &VaultStore, params: Option<&Value>) -> Result<V
                 "hostname": c.hostname,
                 "port": c.port,
                 "username": c.username,
+                "effective_username": logins.username(c),
                 "auth_method": format!("{:?}", c.auth_method),
                 "group_id": c.group_id.map(|g| g.to_string()),
                 "tags": c.tags,
@@ -143,6 +193,7 @@ pub fn handle_get_host(vault: &VaultStore, params: Option<&Value>) -> Result<Val
         "hostname": conn.hostname,
         "port": conn.port,
         "username": conn.username,
+        "effective_username": LoginResolver::load(vault).username(conn),
         "auth_method": format!("{:?}", conn.auth_method),
         "group_id": conn.group_id.map(|g| g.to_string()),
         "identity_id": conn.identity_id.map(|i| i.to_string()),
