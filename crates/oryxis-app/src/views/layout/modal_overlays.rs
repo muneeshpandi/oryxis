@@ -420,14 +420,14 @@ impl Oryxis {
         } else {
             crate::state::SftpPaneSide::Left
         };
-        let other = self.sftp.pane(other_side);
+        let other = self.cur_sftp().pane(other_side);
         let cross_pane_ready = if other.is_remote {
             other.client.is_some()
         } else {
             true
         };
         let other_is_remote = other.is_remote;
-        let src_pane = self.sftp.pane(row_menu.side);
+        let src_pane = self.cur_sftp().pane(row_menu.side);
         let source_is_remote = src_pane.is_remote;
         let other_label = other.host_label.clone();
         // Current directory of the source pane + its local path, fed to

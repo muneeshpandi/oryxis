@@ -16,7 +16,7 @@ impl Oryxis {
     /// width (clamped), then re-seeds + persists the column template.
     fn autofit_sftp_column(&mut self, side: SftpPaneSide, col: crate::state::SftpColumn) {
         let target = {
-            let pane = self.sftp.pane(side);
+            let pane = self.cur_sftp().pane(side);
             crate::views::sftp::autofit_column_width(
                 pane.is_remote,
                 &pane.remote_entries,
@@ -25,7 +25,7 @@ impl Oryxis {
             )
         };
         self.sftp.pane_mut(side).columns.width.set_autofit(col, target);
-        self.sftp_chrome.columns_template = self.sftp.pane(side).columns.clone();
+        self.sftp_chrome.columns_template = self.cur_sftp().pane(side).columns.clone();
         self.persist_sftp_columns();
     }
 
@@ -35,7 +35,7 @@ impl Oryxis {
     ) -> Result<Task<Message>, SftpMessage> {
         match message {
             SftpMessage::SftpToggleActions(side) => {
-                let now = !self.sftp.pane(side).actions_open;
+                let now = !self.cur_sftp().pane(side).actions_open;
                 self.sftp.left.actions_open = false;
                 self.sftp.right.actions_open = false;
                 self.sftp.left.drives_open = false;
@@ -44,7 +44,7 @@ impl Oryxis {
                 self.sftp.pane_mut(side).actions_open = now;
             }
             SftpMessage::SftpToggleDrives(side) => {
-                let now = !self.sftp.pane(side).drives_open;
+                let now = !self.cur_sftp().pane(side).drives_open;
                 self.sftp.left.actions_open = false;
                 self.sftp.right.actions_open = false;
                 self.sftp.left.drives_open = false;
@@ -59,11 +59,11 @@ impl Oryxis {
                 // flip several columns in one pass. The edited pane becomes the
                 // new persisted template seed.
                 self.sftp.pane_mut(side).columns.toggle(col);
-                self.sftp_chrome.columns_template = self.sftp.pane(side).columns.clone();
+                self.sftp_chrome.columns_template = self.cur_sftp().pane(side).columns.clone();
                 self.persist_sftp_columns();
             }
             SftpMessage::SftpColResizeStart(side, col) => {
-                let start_w = self.sftp.pane(side).columns.width.get(col);
+                let start_w = self.cur_sftp().pane(side).columns.width.get(col);
                 self.sftp_chrome.col_resize = Some((side, col, self.cur_mouse().x, start_w));
                 self.sftp.close_menus();
             }
@@ -85,7 +85,7 @@ impl Oryxis {
                 self.sftp_chrome.leave_col((side, col));
             }
             SftpMessage::SftpToggleFilterSearch(side) => {
-                let now = !self.sftp.pane(side).filter_open;
+                let now = !self.cur_sftp().pane(side).filter_open;
                 self.sftp.close_menus();
                 self.sftp.pane_mut(side).filter_open = now;
                 if now {
@@ -98,7 +98,7 @@ impl Oryxis {
                 }
             }
             SftpMessage::SftpToggleLog => {
-                self.sftp.log_open = !self.sftp.log_open;
+                self.sftp.log_open = !self.cur_sftp().log_open;
             }
             SftpMessage::SftpSplitResizeStart => {
                 // Capture the cursor x and current ratio; the MouseMoved
@@ -108,7 +108,7 @@ impl Oryxis {
             SftpMessage::SftpLogResizeStart => {
                 // Capture the cursor y and current log height; the MouseMoved
                 // handler computes the delta against these.
-                self.sftp_chrome.log_drag = Some((self.cur_mouse().y, self.sftp.log_height));
+                self.sftp_chrome.log_drag = Some((self.cur_mouse().y, self.cur_sftp().log_height));
             }
             m => return Err(m),
         }

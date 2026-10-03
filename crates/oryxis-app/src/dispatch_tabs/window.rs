@@ -32,7 +32,7 @@ impl Oryxis {
             || self.sftp_chrome.log_drag.is_some()
             || self.sftp_chrome.col_resize.is_some()
             || self.sftp_chrome.col_drag.is_some()
-            || self.sftp.drag.is_some()
+            || self.cur_sftp().drag.is_some()
             || self.tab_drag.is_some()
             || self.card_drag.is_some();
         // Promote an armed tab drag to active once the cursor moves
@@ -84,7 +84,7 @@ impl Oryxis {
         // (SftpRowEnter) is only a fallback, since it can be disrupted
         // by tooltips / row gaps and is why cross-pane drag used to
         // fail intermittently.
-        if let Some(drag) = self.sftp.drag.as_ref()
+        if let Some(drag) = self.cur_sftp().drag.as_ref()
             && !drag.active
         {
             use crate::state::SftpPaneSide::{Left, Right};

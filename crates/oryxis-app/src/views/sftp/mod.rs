@@ -81,23 +81,23 @@ impl Oryxis {
         // input's state (the filter, the path bar, an inline rename) and
         // the lists' scroll positions.
         let mut panes_area = column![panes].width(Length::Fill).height(Length::Fill);
-        if let Some(transfer) = &self.sftp.transfer.state {
+        if let Some(transfer) = &self.cur_sftp().transfer.state {
             // Clicking the strip toggles a per-file panel that rises above
             // it. (Clicking the inner Cancel button also cancels, which
             // clears the transfer and hides both, so the extra toggle is
             // harmless.)
             let strip = MouseArea::new(transfer_progress_strip(
                 transfer,
-                self.sftp
+                self.cur_sftp()
                     .transfer.bytes_done
                     .load(std::sync::atomic::Ordering::Relaxed),
-                self.sftp.transfer.bytes_total,
+                self.cur_sftp().transfer.bytes_total,
                 Message::Sftp(SftpMessage::SftpCancelTransfer),
                 false,
             ))
             .on_press(Message::Sftp(SftpMessage::SftpToggleTransferPanel));
-            if self.sftp.transfer.panel_open {
-                panes_area = panes_area.push(transfer_file_panel(transfer, &self.sftp.transfer.done_log));
+            if self.cur_sftp().transfer.panel_open {
+                panes_area = panes_area.push(transfer_file_panel(transfer, &self.cur_sftp().transfer.done_log));
             }
             panes_area = panes_area.push(strip);
         }
@@ -108,11 +108,11 @@ impl Oryxis {
         let mut body_col = column![container(panes_area).width(Length::Fill).height(Length::Fill)]
             .width(Length::Fill)
             .height(Length::Fill);
-        if self.sftp.log_open {
+        if self.cur_sftp().log_open {
             body_col = body_col.push(sftp_log_divider());
-            body_col = body_col.push(sftp_log_panel(&self.sftp.log, self.sftp.log_height));
+            body_col = body_col.push(sftp_log_panel(&self.cur_sftp().log, self.cur_sftp().log_height));
         }
-        body_col = body_col.push(sftp_log_bar(self.sftp.log_open, self.sftp.log.len()));
+        body_col = body_col.push(sftp_log_bar(self.cur_sftp().log_open, self.cur_sftp().log.len()));
         let body: Element<'_, Message> = body_col.into();
 
         // Pane-anchored popovers (the `⋮` actions menu and the collapsed
@@ -145,13 +145,13 @@ impl Oryxis {
         base: Element<'a, Message>,
     ) -> Element<'a, Message> {
         // Resolve which popover is open and the pane it belongs to.
-        let open: Option<(SftpPaneSide, PanePopover)> = if self.sftp.left.actions_open {
+        let open: Option<(SftpPaneSide, PanePopover)> = if self.cur_sftp().left.actions_open {
             Some((SftpPaneSide::Left, PanePopover::Actions))
-        } else if self.sftp.right.actions_open {
+        } else if self.cur_sftp().right.actions_open {
             Some((SftpPaneSide::Right, PanePopover::Actions))
-        } else if self.sftp.left.filter_open {
+        } else if self.cur_sftp().left.filter_open {
             Some((SftpPaneSide::Left, PanePopover::Filter))
-        } else if self.sftp.right.filter_open {
+        } else if self.cur_sftp().right.filter_open {
             Some((SftpPaneSide::Right, PanePopover::Filter))
         } else {
             None
@@ -169,7 +169,7 @@ impl Oryxis {
                 .height(Length::Fill)
                 .into();
         };
-        let pane = self.sftp.pane(side);
+        let pane = self.cur_sftp().pane(side);
 
         // Pane geometry in view-local coordinates (x = 0 at the view's left
         // edge, i.e. right of the nav rail).
@@ -298,9 +298,9 @@ impl Oryxis {
         // `view_main` (keyed on `pending_sftp_close`), not here, since the
         // close button lives in the always-visible tab strip and can be
         // clicked from any surface, not just while viewing SFTP.
-        let modal: Option<Element<'a, Message>> = if !self.sftp.delete_confirm.is_empty() {
-            Some(delete_confirm_modal(&self.sftp.delete_confirm))
-        } else if let Some(entry) = &self.sftp.new_entry {
+        let modal: Option<Element<'a, Message>> = if !self.cur_sftp().delete_confirm.is_empty() {
+            Some(delete_confirm_modal(&self.cur_sftp().delete_confirm))
+        } else if let Some(entry) = &self.cur_sftp().new_entry {
             Some(new_entry_modal(entry))
         } else if let Some(prompt) = &self.sftp_edit_reopen {
             Some(edit_reopen_modal(self, prompt))
@@ -310,11 +310,11 @@ impl Oryxis {
             // answerable). Multiple pending saves queue naturally:
             // answering one re-renders with the next.
             Some(edit_prompt_modal(self, watch))
-        } else if let Some(prompt) = &self.sftp.overwrite_prompt {
+        } else if let Some(prompt) = &self.cur_sftp().overwrite_prompt {
             Some(overwrite_modal(prompt))
-        } else if let Some(props) = &self.sftp.properties {
+        } else if let Some(props) = &self.cur_sftp().properties {
             Some(properties_modal(props))
-        } else if self.sftp.picker_open {
+        } else if self.cur_sftp().picker_open {
             Some(self.view_sftp_picker())
         } else {
             None
@@ -370,13 +370,13 @@ impl Oryxis {
     ) -> Element<'a, Message> {
         crate::widgets::press_hit_reporter(
             row,
-            self.sftp.row_press.clone(),
+            self.cur_sftp().row_press.clone(),
             (side, path.to_string(), is_dir),
         )
     }
 
     fn view_sftp_pane(&self, side: SftpPaneSide) -> Element<'_, Message> {
-        let pane = self.sftp.pane(side);
+        let pane = self.cur_sftp().pane(side);
         let is_remote = pane.is_remote;
         // Resolve the column layout from this pane's on-screen width (the
         // content area split by the divider ratio). When the visible columns
@@ -677,11 +677,11 @@ impl Oryxis {
             let mut col = column![].spacing(0);
             if pane.local_path.parent().is_some() {
                 let parent_selected =
-                    self.sftp.parent_cursor && self.sftp.focused_side == side;
+                    self.cur_sftp().parent_cursor && self.cur_sftp().focused_side == side;
                 let prow = parent_row(
                     side,
                     parent_selected,
-                    self.sftp.suppress_hover,
+                    self.cur_sftp().suppress_hover,
                     &ordered_cols,
                     col_widths,
                     layout,
@@ -690,7 +690,7 @@ impl Oryxis {
                 // cursor so the Menu key / Shift+F10 can anchor the pane's
                 // background menu on it.
                 let prow = if parent_selected {
-                    crate::widgets::bounds_reporter(prow, self.sftp.focus_row_bounds.clone())
+                    crate::widgets::bounds_reporter(prow, self.cur_sftp().focus_row_bounds.clone())
                 } else {
                     prow
                 };
@@ -709,7 +709,7 @@ impl Oryxis {
                 // rename state for this side, the selected-row paths as
                 // a set for O(1) membership, and the cross-pane drag
                 // flag (it doesn't depend on the entry).
-                let rename = self.sftp.rename.as_ref().filter(|r| r.side == side);
+                let rename = self.cur_sftp().rename.as_ref().filter(|r| r.side == side);
                 let selected_paths: std::collections::HashSet<&str> = self
                     .sftp
                     .selected_rows
@@ -720,8 +720,8 @@ impl Oryxis {
                 // The keyboard cursor is the last selected row in the
                 // focused pane; that one row reports its bounds for the
                 // Menu-key anchor.
-                let focus_path: Option<String> = if self.sftp.focused_side == side {
-                    self.sftp
+                let focus_path: Option<String> = if self.cur_sftp().focused_side == side {
+                    self.cur_sftp()
                         .selected_rows
                         .last()
                         .filter(|(s, _)| *s == side)
@@ -770,7 +770,7 @@ impl Oryxis {
                         rename_input,
                         is_selected,
                         is_drop_target,
-                        self.sftp.suppress_hover,
+                        self.cur_sftp().suppress_hover,
                         &ordered_cols,
                         col_widths,
                         layout,
@@ -778,7 +778,7 @@ impl Oryxis {
                     let row_el = if is_focus {
                         crate::widgets::bounds_reporter(
                             row_el,
-                            self.sftp.focus_row_bounds.clone(),
+                            self.cur_sftp().focus_row_bounds.clone(),
                         )
                     } else {
                         row_el
@@ -882,18 +882,18 @@ impl Oryxis {
             let mut col = column![].spacing(0);
             if pane.remote_path != "/" && !pane.remote_path.is_empty() {
                 let parent_selected =
-                    self.sftp.parent_cursor && self.sftp.focused_side == side;
+                    self.cur_sftp().parent_cursor && self.cur_sftp().focused_side == side;
                 let prow = parent_row(
                     side,
                     parent_selected,
-                    self.sftp.suppress_hover,
+                    self.cur_sftp().suppress_hover,
                     &ordered_cols,
                     col_widths,
                     layout,
                 );
                 // Anchor for the Menu key when the `..` row is the cursor.
                 let prow = if parent_selected {
-                    crate::widgets::bounds_reporter(prow, self.sftp.focus_row_bounds.clone())
+                    crate::widgets::bounds_reporter(prow, self.cur_sftp().focus_row_bounds.clone())
                 } else {
                     prow
                 };
@@ -902,7 +902,7 @@ impl Oryxis {
             // Same per-pane invariants as the local branch, hoisted out
             // of the entry loop: rename state, the selected paths as a
             // set for O(1) membership, parent path, and the drag phase.
-            let rename = self.sftp.rename.as_ref().filter(|r| r.side == side);
+            let rename = self.cur_sftp().rename.as_ref().filter(|r| r.side == side);
             let selected_paths: std::collections::HashSet<&str> = self
                 .sftp
                 .selected_rows
@@ -911,8 +911,8 @@ impl Oryxis {
                 .map(|(_, p)| p.as_str())
                 .collect();
             // Keyboard cursor for the Menu-key anchor (focused pane only).
-            let focus_path: Option<String> = if self.sftp.focused_side == side {
-                self.sftp
+            let focus_path: Option<String> = if self.cur_sftp().focused_side == side {
+                self.cur_sftp()
                     .selected_rows
                     .last()
                     .filter(|(s, _)| *s == side)
@@ -926,7 +926,7 @@ impl Oryxis {
                 .drag
                 .as_ref()
                 .is_some_and(|d| d.active && d.origin_side != side);
-            let drop_phase = self.sftp.drop_active || internal_cross_pane;
+            let drop_phase = self.cur_sftp().drop_active || internal_cross_pane;
             for entry in &pane.remote_entries {
                 if !pane.show_hidden && entry.name.starts_with('.') {
                     continue;
@@ -968,13 +968,13 @@ impl Oryxis {
                     rename_input,
                     is_drop_target,
                     is_selected,
-                    self.sftp.suppress_hover,
+                    self.cur_sftp().suppress_hover,
                     &ordered_cols,
                     col_widths,
                     layout,
                 );
                 let row_el = if is_focus {
-                    crate::widgets::bounds_reporter(row_el, self.sftp.focus_row_bounds.clone())
+                    crate::widgets::bounds_reporter(row_el, self.cur_sftp().focus_row_bounds.clone())
                 } else {
                     row_el
                 };
@@ -1042,7 +1042,7 @@ impl Oryxis {
             .drag
             .as_ref()
             .is_some_and(|d| d.active && d.origin_side != side);
-        let show_outline = internal_drag_in || (is_remote && self.sftp.drop_active);
+        let show_outline = internal_drag_in || (is_remote && self.cur_sftp().drop_active);
         if show_outline {
             let outline = container(Space::new())
                 .width(Length::Fill)
@@ -1061,7 +1061,7 @@ impl Oryxis {
     }
 
     fn view_sftp_picker(&self) -> Element<'_, Message> {
-        let needle = self.sftp.picker_search.to_lowercase();
+        let needle = self.cur_sftp().picker_search.to_lowercase();
         let matches: Vec<usize> = self
             .connections
             .iter()
@@ -1081,7 +1081,7 @@ impl Oryxis {
         // The left pane can be Local; the right pane can't. Offer a
         // "Local" entry at the top of the list only when picking for the
         // left pane.
-        if self.sftp.picker_target == SftpPaneSide::Left {
+        if self.cur_sftp().picker_target == SftpPaneSide::Left {
             let local_match = needle.is_empty() || t("sftp_local").to_lowercase().contains(&needle);
             if local_match {
                 let badge = container(
@@ -1221,7 +1221,7 @@ impl Oryxis {
                 .align_y(iced::Alignment::Center)
                 .width(Length::Fill),
                 Space::new().height(8),
-                text_input(t("search_hosts"), &self.sftp.picker_search)
+                text_input(t("search_hosts"), &self.cur_sftp().picker_search)
                     .on_input(|v| Message::Sftp(SftpMessage::SftpPickerSearch(v)))
                     .padding(10)
                     .style(crate::widgets::rounded_input_style).align_x(dir_align_x()),

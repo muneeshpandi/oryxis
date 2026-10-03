@@ -2,9 +2,9 @@
 //!
 //! The model is in `window_ctx`: every tab lives in `Oryxis::tabs`, a
 //! window only lists which ones it shows. So nothing here touches a
-//! session. Moving a tab is moving its strip ref from one list to
-//! another, and a window that closes hands its refs back to the main
-//! strip.
+//! session. Moving a tab (terminal or SFTP) is moving its strip ref from
+//! one list to another, and a window that closes hands its refs back to
+//! the main strip.
 //!
 //! Each function runs with the SOURCE window's values in the per-window
 //! fields (`tab_order`, `active_tab`): that is the window the gesture
@@ -14,7 +14,7 @@
 use iced::{window, Point, Task};
 use uuid::Uuid;
 
-use crate::app::{Message, Oryxis, SettingsMessage, TabsMessage};
+use crate::app::{Message, Oryxis, SettingsMessage, SftpMessage, TabsMessage};
 use crate::state::{TabRef, View};
 use crate::window_ctx::ExtraWindow;
 
@@ -58,55 +58,85 @@ impl Oryxis {
         (id, open.discard())
     }
 
+    /// The strip ref of the tab with strip id `id`, terminal or SFTP,
+    /// when the current strip holds it.
+    fn strip_ref(&self, id: Uuid) -> Option<TabRef> {
+        self.tab_order
+            .iter()
+            .copied()
+            .find(|r| !matches!(r, TabRef::Panel(_)) && r.strip_id() == id)
+    }
+
     /// After a tab left the current strip from slot `slot`: show its
-    /// neighbour. With no terminal tab next to it the main window goes
-    /// home; an extra window is about to close.
-    fn select_after_tab_left(&mut self, slot: usize) {
+    /// neighbour, through the ordinary select of its kind. With no tab
+    /// next to it the main window goes home; an extra window is about
+    /// to close.
+    fn select_after_tab_left(&mut self, slot: usize) -> Task<Message> {
         let next = self
             .tab_order
             .get(slot)
             .or_else(|| slot.checked_sub(1).and_then(|p| self.tab_order.get(p)))
             .copied();
-        let idx = match next {
-            Some(TabRef::Terminal(id)) => self.tabs.iter().position(|t| t._id == id),
-            _ => None,
-        };
-        match idx {
-            Some(i) => {
-                self.active_tab = Some(i);
-                self.remember_terminal_tab_focus(i);
+        match next {
+            Some(TabRef::Terminal(id)) => {
+                if let Some(i) = self.tabs.iter().position(|t| t._id == id) {
+                    self.active_view = View::Terminal;
+                    return self.handle_select_tab(i);
+                }
             }
-            None => {
-                self.active_tab = None;
-                self.active_view = View::Dashboard;
+            Some(TabRef::Sftp(id)) => {
+                if let Some(i) = self.sftp_tabs.iter().position(|t| t.id == id) {
+                    return self.update(Message::Sftp(SftpMessage::SelectSftpTab(i)));
+                }
             }
+            _ => {}
         }
+        self.active_tab = None;
+        self.active_view = View::Dashboard;
+        Task::none()
     }
 
-    /// Take a terminal tab's ref out of the current strip. `None` when
-    /// the tab is not in it.
-    fn release_tab_ref(&mut self, tab_id: Uuid) -> Option<TabRef> {
-        let r = TabRef::Terminal(tab_id);
+    /// Take a tab's ref out of the current strip, with the task that
+    /// shows its neighbour. `None` when the strip does not hold it.
+    ///
+    /// The live SFTP buffer belongs to the window whose values are in
+    /// the fields, so a surface that owns it goes home to its own slot
+    /// first: it travels parked, and the window it lands in hoists it.
+    fn release_tab_ref(&mut self, id: Uuid) -> Option<(TabRef, Task<Message>)> {
+        let r = self.strip_ref(id)?;
         let slot = self.tab_order.iter().position(|x| *x == r)?;
-        let idx = self.tabs.iter().position(|t| t._id == tab_id)?;
-        // Files mode shows through the one hoisted SFTP buffer, which
-        // belongs to whichever window is displaying it: the tab leaves
-        // as the terminal it is.
-        if self.hybrid_sftp_owner == Some(tab_id) {
-            self.park_hybrid_sftp();
-        }
-        if let Some(tab) = self.tabs.get_mut(idx) {
-            tab.files_mode = false;
-        }
+        let was_active = match r {
+            TabRef::Terminal(_) => {
+                let idx = self.tabs.iter().position(|t| t._id == id)?;
+                if self.hybrid_sftp_owner == Some(id) {
+                    self.park_hybrid_sftp();
+                }
+                self.active_tab == Some(idx) && self.active_view != View::Sftp
+            }
+            TabRef::Sftp(_) => {
+                let idx = self.sftp_tabs.iter().position(|t| t.id == id)?;
+                let owned = self.active_sftp == Some(idx) && self.hybrid_sftp_owner.is_none();
+                if owned {
+                    self.sftp_click_gen = self.sftp_click_gen.wrapping_add(1);
+                    self.sftp_tabs[idx].state = std::mem::take(&mut self.sftp);
+                    self.active_sftp = None;
+                }
+                owned && self.active_view == View::Sftp
+            }
+            TabRef::Panel(_) => return None,
+        };
         self.tab_order.remove(slot);
-        if self.active_tab == Some(idx) {
-            self.select_after_tab_left(slot);
-        }
-        Some(r)
+        let select = if was_active {
+            self.select_after_tab_left(slot)
+        } else {
+            Task::none()
+        };
+        Some((r, select))
     }
 
-    /// Move a terminal tab out of the current window into a new extra
-    /// window, opened at `at` (screen coordinates) when given.
+    /// Move a tab (terminal or SFTP, by strip id) out of the current
+    /// window into a new extra window, opened at `at` (screen
+    /// coordinates) when given.
     pub(super) fn detach_tab_to_new_window(
         &mut self,
         tab_id: Uuid,
@@ -118,26 +148,26 @@ impl Oryxis {
         if self.window_ctx.is_some() && self.tab_order.len() <= 1 {
             return Task::none();
         }
-        let Some(r) = self.release_tab_ref(tab_id) else {
+        let Some((r, select)) = self.release_tab_ref(tab_id) else {
             return Task::none();
         };
         let (_, open) = self.open_extra_window(vec![r], at, false);
-        open
+        Task::batch([select, open])
     }
 
-    /// Move a terminal tab from the current (extra) window back into
-    /// the main one, and bring the main window forward on it.
+    /// Move a tab from the current (extra) window back into the main
+    /// one, and bring the main window forward on it.
     pub(super) fn move_tab_to_main_window(&mut self, tab_id: Uuid) -> Task<Message> {
         self.overlay = None;
         if self.window_ctx.is_none() {
             return Task::none();
         }
-        if self.release_tab_ref(tab_id).is_none() {
+        let Some((r, select)) = self.release_tab_ref(tab_id) else {
             return Task::none();
-        }
-        self.park_ref_in_main(tab_id, true);
+        };
+        self.park_ref_in_main(r, true);
         self.pending_focus_main = true;
-        Task::none()
+        select
     }
 
     /// "Duplicate in New Window": the ordinary duplicate, run as a new
@@ -207,11 +237,8 @@ impl Oryxis {
             return Some(self.connect_hosts_in_new_window(&drag.ids));
         }
         let drag = self.tab_drag.filter(|d| d.active)?;
-        // Terminal tabs only: an SFTP tab shows through the one hoisted
-        // buffer and a panel belongs to the main window.
-        if !self.tab_order.contains(&TabRef::Terminal(drag.from_id)) {
-            return None;
-        }
+        // Terminal and SFTP tabs; a panel belongs to the main window.
+        self.strip_ref(drag.from_id)?;
         if self.window_ctx.is_some() && self.tab_order.len() <= 1 {
             return None;
         }
@@ -315,12 +342,21 @@ impl Oryxis {
             // `window_housekeeping`.
             TabsMessage::WindowClose | TabsMessage::ConfirmCloseWindow => {
                 self.overlay = None;
+                // The SFTP surface this window had hoisted goes home to
+                // its slot before its ref changes strip.
+                if self.hybrid_sftp_owner.is_some() {
+                    self.park_hybrid_sftp();
+                }
+                if let Some(idx) = self.active_sftp.take()
+                    && let Some(tab) = self.sftp_tabs.get_mut(idx)
+                {
+                    tab.state = std::mem::take(&mut self.sftp);
+                }
                 for r in std::mem::take(&mut self.tab_order) {
-                    if let TabRef::Terminal(tab_id) = r {
-                        self.park_ref_in_main(tab_id, false);
-                    }
+                    self.park_ref_in_main(r, false);
                 }
                 self.active_tab = None;
+                self.active_view = View::Terminal;
                 Task::none()
             }
             // The main window's geometry memory, on-screen rescue and

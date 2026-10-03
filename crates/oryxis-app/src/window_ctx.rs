@@ -76,12 +76,17 @@ impl Drop for ViewPass {
 /// What an extra window keeps for itself.
 #[derive(Debug, Clone)]
 pub(crate) struct ExtraWindow {
-    /// Its strip, in order. Terminal refs only.
+    /// Its strip, in order: terminal and SFTP tabs. Panels belong to
+    /// the main window.
     pub(crate) order: Vec<TabRef>,
-    /// The tab it shows, by `TerminalTab::_id`: an index into
-    /// `Oryxis::tabs` would go stale the moment another window closed
-    /// a tab.
+    /// The tab it shows, by strip id (`TerminalTab::_id` or
+    /// `SftpTab::id`): an index would go stale the moment another
+    /// window closed a tab.
     pub(crate) active: Option<Uuid>,
+    /// Which surface of this window owns the live SFTP buffer while the
+    /// window's values are in the fields. Parked back into the tab's
+    /// own slot whenever they are not (see [`SftpOwner`]).
+    pub(crate) sftp_owner: SftpOwner,
     pub(crate) size: Size,
     pub(crate) cursor: Point,
     pub(crate) maximized: bool,
@@ -101,12 +106,13 @@ pub(crate) struct ExtraWindow {
 impl ExtraWindow {
     pub(crate) fn new(order: Vec<TabRef>, size: Size) -> Self {
         let active = order.iter().find_map(|r| match r {
-            TabRef::Terminal(id) => Some(*id),
-            _ => None,
+            TabRef::Terminal(id) | TabRef::Sftp(id) => Some(*id),
+            TabRef::Panel(_) => None,
         });
         Self {
             order,
             active,
+            sftp_owner: SftpOwner::None,
             size,
             cursor: Point::ORIGIN,
             maximized: false,
@@ -124,12 +130,34 @@ impl ExtraWindow {
         self.born.elapsed() > std::time::Duration::from_secs(30)
     }
 
+    /// The strip ids of its tabs, terminal and SFTP.
     pub(crate) fn tab_ids(&self) -> impl Iterator<Item = Uuid> + '_ {
         self.order.iter().filter_map(|r| match r {
-            TabRef::Terminal(id) => Some(*id),
-            _ => None,
+            TabRef::Terminal(id) | TabRef::Sftp(id) => Some(*id),
+            TabRef::Panel(_) => None,
         })
     }
+}
+
+/// Who holds the live SFTP buffer (`Oryxis::sftp`).
+///
+/// The buffer is ONE: the active SFTP tab's state, or a terminal tab's
+/// Files mode, is hoisted into it and every other surface keeps its
+/// state in its own slot. With several windows that stays true by
+/// making the buffer follow the window whose values are in the fields:
+/// entering a window parks the previous owner into its slot and hoists
+/// this window's, leaving it does the reverse. So a surface that is not
+/// in the current window is always in its slot, which is where the
+/// async routing (`route_sftp_async`) and an extra window's view
+/// (`cur_sftp`) read it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub(crate) enum SftpOwner {
+    #[default]
+    None,
+    /// A terminal tab in Files mode (`hybrid_sftp_owner`).
+    Hybrid(Uuid),
+    /// A standalone SFTP tab (`active_sftp`).
+    Standalone(Uuid),
 }
 
 /// The main window's own values, set aside while an extra window's are
@@ -140,6 +168,7 @@ pub(crate) struct WindowCtx {
     order: Vec<TabRef>,
     active: Option<Uuid>,
     view: View,
+    sftp_owner: SftpOwner,
     size: Size,
     cursor: Point,
     maximized: bool,
@@ -184,7 +213,12 @@ impl Oryxis {
 
     pub(crate) fn cur_view(&self) -> View {
         match self.viewed_extra() {
-            Some(_) => View::Terminal,
+            // An extra window shows a tab, and the tab says which
+            // surface that is.
+            Some(w) => match w.active {
+                Some(a) if self.sftp_tabs.iter().any(|t| t.id == a) => View::Sftp,
+                _ => View::Terminal,
+            },
             None => self.active_view,
         }
     }
@@ -241,11 +275,50 @@ impl Oryxis {
             .is_some_and(|t| self.tab_order.contains(&TabRef::Terminal(t._id)))
     }
 
-    /// The window that shows the terminal tab `id`: `None` is the main
-    /// one.
+    /// The live SFTP state of the current window: the buffer, except
+    /// while an extra window is being drawn, whose surface is parked in
+    /// its own slot (see [`SftpOwner`]).
+    pub(crate) fn cur_sftp(&self) -> &crate::state::SftpState {
+        let Some(w) = self.viewed_extra() else {
+            return &self.sftp;
+        };
+        let Some(active) = w.active else {
+            return &self.sftp_blank;
+        };
+        if let Some(tab) = self.sftp_tabs.iter().find(|t| t.id == active) {
+            return &tab.state;
+        }
+        match self.tabs.iter().find(|t| t._id == active) {
+            Some(tab) if tab.files_mode => &tab.files_state,
+            _ => &self.sftp_blank,
+        }
+    }
+
+    /// The terminal tab whose Files mode the current window shows.
+    pub(crate) fn cur_hybrid_owner(&self) -> Option<Uuid> {
+        match self.viewed_extra() {
+            Some(w) => w.active.filter(|a| {
+                self.tabs.iter().any(|t| t._id == *a && t.files_mode)
+            }),
+            None => self.hybrid_sftp_owner,
+        }
+    }
+
+    /// The SFTP tab the current window shows, as an index.
+    pub(crate) fn cur_active_sftp(&self) -> Option<usize> {
+        match self.viewed_extra() {
+            Some(w) => w
+                .active
+                .and_then(|a| self.sftp_tabs.iter().position(|t| t.id == a)),
+            None => self.active_sftp,
+        }
+    }
+
+    /// The window that shows the tab with strip id `id` (terminal or
+    /// SFTP): `None` is the main one.
     pub(crate) fn window_of_tab(&self, id: Uuid) -> Option<window::Id> {
         if let Some(ctx) = &self.window_ctx
-            && self.tab_order.contains(&TabRef::Terminal(id))
+            && self.tab_order.iter().any(|r| r.strip_id() == id)
         {
             return Some(ctx.id);
         }
@@ -319,10 +392,13 @@ impl Oryxis {
     /// hands the floating layer to the window the update ran for.
     pub(crate) fn float_signature(&self) -> [bool; 3] {
         [
-            self.overlay.is_some() || self.panels.burger_menu || self.card_context_menu.is_some(),
+            self.overlay.is_some()
+                || self.panels.burger_menu
+                || self.card_context_menu.is_some()
+                || self.sftp.row_menu.is_some(),
             self.error_dialog.is_some()
                 || crate::state::Modal::ALL.iter().any(|&m| self.is_modal_open(m)),
-            self.tab_drag.is_some() || self.card_drag.is_some(),
+            self.tab_drag.is_some() || self.card_drag.is_some() || self.sftp.drag.is_some(),
         ]
     }
 
@@ -348,11 +424,25 @@ impl Oryxis {
             .active_tab
             .and_then(|i| self.tabs.get(i))
             .map(|t| t._id);
+        let active_sftp = w
+            .active
+            .and_then(|a| self.sftp_tabs.iter().position(|t| t.id == a));
+        let view = if active_sftp.is_some() { View::Sftp } else { View::Terminal };
+        // The buffer changes hands: the main window's surface goes home
+        // to its slot, this window's comes in.
+        let main_sftp = self.park_sftp_owner();
+        let owner = match (active_sftp, w.sftp_owner) {
+            // Its active tab is an SFTP tab, whatever was hoisted last.
+            (Some(i), _) => SftpOwner::Standalone(self.sftp_tabs[i].id),
+            (None, owner) => owner,
+        };
+        self.hoist_sftp_owner(owner);
         self.window_ctx = Some(WindowCtx {
             id,
             order: std::mem::replace(&mut self.tab_order, w.order),
             active: main_active,
-            view: std::mem::replace(&mut self.active_view, View::Terminal),
+            view: std::mem::replace(&mut self.active_view, view),
+            sftp_owner: main_sftp,
             size: std::mem::replace(&mut self.window_size, w.size),
             cursor: std::mem::replace(&mut self.mouse_position, w.cursor),
             maximized: std::mem::replace(&mut self.window_maximized, w.maximized),
@@ -376,18 +466,26 @@ impl Oryxis {
             return;
         };
         let prior = ctx.awaiting;
-        let asked = (self.active_view != View::Terminal).then_some(self.active_view);
-        let active = self
-            .active_tab
-            .and_then(|i| self.tabs.get(i))
-            .map(|t| t._id);
+        let asked = (!matches!(self.active_view, View::Terminal | View::Sftp))
+            .then_some(self.active_view);
+        // What the window shows now: its SFTP tab when the SFTP surface
+        // is up, else its terminal tab.
+        let active = if self.active_view == View::Sftp {
+            self.active_sftp.and_then(|i| self.sftp_tabs.get(i)).map(|t| t.id)
+        } else {
+            None
+        }
+        .or_else(|| self.active_tab.and_then(|i| self.tabs.get(i)).map(|t| t._id));
+        // The buffer goes back: this window's surface to its slot, the
+        // main window's in.
+        let sftp_owner = self.park_sftp_owner();
+        self.hoist_sftp_owner(ctx.sftp_owner);
         let mut order = std::mem::replace(&mut self.tab_order, ctx.order);
-        // An extra window holds terminal tabs only. A panel or SFTP
-        // chip minted while its values were in the fields belongs to
-        // the main strip.
+        // An extra window holds tabs. A panel chip minted while its
+        // values were in the fields belongs to the main strip.
         let mut strays = Vec::new();
         order.retain(|r| match r {
-            TabRef::Terminal(_) => true,
+            TabRef::Terminal(_) | TabRef::Sftp(_) => true,
             other => {
                 strays.push(*other);
                 false
@@ -399,12 +497,15 @@ impl Oryxis {
             }
         }
         let w = ExtraWindow {
-            active: active.filter(|a| order.contains(&TabRef::Terminal(*a))).or_else(|| {
-                order.iter().find_map(|r| match r {
-                    TabRef::Terminal(id) => Some(*id),
-                    _ => None,
-                })
-            }),
+            active: active
+                .filter(|a| order.iter().any(|r| r.strip_id() == *a))
+                .or_else(|| {
+                    order.iter().find_map(|r| match r {
+                        TabRef::Terminal(id) | TabRef::Sftp(id) => Some(*id),
+                        TabRef::Panel(_) => None,
+                    })
+                }),
+            sftp_owner,
             order,
             size: std::mem::replace(&mut self.window_size, ctx.size),
             cursor: std::mem::replace(&mut self.mouse_position, ctx.cursor),
@@ -520,8 +621,8 @@ impl Oryxis {
         refs
     }
 
-    /// Terminal tabs that belong to a window OTHER than the one whose
-    /// strip is in `tab_order`.
+    /// Strip ids of the tabs (terminal and SFTP) that belong to a window
+    /// OTHER than the one whose strip is in `tab_order`.
     pub(crate) fn tabs_in_other_windows(&self) -> std::collections::HashSet<Uuid> {
         let mut ids: std::collections::HashSet<Uuid> = self
             .extra_windows
@@ -530,8 +631,8 @@ impl Oryxis {
             .collect();
         if let Some(ctx) = &self.window_ctx {
             ids.extend(ctx.order.iter().filter_map(|r| match r {
-                TabRef::Terminal(id) => Some(*id),
-                _ => None,
+                TabRef::Terminal(id) | TabRef::Sftp(id) => Some(*id),
+                TabRef::Panel(_) => None,
             }));
         }
         ids
@@ -540,10 +641,16 @@ impl Oryxis {
     /// Drop the refs of tabs that no longer exist from every strip that
     /// is not in `tab_order` (which `reconcile_tab_order` prunes itself).
     pub(crate) fn prune_other_window_strips(&mut self) {
-        let alive: std::collections::HashSet<Uuid> = self.tabs.iter().map(|t| t._id).collect();
+        let alive: std::collections::HashSet<Uuid> = self
+            .tabs
+            .iter()
+            .map(|t| t._id)
+            .chain(self.sftp_tabs.iter().map(|t| t.id))
+            .collect();
         for w in self.extra_windows.values_mut() {
-            w.order
-                .retain(|r| matches!(r, TabRef::Terminal(id) if alive.contains(id)));
+            w.order.retain(
+                |r| matches!(r, TabRef::Terminal(id) | TabRef::Sftp(id) if alive.contains(id)),
+            );
             if w.active.is_none_or(|a| !alive.contains(&a)) {
                 let first = w.tab_ids().next();
                 w.active = first;
@@ -551,17 +658,73 @@ impl Oryxis {
         }
     }
 
-    /// Hand a terminal tab's ref to the main strip while an extra
-    /// window's values are in the fields, and make it the main window's
+    /// Hand a tab's ref to the main strip while an extra window's
+    /// values are in the fields, optionally making it the main window's
     /// active tab.
-    pub(crate) fn park_ref_in_main(&mut self, id: Uuid, activate: bool) {
-        if let Some(ctx) = self.window_ctx.as_mut() {
-            if !ctx.order.contains(&TabRef::Terminal(id)) {
-                ctx.order.push(TabRef::Terminal(id));
-            }
-            if activate {
+    pub(crate) fn park_ref_in_main(&mut self, r: TabRef, activate: bool) {
+        let Some(ctx) = self.window_ctx.as_mut() else {
+            return;
+        };
+        if !ctx.order.contains(&r) {
+            ctx.order.push(r);
+        }
+        if !activate {
+            return;
+        }
+        match r {
+            TabRef::Terminal(id) => {
                 ctx.active = Some(id);
                 ctx.view = View::Terminal;
+            }
+            TabRef::Sftp(id) => {
+                // The SFTP surface is up when no terminal tab is active.
+                ctx.active = None;
+                ctx.view = View::Sftp;
+                ctx.sftp_owner = SftpOwner::Standalone(id);
+            }
+            TabRef::Panel(_) => {}
+        }
+    }
+
+    /// Send whichever surface holds the live SFTP buffer home to its
+    /// own slot, and say who it was. Storage only: nothing about the
+    /// surface changes, so none of the bookkeeping a real focus change
+    /// does (the slow-click rename generation) applies.
+    fn park_sftp_owner(&mut self) -> SftpOwner {
+        if let Some(id) = self.hybrid_sftp_owner.take() {
+            if let Some(tab) = self.tabs.iter_mut().find(|t| t._id == id) {
+                *tab.files_state = std::mem::take(&mut self.sftp);
+                return SftpOwner::Hybrid(id);
+            }
+            self.sftp = crate::state::SftpState::default();
+            return SftpOwner::None;
+        }
+        if let Some(idx) = self.active_sftp.take()
+            && let Some(tab) = self.sftp_tabs.get_mut(idx)
+        {
+            tab.state = std::mem::take(&mut self.sftp);
+            return SftpOwner::Standalone(tab.id);
+        }
+        SftpOwner::None
+    }
+
+    /// The reverse of [`Self::park_sftp_owner`]. Expects the buffer
+    /// unowned. An owner that is gone (its tab closed meanwhile) leaves
+    /// it that way.
+    fn hoist_sftp_owner(&mut self, owner: SftpOwner) {
+        match owner {
+            SftpOwner::None => {}
+            SftpOwner::Hybrid(id) => {
+                if let Some(tab) = self.tabs.iter_mut().find(|t| t._id == id) {
+                    self.sftp = std::mem::take(&mut *tab.files_state);
+                    self.hybrid_sftp_owner = Some(id);
+                }
+            }
+            SftpOwner::Standalone(id) => {
+                if let Some(idx) = self.sftp_tabs.iter().position(|t| t.id == id) {
+                    self.sftp = std::mem::take(&mut self.sftp_tabs[idx].state);
+                    self.active_sftp = Some(idx);
+                }
             }
         }
     }

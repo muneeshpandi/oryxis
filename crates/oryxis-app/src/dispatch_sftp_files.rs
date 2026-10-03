@@ -19,11 +19,11 @@ impl Oryxis {
         // Edit-in-place arms carry their originating pane explicitly (a
         // recomputed "remote side" picks the wrong host when both panes
         // are remote); only local-pane conveniences resolve a default.
-        let local_side = self.sftp.local_side().unwrap_or(SftpPaneSide::Left);
+        let local_side = self.cur_sftp().local_side().unwrap_or(SftpPaneSide::Left);
         match message {
             SftpMessage::SftpShowProperties(side, path, is_dir) => {
                 self.sftp.row_menu = None;
-                if !self.sftp.pane(side).is_remote {
+                if !self.cur_sftp().pane(side).is_remote {
                         // Local stat is sync, populate the modal in
                         // place. Permissions on Windows are coarser so
                         // Apply will refuse to chmod there (the dialog
@@ -77,7 +77,7 @@ impl Oryxis {
                         };
                         self.sftp.properties = Some(view);
                 } else {
-                        let Some(client) = self.sftp.pane(side).client.clone() else {
+                        let Some(client) = self.cur_sftp().pane(side).client.clone() else {
                             self.sftp.pane_mut(side).error = Some("Not connected".into());
                             return Ok(Task::none());
                         };
@@ -177,7 +177,7 @@ impl Oryxis {
                         |v| Message::Sftp(SftpMessage::SftpPropertiesDone(v)),
                     ));
                 }
-                if !self.sftp.pane(side).is_remote {
+                if !self.cur_sftp().pane(side).is_remote {
                         #[cfg(unix)]
                         {
                             use std::os::unix::fs::PermissionsExt as _;
@@ -195,7 +195,7 @@ impl Oryxis {
                             )))));
                         }
                 } else {
-                        let Some(client) = self.sftp.pane(side).client.clone() else {
+                        let Some(client) = self.cur_sftp().pane(side).client.clone() else {
                             return Ok(Task::done(Message::Sftp(SftpMessage::SftpPropertiesDone(Err(
                                 "Not connected".into(),
                             )))));
@@ -211,7 +211,7 @@ impl Oryxis {
             SftpMessage::SftpPropertiesDone(result) => {
                 match result {
                     Ok(()) => {
-                        let side = self.sftp.properties.as_ref().map(|p| p.side);
+                        let side = self.cur_sftp().properties.as_ref().map(|p| p.side);
                         let from_sidebar = self
                             .sftp
                             .properties
@@ -228,13 +228,13 @@ impl Oryxis {
                         // Refresh whichever pane we just touched so
                         // the new permissions show up immediately.
                         return Ok(match side {
-                            Some(side) if !self.sftp.pane(side).is_remote => {
+                            Some(side) if !self.cur_sftp().pane(side).is_remote => {
                                 self.refresh_sftp_local(side);
                                 Task::none()
                             }
                             Some(side) => Task::done(Message::Sftp(SftpMessage::SftpNavigateRemote(
                                 side,
-                                self.sftp.pane(side).remote_path.clone(),
+                                self.cur_sftp().pane(side).remote_path.clone(),
                             ))),
                             None => Task::none(),
                         });
@@ -585,11 +585,11 @@ impl Oryxis {
         let (client, host) = match channel {
             Some((client, host)) => (client, host),
             None => {
-                let Some(client) = self.sftp.pane(side).client.clone() else {
+                let Some(client) = self.cur_sftp().pane(side).client.clone() else {
                     self.sftp.pane_mut(side).error = Some(crate::i18n::t("sftp_not_connected").to_string());
                     return Task::none();
                 };
-                (client, self.sftp.pane(side).host_label.clone().unwrap_or_default())
+                (client, self.cur_sftp().pane(side).host_label.clone().unwrap_or_default())
             }
         };
         // Already open in a local application: ask instead of overwriting

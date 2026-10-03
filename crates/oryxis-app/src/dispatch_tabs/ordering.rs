@@ -107,14 +107,12 @@ impl Oryxis {
                 self.active_view = crate::state::View::Dashboard;
             }
         }
-        // SFTP tabs belong to the main strip; an extra window's strip is
-        // in `tab_order` while its values are swapped in, and it holds
-        // terminal tabs only.
-        if self.window_ctx.is_none() {
-            for id in self.sftp_tabs.iter().map(|t| t.id).collect::<Vec<_>>() {
-                if !self.tab_order.iter().any(|r| matches!(r, TabRef::Sftp(x) if *x == id)) {
-                    self.tab_order.push(TabRef::Sftp(id));
-                }
+        for id in self.sftp_tabs.iter().map(|t| t.id).collect::<Vec<_>>() {
+            if elsewhere.contains(&id) {
+                continue;
+            }
+            if !self.tab_order.iter().any(|r| matches!(r, TabRef::Sftp(x) if *x == id)) {
+                self.tab_order.push(TabRef::Sftp(id));
             }
         }
     }

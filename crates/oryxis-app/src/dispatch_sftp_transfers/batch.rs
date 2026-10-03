@@ -31,7 +31,7 @@ impl Oryxis {
                 if self.sftp_upload_blocked_by_zip(remote_side) {
                     return Ok(Task::none());
                 }
-                let Some(client) = self.sftp.pane(remote_side).client.clone() else {
+                let Some(client) = self.cur_sftp().pane(remote_side).client.clone() else {
                     self.sftp.pane_mut(remote_side).error = Some(crate::i18n::t("sftp_not_connected").to_string());
                     return Ok(Task::none());
                 };
@@ -39,7 +39,7 @@ impl Oryxis {
                     .sftp
                     .upload_dest_override
                     .take()
-                    .unwrap_or_else(|| self.sftp.pane(remote_side).remote_path.clone());
+                    .unwrap_or_else(|| self.cur_sftp().pane(remote_side).remote_path.clone());
                 let concurrency = self.sftp_concurrency();
                 Ok(Task::perform(
                     async move {
@@ -84,7 +84,7 @@ impl Oryxis {
                 )) {
                     return Ok(ask);
                 }
-                let Some(client) = self.sftp.pane(remote_side).client.clone() else {
+                let Some(client) = self.cur_sftp().pane(remote_side).client.clone() else {
                     self.sftp.pane_mut(remote_side).error = Some(crate::i18n::t("sftp_not_connected").to_string());
                     return Ok(Task::none());
                 };
@@ -92,7 +92,7 @@ impl Oryxis {
                     .sftp
                     .download_dest_override
                     .take()
-                    .unwrap_or_else(|| self.sftp.pane(local_side).local_path.clone());
+                    .unwrap_or_else(|| self.cur_sftp().pane(local_side).local_path.clone());
                 let concurrency = self.sftp_concurrency();
                 Ok(Task::perform(
                     async move {
@@ -155,7 +155,7 @@ impl Oryxis {
             }
             SftpMessage::SftpDuplicateFolder(side, path) => {
                 self.sftp.row_menu = None;
-                if !self.sftp.pane(side).is_remote {
+                if !self.cur_sftp().pane(side).is_remote {
                         let src = std::path::PathBuf::from(&path);
                         let parent = match src.parent() {
                             Some(p) => p.to_path_buf(),
@@ -202,7 +202,7 @@ impl Oryxis {
                         );
                         Ok(Task::done(Message::Sftp(SftpMessage::SftpTransferQueueReady(owner, state))))
                 } else {
-                        let Some(client) = self.sftp.pane(side).client.clone() else {
+                        let Some(client) = self.cur_sftp().pane(side).client.clone() else {
                             return Ok(Task::none());
                         };
                         let parent = parent_path(&path);
@@ -211,7 +211,7 @@ impl Oryxis {
                             .find(|s| !s.is_empty())
                             .unwrap_or(&path)
                             .to_string();
-                        let reload = self.sftp.pane(side).remote_path.clone();
+                        let reload = self.cur_sftp().pane(side).remote_path.clone();
                         let src = path.clone();
                         // `cp -r --`, single fast call, no progress bar
                         // needed since the user can't usefully observe
@@ -240,7 +240,7 @@ impl Oryxis {
                 if paths.is_empty() {
                     return Ok(Task::none());
                 }
-                let Some(client) = self.sftp.pane(remote_side).client.clone() else {
+                let Some(client) = self.cur_sftp().pane(remote_side).client.clone() else {
                     self.sftp.pane_mut(remote_side).error = Some(crate::i18n::t("sftp_not_connected").to_string());
                     return Ok(Task::none());
                 };
@@ -248,7 +248,7 @@ impl Oryxis {
                     .sftp
                     .upload_dest_override
                     .take()
-                    .unwrap_or_else(|| self.sftp.pane(remote_side).remote_path.clone());
+                    .unwrap_or_else(|| self.cur_sftp().pane(remote_side).remote_path.clone());
                 let concurrency = self.sftp_concurrency();
                 Ok(Task::perform(
                     async move {
@@ -324,7 +324,7 @@ impl Oryxis {
                     .sftp
                     .selected_rows
                     .iter()
-                    .filter(|(s, _)| !self.sftp.pane(*s).is_remote)
+                    .filter(|(s, _)| !self.cur_sftp().pane(*s).is_remote)
                     .map(|(_, p)| std::path::PathBuf::from(p))
                     .collect();
                 if paths.is_empty() {
@@ -338,7 +338,7 @@ impl Oryxis {
                     .sftp
                     .selected_rows
                     .iter()
-                    .filter(|(s, _)| self.sftp.pane(*s).is_remote)
+                    .filter(|(s, _)| self.cur_sftp().pane(*s).is_remote)
                     .map(|(s, p)| (p.clone(), self.row_is_dir_in_pane(*s, p)))
                     .collect();
                 if remote_items.is_empty() {
@@ -356,7 +356,7 @@ impl Oryxis {
                 {
                     return Ok(ask);
                 }
-                let Some(client) = self.sftp.pane(remote_side).client.clone() else {
+                let Some(client) = self.cur_sftp().pane(remote_side).client.clone() else {
                     self.sftp.pane_mut(remote_side).error = Some(crate::i18n::t("sftp_not_connected").to_string());
                     return Ok(Task::none());
                 };
@@ -364,7 +364,7 @@ impl Oryxis {
                     .sftp
                     .download_dest_override
                     .take()
-                    .unwrap_or_else(|| self.sftp.pane(local_side).local_path.clone());
+                    .unwrap_or_else(|| self.cur_sftp().pane(local_side).local_path.clone());
                 let concurrency = self.sftp_concurrency();
                 Ok(Task::perform(
                     async move {

@@ -187,10 +187,10 @@ impl Oryxis {
                 // Apply live to both panes' active SFTP clients so the
                 // user doesn't have to reconnect to feel the change.
                 let to = self.sftp_op_timeout();
-                if let Some(client) = &self.sftp.left.client {
+                if let Some(client) = &self.cur_sftp().left.client {
                     client.set_op_timeout(to);
                 }
-                if let Some(client) = &self.sftp.right.client {
+                if let Some(client) = &self.cur_sftp().right.client {
                     client.set_op_timeout(to);
                 }
                 self.persist_setting("sftp_op_timeout", &self.prefs.sftp_op_timeout);

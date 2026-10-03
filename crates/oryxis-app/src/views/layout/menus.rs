@@ -153,7 +153,17 @@ impl Oryxis {
             OverlayContent::SessionLogActions(_) => 4.0,
             OverlayContent::ChatConversationActions(_) => 4.0,
             OverlayContent::SessionLogViewerActions(_) => 4.0,
-            OverlayContent::SftpTabActions(_) => 6.0,
+            // Plus the window verbs: "Move to New Window" wherever there
+            // is somewhere else to go, "Move to Main Window" in an extra
+            // window.
+            OverlayContent::SftpTabActions(_) => {
+                let window_rows = if self.in_extra_window() {
+                    if self.cur_tab_order().len() > 1 { 2.0 } else { 1.0 }
+                } else {
+                    1.0
+                };
+                6.0 + window_rows
+            }
             OverlayContent::SidebarFilesRow { path, is_dir, .. } => {
                 // The local browser's menu (issue #145) swaps the
                 // transfer-shaped items for OS ones; counted next to

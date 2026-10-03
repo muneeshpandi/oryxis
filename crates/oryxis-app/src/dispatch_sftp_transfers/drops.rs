@@ -62,7 +62,7 @@ impl Oryxis {
                 if !in_remote_pane {
                     return Ok(Task::none());
                 }
-                if self.sftp.pane(remote_side).client.is_none() {
+                if self.cur_sftp().pane(remote_side).client.is_none() {
                     self.sftp.pane_mut(remote_side).error = Some(crate::i18n::t("sftp_not_connected").to_string());
                     return Ok(Task::none());
                 }
@@ -71,7 +71,7 @@ impl Oryxis {
                 // a single batch transfer instead of N transfers racing
                 // for the queue UI. The first file of the gesture pins
                 // the destination (folder row vs pane dir) for them all.
-                if self.sftp.pending_drops.is_empty() {
+                if self.cur_sftp().pending_drops.is_empty() {
                     self.sftp.upload_dest_override = target_folder;
                     self.sftp.pending_drops.push(path);
                     return Ok(Task::perform(

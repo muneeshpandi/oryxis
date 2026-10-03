@@ -78,7 +78,7 @@ impl Oryxis {
         // on any click outside the input, and a remote SSH_FXP_RENAME onto
         // its own path fails with SSH_FX_FAILURE (the target exists), so
         // without this a no-op edit surfaces a spurious "Failure" error.
-        let unchanged = if self.sftp.pane(rn.side).is_remote {
+        let unchanged = if self.cur_sftp().pane(rn.side).is_remote {
             rn.original_path.rsplit('/').next() == Some(new_name.as_str())
         } else {
             std::path::Path::new(&rn.original_path)
@@ -88,7 +88,7 @@ impl Oryxis {
         if unchanged {
             return Task::none();
         }
-        if !self.sftp.pane(rn.side).is_remote {
+        if !self.cur_sftp().pane(rn.side).is_remote {
             let original = std::path::PathBuf::from(&rn.original_path);
             let Some(parent) = original.parent().map(|p| p.to_path_buf()) else {
                 self.sftp.pane_mut(rn.side).error = Some("Cannot rename root".into());
@@ -105,7 +105,7 @@ impl Oryxis {
             self.refresh_sftp_local(rn.side);
             Task::none()
         } else {
-            let Some(client) = self.sftp.pane(rn.side).client.clone() else {
+            let Some(client) = self.cur_sftp().pane(rn.side).client.clone() else {
                 return Task::none();
             };
             let parent = parent_path(&rn.original_path);
@@ -116,7 +116,7 @@ impl Oryxis {
             };
             let from = rn.original_path;
             let side = rn.side;
-            let reload_path = self.sftp.pane(side).remote_path.clone();
+            let reload_path = self.cur_sftp().pane(side).remote_path.clone();
             Task::perform(
                 async move { client.rename(&from, &dest).await.map_err(|e| e.to_string()) },
                 move |result| match result {

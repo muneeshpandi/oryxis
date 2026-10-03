@@ -288,7 +288,7 @@ impl Oryxis {
         // bar wash glows the same as a terminal tab on that host.
         if self.cur_active_tab().is_none()
             && self.cur_view() == View::Sftp
-            && let Some(i) = self.active_sftp
+            && let Some(i) = self.cur_active_sftp()
             && let Some(tab) = self.sftp_tabs.get(i)
         {
             if let Some(col) = self

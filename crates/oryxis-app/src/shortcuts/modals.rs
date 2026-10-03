@@ -53,15 +53,15 @@ impl Oryxis {
             Modal::ErrorDialog => self.error_dialog.is_some(),
             Modal::ClearHistoryConfirm => self.clear_history_confirm,
             Modal::SshImport => self.panels.ssh_import_dialog,
-            Modal::SftpRename => self.sftp.rename.is_some(),
-            Modal::SftpNewEntry => self.sftp.new_entry.is_some(),
-            Modal::SftpProperties => self.sftp.properties.is_some(),
-            Modal::SftpOverwrite => self.sftp.overwrite_prompt.is_some(),
+            Modal::SftpRename => self.cur_sftp().rename.is_some(),
+            Modal::SftpNewEntry => self.cur_sftp().new_entry.is_some(),
+            Modal::SftpProperties => self.cur_sftp().properties.is_some(),
+            Modal::SftpOverwrite => self.cur_sftp().overwrite_prompt.is_some(),
             // Any surface's watch: the dialog layers globally, so a save
             // waiting on a parked tab owns the keyboard just the same.
             Modal::SftpEditPrompt => self.pending_edit_save().is_some(),
             Modal::SftpEditReopen => self.sftp_edit_reopen.is_some(),
-            Modal::SftpPicker => self.sftp.picker_open,
+            Modal::SftpPicker => self.cur_sftp().picker_open,
             Modal::CertificateViewer => self.cert_viewer.is_some(),
             Modal::MonitorKill => self.monitor.kill.is_some(),
             // Gated on the surface that owns the list being up, the same
@@ -299,13 +299,13 @@ impl Oryxis {
         }
         // The SFTP right-click row menu is the same weight as an overlay
         // dropdown; Esc dismisses it like its click-outside backdrop.
-        if self.sftp.row_menu.is_some() {
+        if self.cur_sftp().row_menu.is_some() {
             self.sftp.row_menu = None;
             return Some(iced::Task::none());
         }
         // The SFTP path-history dropdown (issue #85) is the same weight;
         // Esc mirrors its scrim click.
-        if self.sftp.left.path_history_open || self.sftp.right.path_history_open {
+        if self.cur_sftp().left.path_history_open || self.cur_sftp().right.path_history_open {
             self.sftp.left.path_history_open = false;
             self.sftp.right.path_history_open = false;
             return Some(iced::Task::none());

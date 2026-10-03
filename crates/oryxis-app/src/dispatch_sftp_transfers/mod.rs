@@ -62,7 +62,7 @@ impl Oryxis {
         &self,
         then: SftpMessage,
     ) -> Option<Task<Message>> {
-        if !self.prefs.sftp_ask_download_dir || self.sftp.download_dest_override.is_some() {
+        if !self.prefs.sftp_ask_download_dir || self.cur_sftp().download_dest_override.is_some() {
             return None;
         }
         Some(self.sftp_pick_download_dir(then))
@@ -73,7 +73,7 @@ impl Oryxis {
         let start = self
             .sftp
             .local_side()
-            .map(|s| self.sftp.pane(s).local_path.clone());
+            .map(|s| self.cur_sftp().pane(s).local_path.clone());
         Task::perform(
             async move {
                 let mut dialog = rfd::AsyncFileDialog::new()
@@ -138,8 +138,8 @@ impl Oryxis {
             return Err(message);
         };
         let sides = SftpSides {
-            remote: self.sftp.remote_side().unwrap_or(SftpPaneSide::Right),
-            local: self.sftp.local_side().unwrap_or(SftpPaneSide::Left),
+            remote: self.cur_sftp().remote_side().unwrap_or(SftpPaneSide::Right),
+            local: self.cur_sftp().local_side().unwrap_or(SftpPaneSide::Left),
             owner,
         };
         Ok(match message {
@@ -217,8 +217,8 @@ impl Oryxis {
             SftpPaneSide::Left
         };
         let (Some(src_client), Some(dst_client)) = (
-            self.sftp.pane(from).client.clone(),
-            self.sftp.pane(dest_side).client.clone(),
+            self.cur_sftp().pane(from).client.clone(),
+            self.cur_sftp().pane(dest_side).client.clone(),
         ) else {
             self.sftp.pane_mut(from).error = Some(crate::i18n::t("sftp_both_panes_connected").to_string());
             return Task::none();
@@ -233,23 +233,23 @@ impl Oryxis {
         // today's behaviour, while a false positive would refuse a
         // legitimate transfer.
         let same_host = src_client.shares_session_with(&dst_client) || {
-            let a = self.sftp.pane(from).host_label.as_ref();
-            let b = self.sftp.pane(dest_side).host_label.as_ref();
+            let a = self.cur_sftp().pane(from).host_label.as_ref();
+            let b = self.cur_sftp().pane(dest_side).host_label.as_ref();
             a.is_some() && a == b
         };
         let dest_dir = self
             .sftp
             .upload_dest_override
             .take()
-            .unwrap_or_else(|| self.sftp.pane(dest_side).remote_path.clone());
+            .unwrap_or_else(|| self.cur_sftp().pane(dest_side).remote_path.clone());
         // A move within one SSH session is a rename: instant, atomic, and
         // it keeps ownership, permissions and timestamps that a copy plus
         // delete would rebuild. Known synchronously, so the task can be
         // shaped for it: the rename path finishes without a queue, and
         // both panes need refreshing when it does.
         let try_rename = move_source && src_client.shares_session_with(&dst_client);
-        let src_refresh = self.sftp.pane(from).remote_path.clone();
-        let dst_refresh = self.sftp.pane(dest_side).remote_path.clone();
+        let src_refresh = self.cur_sftp().pane(from).remote_path.clone();
+        let dst_refresh = self.cur_sftp().pane(dest_side).remote_path.clone();
         let build = Task::perform(
             async move {
                 let basename = src_path

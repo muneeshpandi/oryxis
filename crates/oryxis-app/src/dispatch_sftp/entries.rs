@@ -18,12 +18,12 @@ impl Oryxis {
         match message {
             SftpMessage::SftpStartRename(side, path) => {
                 // Rows inside a browsed archive are read-only.
-                if self.sftp.pane(side).zip.is_some() {
+                if self.cur_sftp().pane(side).zip.is_some() {
                     return Ok(Task::none());
                 }
                 self.sftp.row_menu = None;
                 let original_path = path.clone();
-                let basename = file_basename(&path, self.sftp.pane(side).is_remote);
+                let basename = file_basename(&path, self.cur_sftp().pane(side).is_remote);
                 self.sftp.rename = Some(crate::state::SftpRename {
                     side,
                     original_path,
@@ -57,7 +57,7 @@ impl Oryxis {
             }
             SftpMessage::SftpAskDelete(side, path, is_dir) => {
                 // Rows inside a browsed archive are read-only.
-                if self.sftp.pane(side).zip.is_some() {
+                if self.cur_sftp().pane(side).zip.is_some() {
                     return Ok(Task::none());
                 }
                 self.sftp.row_menu = None;
@@ -79,7 +79,7 @@ impl Oryxis {
                     // still deletes the half that is real, and a selection
                     // entirely inside an archive asks nothing at all
                     // (`targets` ends up empty).
-                    .filter(|(side, _)| self.sftp.pane(*side).zip.is_none())
+                    .filter(|(side, _)| self.cur_sftp().pane(*side).zip.is_none())
                     .map(|(side, path)| crate::state::SftpDeleteTarget {
                         side: *side,
                         path: path.clone(),
@@ -103,7 +103,7 @@ impl Oryxis {
                 let mut remote_targets: Vec<crate::state::SftpDeleteTarget> = Vec::new();
                 let mut local_deleted = 0usize;
                 for t in targets {
-                    if self.sftp.pane(t.side).is_remote {
+                    if self.cur_sftp().pane(t.side).is_remote {
                         remote_targets.push(t);
                     } else {
                         let path = std::path::PathBuf::from(&t.path);
@@ -141,7 +141,7 @@ impl Oryxis {
                     // selection is single-pane), so route via the first
                     // target's side.
                     let side = remote_targets[0].side;
-                    let Some(client) = self.sftp.pane(side).client.clone() else {
+                    let Some(client) = self.cur_sftp().pane(side).client.clone() else {
                         return Ok(Task::none());
                     };
                     self.sftp.selected_rows.clear();
@@ -206,7 +206,7 @@ impl Oryxis {
             }
             SftpMessage::SftpStartNewEntry(side, kind) => {
                 // No creating entries inside a browsed archive.
-                if self.sftp.pane(side).zip.is_some() {
+                if self.cur_sftp().pane(side).zip.is_some() {
                     return Ok(Task::none());
                 }
                 self.sftp.close_menus();
@@ -239,8 +239,8 @@ impl Oryxis {
                 if !crate::sftp_helpers::is_safe_remote_entry_name(&name) {
                     return Ok(Task::none());
                 }
-                if !self.sftp.pane(ne.side).is_remote {
-                    let target = self.sftp.pane(ne.side).local_path.join(&name);
+                if !self.cur_sftp().pane(ne.side).is_remote {
+                    let target = self.cur_sftp().pane(ne.side).local_path.join(&name);
                     let result = match ne.kind {
                         crate::state::SftpEntryKind::Folder => std::fs::create_dir(&target),
                         // create_new: colliding with an existing file must
@@ -264,10 +264,10 @@ impl Oryxis {
                     }
                     self.refresh_sftp_local(ne.side);
                 } else {
-                    let Some(client) = self.sftp.pane(ne.side).client.clone() else {
+                    let Some(client) = self.cur_sftp().pane(ne.side).client.clone() else {
                         return Ok(Task::none());
                     };
-                    let parent = self.sftp.pane(ne.side).remote_path.trim_end_matches('/').to_string();
+                    let parent = self.cur_sftp().pane(ne.side).remote_path.trim_end_matches('/').to_string();
                     let target = if parent.is_empty() {
                         format!("/{}", name)
                     } else {
@@ -275,7 +275,7 @@ impl Oryxis {
                     };
                     let kind = ne.kind;
                     let side = ne.side;
-                    let reload_path = self.sftp.pane(side).remote_path.clone();
+                    let reload_path = self.cur_sftp().pane(side).remote_path.clone();
                     let exists_msg = crate::i18n::t("files_entry_exists")
                         .replacen("{name}", &name, 1);
                     return Ok(Task::perform(

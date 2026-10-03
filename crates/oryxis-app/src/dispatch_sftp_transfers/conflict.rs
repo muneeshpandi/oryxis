@@ -49,7 +49,7 @@ impl Oryxis {
                 // dual-pane surface has no client at all. Requiring it
                 // up front used to swallow the answer and park the
                 // queue forever.
-                let pane_client = self.sftp.pane(remote_side).client.clone();
+                let pane_client = self.cur_sftp().pane(remote_side).client.clone();
                 // Pull the item the runner parked when it raised this
                 // prompt. Every conflict comes from a queue now, single
                 // file included, so this is the only flow: apply the

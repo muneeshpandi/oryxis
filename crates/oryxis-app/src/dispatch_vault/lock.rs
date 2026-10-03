@@ -363,10 +363,10 @@ impl Oryxis {
                         // transfer would keep the connection alive behind the
                         // lock screen. A hybrid owner's mounts sit on pane
                         // sessions already closed above; close() is idempotent.
-                        if let Some(session) = &self.sftp.left.session {
+                        if let Some(session) = &self.cur_sftp().left.session {
                             session.close();
                         }
-                        if let Some(session) = &self.sftp.right.session {
+                        if let Some(session) = &self.cur_sftp().right.session {
                             session.close();
                         }
                         self.sftp_tabs.clear();

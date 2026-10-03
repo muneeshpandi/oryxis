@@ -217,8 +217,8 @@ impl Oryxis {
         // owns the buttons whenever it is up; otherwise the terminal
         // sidebar's Files tab does, and only while it is the visible tab.
         if self.sftp_surface_visible() {
-            let side = self.sftp.focused_side;
-            let pane = self.sftp.pane(side);
+            let side = self.cur_sftp().focused_side;
+            let pane = self.cur_sftp().pane(side);
             let current = if pane.is_remote {
                 pane.remote_path.clone()
             } else {
@@ -233,7 +233,7 @@ impl Oryxis {
             let Some(target) = target else {
                 return Some(Task::none());
             };
-            let is_remote = self.sftp.pane(side).is_remote;
+            let is_remote = self.cur_sftp().pane(side).is_remote;
             return Some(Task::done(if is_remote {
                 Message::Sftp(SftpMessage::SftpNavigateRemote(side, target))
             } else {

@@ -501,6 +501,16 @@ impl Oryxis {
         }
         items = items.push(self.menu_item(iced_fonts::lucide::pen_line(), crate::i18n::t("rename_tab"), Message::Tabs(TabsMessage::StartRenameSftpTab(idx)), OryxisColors::t().text_secondary));
         items = items.push(self.menu_item(pin_icon, pin_label, Message::Sftp(SftpMessage::ToggleSftpTabPin(idx)), OryxisColors::t().text_secondary));
+        // The window verbs, the same two the terminal tab's menu has.
+        if let Some(tab_id) = self.sftp_tabs.get(idx).map(|t| t.id) {
+            let in_extra = self.in_extra_window();
+            if !in_extra || self.cur_tab_order().len() > 1 {
+                items = items.push(self.menu_item(iced_fonts::lucide::app_window(), crate::i18n::t("move_tab_new_window"), Message::Tabs(TabsMessage::MoveTabToNewWindow(tab_id)), OryxisColors::t().text_secondary));
+            }
+            if in_extra {
+                items = items.push(self.menu_item(iced_fonts::lucide::log_in(), crate::i18n::t("move_tab_main_window"), Message::Tabs(TabsMessage::MoveTabToMainWindow(tab_id)), OryxisColors::t().text_secondary));
+            }
+        }
         items = items.push(self.menu_item(iced_fonts::lucide::x(), crate::i18n::t("close_tab"), Message::Sftp(SftpMessage::CloseSftpTab(idx)), OryxisColors::t().text_secondary));
         // One stack for both tab kinds, so this reaches a closed terminal
         // tab too: what the user asks back is the last chip that left the

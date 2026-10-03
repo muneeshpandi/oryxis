@@ -814,6 +814,9 @@ pub struct Oryxis {
     /// Where the views of the windows the user is NOT working in record
     /// their keyboard-navigation rows (see `Oryxis::kn`).
     pub(crate) keynav_scratch: crate::keynav::KeyNavState,
+    /// What an extra window with no SFTP surface reads as "the SFTP
+    /// state" while it is drawn (see `cur_sftp`): never written.
+    pub(crate) sftp_blank: crate::state::SftpState,
     /// Where a queued batch dial opens its tab: the extra window the
     /// hosts were sent to ("Connect in New Window"). Absent = the main
     /// window.

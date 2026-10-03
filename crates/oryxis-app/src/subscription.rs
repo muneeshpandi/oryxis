@@ -442,7 +442,7 @@ impl Oryxis {
         // (no save can upload behind the lock screen even if a watch
         // slipped past a future sweep edit).
         if self.vault_ui.state == crate::state::VaultState::Unlocked
-            && (!self.sftp.edit_watches.is_empty()
+            && (!self.cur_sftp().edit_watches.is_empty()
                 || self
                     .sftp_tabs
                     .iter()
@@ -467,7 +467,7 @@ impl Oryxis {
         // panes, not on the tab. Missing them here would leave the strip's
         // border and the sidebar's own bar both frozen at whatever value
         // the last repaint happened to catch.
-        if self.sftp.transfer.state.is_some()
+        if self.cur_sftp().transfer.state.is_some()
             || self.sftp_tabs.iter().any(|t| t.state.transfer.state.is_some())
             || self.tabs.iter().any(|t| {
                 t.files_state.transfer.state.is_some()

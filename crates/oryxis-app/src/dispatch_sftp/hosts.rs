@@ -65,7 +65,7 @@ impl Oryxis {
             .pane(side)
             .host_label
             .clone()
-            .filter(|_| self.sftp.pane(side).is_remote)
+            .filter(|_| self.cur_sftp().pane(side).is_remote)
         else {
             return Task::none();
         };
@@ -121,7 +121,7 @@ impl Oryxis {
                 self.apply_group_inheritance(&mut conn);
                 // The picker connects the host into whichever pane it was
                 // opened for.
-                let target = self.sftp.picker_target;
+                let target = self.cur_sftp().picker_target;
                 // Always close the picker so the user sees the loading
                 // state (or eventual error) on the panes themselves.
                 self.sftp.picker_open = false;
@@ -400,7 +400,7 @@ impl Oryxis {
             SftpMessage::SftpPickLocal => {
                 // "Local" is only offered for the left pane. Switch the
                 // target pane back to local browsing and refresh.
-                let target = self.sftp.picker_target;
+                let target = self.cur_sftp().picker_target;
                 self.sftp.picker_open = false;
                 {
                     let pane = self.sftp.pane_mut(target);
@@ -426,7 +426,7 @@ impl Oryxis {
                 // Apply the user-configured op timeout to this fresh
                 // client so list_dir/read/write calls respect it.
                 client.set_op_timeout(self.sftp_op_timeout());
-                let sort = self.sftp.pane(side).sort;
+                let sort = self.cur_sftp().pane(side).sort;
                 let mut entries = entries;
                 sort_remote_entries(&mut entries, sort);
                 let tab_label = label.clone();
@@ -485,10 +485,10 @@ impl Oryxis {
             }
             SftpMessage::RemoteError(side, msg) => {
                 // A failed navigation has no new listing to land the cursor on.
-                if matches!(&self.sftp.pending_focus, Some((s, _)) if *s == side) {
+                if matches!(&self.cur_sftp().pending_focus, Some((s, _)) if *s == side) {
                     self.sftp.pending_focus = None;
                 }
-                let had_listing = !self.sftp.pane(side).remote_entries.is_empty();
+                let had_listing = !self.cur_sftp().pane(side).remote_entries.is_empty();
                 // Hard failure (nothing to fall back on) logs as an error;
                 // a soft failure that keeps the previous listing is a warning.
                 self.push_sftp_log(
@@ -548,10 +548,10 @@ impl Oryxis {
                     .session
                     .as_ref()
                     .is_some_and(|s| s.is_alive());
-                if self.sftp.pane(side).client.is_some() && session_alive {
+                if self.cur_sftp().pane(side).client.is_some() && session_alive {
                     return Ok(Task::done(Message::Sftp(SftpMessage::SftpNavigateRemote(
                         side,
-                        self.sftp.pane(side).remote_path.clone(),
+                        self.cur_sftp().pane(side).remote_path.clone(),
                     ))));
                 }
                 if !session_alive {
@@ -562,7 +562,7 @@ impl Oryxis {
                     pane.client = None;
                     pane.session = None;
                 }
-                if let Some(label) = self.sftp.pane(side).host_label.clone()
+                if let Some(label) = self.cur_sftp().pane(side).host_label.clone()
                     && let Some(idx) = self
                         .connections
                         .iter()
@@ -574,7 +574,7 @@ impl Oryxis {
                     // gone. An explicit pending hint keeps priority.
                     if self.sftp_open_at_path.is_none() {
                         self.sftp_open_at_path =
-                            Some(self.sftp.pane(side).remote_path.clone())
+                            Some(self.cur_sftp().pane(side).remote_path.clone())
                                 .filter(|p| !p.is_empty());
                     }
                     self.sftp.picker_target = side;

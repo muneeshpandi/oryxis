@@ -58,7 +58,7 @@ impl Oryxis {
                 self.sftp.row_menu = None;
                 self.sftp.pane_mut(side).actions_open = false;
                 {
-                    let pane = self.sftp.pane(side);
+                    let pane = self.cur_sftp().pane(side);
                     if pane.archive_busy.is_some() || pane.zip.is_some() {
                         return Ok(Task::none());
                     }
@@ -66,10 +66,10 @@ impl Oryxis {
                 let owner = self.current_sftp_owner();
                 // Mount identity at spawn time: the completion drops
                 // itself when the pane was remounted meanwhile.
-                let token = self.sftp.pane(side).archive_op_token();
-                let is_remote = self.sftp.pane(side).is_remote;
+                let token = self.cur_sftp().pane(side).archive_op_token();
+                let is_remote = self.cur_sftp().pane(side).is_remote;
                 let task = if is_remote {
-                    let Some(client) = self.sftp.pane(side).client.clone() else {
+                    let Some(client) = self.cur_sftp().pane(side).client.clone() else {
                         return Ok(Task::none());
                     };
                     let p = path.clone();
@@ -222,7 +222,7 @@ impl Oryxis {
                     Some(file) => Task::future(async move { file.close().await }).discard(),
                     None => Task::none(),
                 };
-                let nav = if self.sftp.pane(side).is_remote {
+                let nav = if self.cur_sftp().pane(side).is_remote {
                     Task::done(Message::Sftp(SftpMessage::SftpNavigateRemote(side, zip.return_remote_path)))
                 } else {
                     Task::done(Message::Sftp(SftpMessage::SftpNavigateLocal(side, zip.return_local_path)))
@@ -261,7 +261,7 @@ impl Oryxis {
                         busy_pane.archive_busy = None;
                     }
                 }
-                if !self.sftp.pane(side).archive_op_current(token) {
+                if !self.cur_sftp().pane(side).archive_op_current(token) {
                     // The affected pane was remounted (or switched back
                     // to Local) while the op ran: its outcome belongs
                     // to the previous mount. Show nothing, refresh
@@ -283,7 +283,7 @@ impl Oryxis {
                         // Refresh the affected pane so the new entries
                         // show up (skip if it meanwhile entered zip
                         // browse: its listing is virtual).
-                        let pane = self.sftp.pane(side);
+                        let pane = self.cur_sftp().pane(side);
                         if pane.zip.is_some() {
                             return Ok(Task::none());
                         }
@@ -312,7 +312,7 @@ impl Oryxis {
     /// with an honest log line instead of letting the server fail on a
     /// directory that doesn't exist.
     pub(crate) fn sftp_upload_blocked_by_zip(&mut self, remote_side: SftpPaneSide) -> bool {
-        if self.sftp.pane(remote_side).zip.is_some() {
+        if self.cur_sftp().pane(remote_side).zip.is_some() {
             self.push_sftp_log(
                 SftpLogLevel::Error,
                 crate::i18n::t("archive_read_only").to_string(),
@@ -336,8 +336,8 @@ impl Oryxis {
         // index, extract / compress / copy-out, this very probe) now
         // carries a stale token and drops itself on arrival.
         self.sftp.pane_mut(side).note_mounted();
-        let token = self.sftp.pane(side).archive_op_token();
-        let Some(client) = self.sftp.pane(side).client.clone() else {
+        let token = self.cur_sftp().pane(side).archive_op_token();
+        let Some(client) = self.cur_sftp().pane(side).client.clone() else {
             return Task::none();
         };
         Task::perform(
@@ -382,7 +382,7 @@ impl Oryxis {
         let Some(kind) = ArchiveKind::from_name(&name) else {
             return Task::none();
         };
-        let pane = self.sftp.pane(side);
+        let pane = self.cur_sftp().pane(side);
         if pane.archive_busy.is_some() || pane.zip.is_some() {
             return Task::none();
         }
@@ -485,7 +485,7 @@ impl Oryxis {
         kind: ArchiveKind,
         target: String,
     ) -> Task<Message> {
-        let pane = self.sftp.pane(side);
+        let pane = self.cur_sftp().pane(side);
         if pane.archive_busy.is_some() || pane.zip.is_some() {
             return Task::none();
         }
@@ -621,8 +621,8 @@ impl Oryxis {
     ) -> Task<Message> {
         let other = other_side(side);
         {
-            let src_pane = self.sftp.pane(side);
-            let dst_pane = self.sftp.pane(other);
+            let src_pane = self.cur_sftp().pane(side);
+            let dst_pane = self.cur_sftp().pane(other);
             if src_pane.zip.is_none()
                 || src_pane.archive_busy.is_some()
                 || dst_pane.zip.is_some()
@@ -633,10 +633,10 @@ impl Oryxis {
         }
         // Plan the job: entry indices + destination-relative paths.
         let (files, dirs, base) = {
-            let pane = self.sftp.pane(side);
+            let pane = self.cur_sftp().pane(side);
             let zip = pane.zip.as_ref().expect("guarded above");
             let raw_base = base_name(&inner);
-            let dest_names = existing_names(self.sftp.pane(other));
+            let dest_names = existing_names(self.cur_sftp().pane(other));
             let (stem, suffix) = if is_dir {
                 (raw_base.as_str(), String::new())
             } else {
@@ -666,7 +666,7 @@ impl Oryxis {
             }
         };
         let source = {
-            let pane = self.sftp.pane(side);
+            let pane = self.cur_sftp().pane(side);
             let zip = pane.zip.as_ref().expect("guarded above");
             match &zip.remote_src {
                 Some(src) => ZipSourceSpec::Remote(src.clone()),
@@ -674,7 +674,7 @@ impl Oryxis {
             }
         };
         let dest = {
-            let pane = self.sftp.pane(other);
+            let pane = self.cur_sftp().pane(other);
             if pane.is_remote {
                 CopyDest::Remote(
                     pane.client.clone().expect("guarded above"),
@@ -693,8 +693,8 @@ impl Oryxis {
         // archive) while the DESTINATION pane receives the files, so
         // the completion carries a token per pane: the busy clear is
         // gated on the source's, the refresh on the destination's.
-        let busy_token = self.sftp.pane(side).archive_op_token();
-        let dest_token = self.sftp.pane(other).archive_op_token();
+        let busy_token = self.cur_sftp().pane(side).archive_op_token();
+        let dest_token = self.cur_sftp().pane(other).archive_op_token();
         self.sftp.pane_mut(side).archive_busy =
             Some(crate::i18n::t("archive_copying").to_string());
         Task::perform(

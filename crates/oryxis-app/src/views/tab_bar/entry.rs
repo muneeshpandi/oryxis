@@ -159,7 +159,7 @@ impl Oryxis {
         };
         if entry == StripEntry::Sftp(idx) {
             let tab = &self.sftp_tabs[idx];
-            let is_active = sftp_surface && self.active_sftp == Some(idx);
+            let is_active = sftp_surface && self.cur_active_sftp() == Some(idx);
             // The mounted host (matched by the tab label = host name) drives
             // the badge icon + color, same as the terminal tabs.
             let detected_os = self.tab_detected_os(&tab.label);

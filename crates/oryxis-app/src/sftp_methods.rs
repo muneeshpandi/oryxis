@@ -27,11 +27,11 @@ impl Oryxis {
     /// permission denied) surface as a user-visible string instead of a
     /// panic. No-op if the pane is currently a remote host.
     pub(crate) fn refresh_sftp_local(&mut self, side: crate::state::SftpPaneSide) {
-        if self.sftp.pane(side).is_remote {
+        if self.cur_sftp().pane(side).is_remote {
             return;
         }
-        let sort = self.sftp.pane(side).sort;
-        let local_path = self.sftp.pane(side).local_path.clone();
+        let sort = self.cur_sftp().pane(side).sort;
+        let local_path = self.cur_sftp().pane(side).local_path.clone();
         // In-place refresh of a directory that was just listed: the OS
         // caches are warm, so the synchronous call is fine here. First
         // ENTRY into a directory goes through the async
@@ -157,7 +157,7 @@ impl Oryxis {
         &self,
         side: crate::state::SftpPaneSide,
     ) -> Vec<String> {
-        let pane = self.sftp.pane(side);
+        let pane = self.cur_sftp().pane(side);
         let needle = pane.filter.to_lowercase();
         if !pane.is_remote {
             pane.local_entries
@@ -202,7 +202,7 @@ impl Oryxis {
     /// isn't the root. The `..` row is a virtual first entry the keyboard
     /// cursor can land on (Enter / Right / Left there navigate up).
     pub(crate) fn sftp_pane_has_parent(&self, side: crate::state::SftpPaneSide) -> bool {
-        let pane = self.sftp.pane(side);
+        let pane = self.cur_sftp().pane(side);
         if pane.is_remote {
             pane.remote_path != "/" && !pane.remote_path.is_empty()
         } else {
@@ -213,7 +213,7 @@ impl Oryxis {
     /// The per-directory scrollable id for a pane's file list. Must match
     /// the id the view builds so scroll operations target the right widget.
     fn sftp_list_scroll_id(&self, side: crate::state::SftpPaneSide) -> String {
-        let pane = self.sftp.pane(side);
+        let pane = self.cur_sftp().pane(side);
         let cur_path = if pane.is_remote {
             pane.remote_path.clone()
         } else {
@@ -262,7 +262,7 @@ impl Oryxis {
         total: usize,
     ) -> Task<Message> {
         use crate::views::sftp::ROW_HEIGHT;
-        let viewport_h = self.sftp.pane(side).list_viewport_h;
+        let viewport_h = self.cur_sftp().pane(side).list_viewport_h;
         if viewport_h <= 0.0 {
             return self.sftp_snap_ratio(side, idx, total);
         }
@@ -272,7 +272,7 @@ impl Oryxis {
             // Whole list fits; nothing to scroll.
             return Task::none();
         }
-        let offset = self.sftp.pane(side).list_scroll_y.clamp(0.0, max_scroll);
+        let offset = self.cur_sftp().pane(side).list_scroll_y.clamp(0.0, max_scroll);
         let row_top = idx as f32 * ROW_HEIGHT;
         let row_bottom = row_top + ROW_HEIGHT;
         let new_offset = if row_top < offset {
@@ -321,7 +321,7 @@ impl Oryxis {
     /// lands on it. With no current cursor, the first (down) or last (up)
     /// row is selected.
     pub(crate) fn sftp_move_focus(&mut self, down: bool) -> Task<Message> {
-        let side = self.sftp.focused_side;
+        let side = self.cur_sftp().focused_side;
         let entries = self.visible_entry_paths_in_pane(side);
         let has_parent = self.sftp_pane_has_parent(side);
         let offset = usize::from(has_parent);
@@ -330,7 +330,7 @@ impl Oryxis {
             return Task::none();
         }
         // Virtual index over [".." , entries...]; ".." is index 0 when shown.
-        let cur_virtual = if self.sftp.parent_cursor && has_parent {
+        let cur_virtual = if self.cur_sftp().parent_cursor && has_parent {
             Some(0)
         } else {
             self.sftp
@@ -363,7 +363,7 @@ impl Oryxis {
         &mut self,
         side: crate::state::SftpPaneSide,
     ) -> Option<Task<Message>> {
-        match self.sftp.pending_focus.clone() {
+        match self.cur_sftp().pending_focus.clone() {
             Some((s, target)) if s == side => {
                 self.sftp.pending_focus = None;
                 Some(self.sftp_apply_pending_focus(side, target))
@@ -418,8 +418,8 @@ impl Oryxis {
     /// nothing is focused.
     pub(crate) fn sftp_activate_focused(&mut self, open_files: bool) -> Task<Message> {
         use crate::state::SftpPendingFocus;
-        let side = self.sftp.focused_side;
-        if self.sftp.parent_cursor {
+        let side = self.cur_sftp().focused_side;
+        if self.cur_sftp().parent_cursor {
             return Task::done(Message::Sftp(SftpMessage::SftpUp(side)));
         }
         let Some((side, path)) = self
@@ -432,7 +432,7 @@ impl Oryxis {
             return Task::none();
         };
         let is_dir = self.row_is_dir_in_pane(side, &path);
-        let is_remote = self.sftp.pane(side).is_remote;
+        let is_remote = self.cur_sftp().pane(side).is_remote;
         if is_dir {
             self.sftp.selected_rows.clear();
             self.sftp.selection_anchor = None;
@@ -461,7 +461,7 @@ impl Oryxis {
     /// Move keyboard focus to the parent directory of the focused pane
     /// (Left arrow). Just dispatches the existing up-navigation.
     pub(crate) fn sftp_focus_parent(&mut self) -> Task<Message> {
-        Task::done(Message::Sftp(SftpMessage::SftpUp(self.sftp.focused_side)))
+        Task::done(Message::Sftp(SftpMessage::SftpUp(self.cur_sftp().focused_side)))
     }
 
     /// Toggle keyboard focus between the two panes (Tab). Lands the cursor
@@ -469,7 +469,7 @@ impl Oryxis {
     /// still visible, else its first row, else the `..` row.
     pub(crate) fn sftp_toggle_pane_focus(&mut self) -> Task<Message> {
         use crate::state::SftpPaneSide::{Left, Right};
-        let new_side = match self.sftp.focused_side {
+        let new_side = match self.cur_sftp().focused_side {
             Left => Right,
             Right => Left,
         };
@@ -513,7 +513,7 @@ impl Oryxis {
     /// its row menu, the `..` cursor opens the pane's background menu, and
     /// with neither focused (fresh pane, nothing selected) it is a no-op.
     pub(crate) fn sftp_open_focus_row_menu(&mut self) -> Task<Message> {
-        let side = self.sftp.focused_side;
+        let side = self.cur_sftp().focused_side;
         // Both the focused entry and the `..` row report their bounds via a
         // `bounds_reporter`, so this is the last-drawn cursor rect. It was
         // recorded during draw, which under a scrollable happens in content
@@ -521,8 +521,8 @@ impl Oryxis {
         // back to the screen with the pane's tracked offsets. Anchor just
         // inside the leading edge and drop from the bottom so the menu
         // opens below the row, like a right-click at that spot.
-        let bounds = self.sftp.focus_row_bounds.get();
-        let pane = self.sftp.pane(side);
+        let bounds = self.cur_sftp().focus_row_bounds.get();
+        let pane = self.cur_sftp().pane(side);
         let x = bounds.x + 8.0 - pane.list_pan_x.get();
         let y = bounds.y + bounds.height - pane.list_scroll_y;
         let target = self
@@ -542,10 +542,10 @@ impl Oryxis {
                 x,
                 y,
             });
-        } else if self.sftp.parent_cursor {
+        } else if self.cur_sftp().parent_cursor {
             // Cursor on ".." : the pane-level (background) menu, whose
             // `path` carries the pane's current directory.
-            let pane = self.sftp.pane(side);
+            let pane = self.cur_sftp().pane(side);
             let dir = if pane.is_remote {
                 pane.remote_path.clone()
             } else {
@@ -578,7 +578,7 @@ impl Oryxis {
     /// keyboard-opened menu shows the same action set a right-click would.
     /// Mirrors the rows' raw `is_dir`, where a symlink reports `false`.
     fn sftp_entry_is_dir(&self, side: crate::state::SftpPaneSide, path: &str) -> bool {
-        let pane = self.sftp.pane(side);
+        let pane = self.cur_sftp().pane(side);
         if pane.is_remote {
             let base = pane.remote_path.trim_end_matches('/');
             pane.remote_entries
@@ -665,7 +665,7 @@ impl Oryxis {
         side: crate::state::SftpPaneSide,
         path: &str,
     ) -> bool {
-        let pane = self.sftp.pane(side);
+        let pane = self.cur_sftp().pane(side);
         if !pane.is_remote {
             let p = std::path::Path::new(path);
             if let Some(name) = p.file_name().and_then(|n| n.to_str())
@@ -727,8 +727,8 @@ impl Oryxis {
         if !over_dest {
             return Task::none();
         }
-        let src_remote = self.sftp.pane(drag.origin_side).is_remote;
-        let dst_remote = self.sftp.pane(dest_side).is_remote;
+        let src_remote = self.cur_sftp().pane(drag.origin_side).is_remote;
+        let dst_remote = self.cur_sftp().pane(dest_side).is_remote;
         match (src_remote, dst_remote) {
             // Local -> remote: upload.
             (false, true) => {

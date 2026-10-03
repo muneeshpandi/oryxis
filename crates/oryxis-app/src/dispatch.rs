@@ -160,6 +160,7 @@ impl Oryxis {
         self.claim_floats(floats_before);
         if self.window_ctx.is_some() {
             self.reconcile_tab_order();
+            self.reconcile_hybrid_sftp();
             self.reconcile_tab_mru();
             return task;
         }
@@ -405,12 +406,12 @@ impl Oryxis {
             || self.sftp_chrome.log_drag.is_some()
             || self.sftp_chrome.col_resize.is_some()
             || self.sftp_chrome.col_drag.is_some()
-            || self.sftp.drag.is_some()
+            || self.cur_sftp().drag.is_some()
             || self.tab_drag.is_some()
             || self.card_drag.is_some()
             || self.drag_out_arm.is_some()
             || self.immersive_fullscreen()
-            || self.sftp.suppress_hover
+            || self.cur_sftp().suppress_hover
     }
 
     /// Show a generic "remove this?" confirmation. Confirming dispatches

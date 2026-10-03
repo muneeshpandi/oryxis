@@ -9,7 +9,7 @@ project uses [SemVer](https://semver.org/spec/v2.0.0.html).
 ### Added
 - Security keys sign natively, no ssh-agent: Ed25519-SK and ECDSA-SK on Windows, Linux and macOS, with PIN, and a hardware-only Security Key method (#236, #237, by @Rulio723).
 - The MCP plugin 0.1.6 reads hosts set to Security Key, and refuses them: a touch needs a person at the keyboard.
-- Tabs move between windows with their session intact: drag a tab out of the window, or use "Move to New Window" / "Move to Main Window" on the tab menu. Extra windows hold terminal tabs; Settings and the vault stay in the main one.
+- Tabs move between windows with their session intact: drag a tab out of the window, or use "Move to New Window" / "Move to Main Window" on the tab menu. Extra windows hold terminal and SFTP tabs; Settings and the vault stay in the main one.
 - Drag a host card (or a selection) out of the window to connect it in a new one, or use "Connect in New Window" on the card menu.
 
 ### Changed

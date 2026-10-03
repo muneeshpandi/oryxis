@@ -65,7 +65,7 @@ impl Oryxis {
             }
             SftpMessage::SftpDuplicate(side, path) => {
                 self.sftp.row_menu = None;
-                if !self.sftp.pane(side).is_remote {
+                if !self.cur_sftp().pane(side).is_remote {
                         let src = std::path::PathBuf::from(&path);
                         let parent = match src.parent() {
                             Some(p) => p.to_path_buf(),
@@ -93,7 +93,7 @@ impl Oryxis {
                             },
                         ))
                 } else {
-                        let Some(client) = self.sftp.pane(side).client.clone() else {
+                        let Some(client) = self.cur_sftp().pane(side).client.clone() else {
                             return Ok(Task::none());
                         };
                         let parent = parent_path(&path);
@@ -102,7 +102,7 @@ impl Oryxis {
                             .find(|s| !s.is_empty())
                             .unwrap_or(&path)
                             .to_string();
-                        let reload = self.sftp.pane(side).remote_path.clone();
+                        let reload = self.cur_sftp().pane(side).remote_path.clone();
                         let src = path.clone();
                         Ok(Task::perform(
                             async move {

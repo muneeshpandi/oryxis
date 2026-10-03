@@ -66,8 +66,8 @@ impl Oryxis {
 
     fn inline_edit_anchors_now(&self) -> Vec<InlineEditAnchor> {
         let mut anchors = Vec::new();
-        if let Some(rename) = &self.sftp.rename {
-            let pane = self.sftp.pane(rename.side);
+        if let Some(rename) = &self.cur_sftp().rename {
+            let pane = self.cur_sftp().pane(rename.side);
             let mut h = std::collections::hash_map::DefaultHasher::new();
             pane.show_hidden.hash(&mut h);
             let found = if pane.is_remote {

@@ -47,13 +47,13 @@ impl Oryxis {
     /// can drop `hovered_row` before the press lands (issue: truncated names
     /// wouldn't drag). No-op if a drag is already armed for this press.
     fn arm_sftp_row_drag(&mut self, side: SftpPaneSide, path: String, is_dir: bool) {
-        if self.sftp.drag.is_some() {
+        if self.cur_sftp().drag.is_some() {
             return;
         }
         // Rows inside a browsed archive carry synthetic paths the
         // transfer queue can't read; copy-out goes through the context
         // menu instead of drag-and-drop.
-        if self.sftp.pane(side).zip.is_some() {
+        if self.cur_sftp().pane(side).zip.is_some() {
             return;
         }
         // Drag the entire same-pane selection if the pressed row is part of
@@ -130,7 +130,7 @@ impl Oryxis {
         if files.is_empty() || files.len() > MAX_DRAG_OUT_FILES {
             return;
         }
-        let pane = self.sftp.pane(side);
+        let pane = self.cur_sftp().pane(side);
         let payload = if pane.is_remote {
             let Some(client) = pane.client.clone() else {
                 return;
@@ -203,7 +203,7 @@ impl Oryxis {
                 // means menu actions never silently target a different
                 // set of rows than the visual selection suggests.
                 let target = (side, path.clone());
-                let in_selection = self.sftp.selected_rows.contains(&target);
+                let in_selection = self.cur_sftp().selected_rows.contains(&target);
                 if !in_selection {
                     self.sftp.selected_rows = vec![target.clone()];
                     self.sftp.selection_anchor = Some(target);
@@ -221,7 +221,7 @@ impl Oryxis {
             SftpMessage::SftpBackgroundRightClick(side) => {
                 // Empty-area right-click: `path` carries the pane's current
                 // directory so the directory-level actions act on it.
-                let pane = self.sftp.pane(side);
+                let pane = self.cur_sftp().pane(side);
                 let dir = if pane.is_remote {
                     pane.remote_path.clone()
                 } else {
@@ -274,7 +274,7 @@ impl Oryxis {
                 // so a bare on_enter would light up a row under the menu.
                 // The list is inert while the menu is up (no drag is in
                 // flight then either), so ignore the hover entirely.
-                if self.sftp.row_menu.is_some() {
+                if self.cur_sftp().row_menu.is_some() {
                     return Ok(Task::none());
                 }
                 self.sftp.hovered_row = Some((side, path, is_dir));
@@ -314,7 +314,7 @@ impl Oryxis {
             SftpMessage::SftpNameHovered(side, path) => {
                 // Same menu guard as SftpRowEnter: the gaps between the open
                 // context menu's items sit over the rows behind it.
-                if self.sftp.row_menu.is_some() {
+                if self.cur_sftp().row_menu.is_some() {
                     return Ok(Task::none());
                 }
                 self.sftp.hovered_name = Some((side, path));
@@ -326,7 +326,7 @@ impl Oryxis {
                 if !slow_rename_still_valid(
                     generation,
                     self.sftp_click_gen,
-                    &self.sftp.selected_rows,
+                    &self.cur_sftp().selected_rows,
                     (side, &path),
                 ) {
                     return Ok(Task::none());
@@ -339,7 +339,7 @@ impl Oryxis {
                 // below: this message fires exactly once per press, so a
                 // value left behind by a bailed-out press would otherwise
                 // be mistaken for the next press's hit.
-                let pressed_row = self.sftp.row_press.borrow_mut().take();
+                let pressed_row = self.cur_sftp().row_press.borrow_mut().take();
                 // Same contract for a host card (issue #230): the card's
                 // `press_hit_reporter` named it, take it before any
                 // early return below.
@@ -442,8 +442,8 @@ impl Oryxis {
                 // press *inside* the input doesn't fire SftpSelectRow and
                 // keeps `hovered_row` on the rename's own row, so we leave it
                 // be and let the user keep editing.
-                if let Some(rn) = self.sftp.rename.as_ref() {
-                    let on_rename_row = self.sftp.hovered_row.as_ref().is_some_and(
+                if let Some(rn) = self.cur_sftp().rename.as_ref() {
+                    let on_rename_row = self.cur_sftp().hovered_row.as_ref().is_some_and(
                         |(s, p, _)| *s == rn.side && *p == rn.original_path,
                     );
                     if !on_rename_row {
@@ -464,7 +464,7 @@ impl Oryxis {
                 // where iced itself translates the cursor, so it depends
                 // on neither hover nor tracked offsets.
                 if let Some((side, path, is_dir)) =
-                    pressed_row.or_else(|| self.sftp.hovered_row.clone())
+                    pressed_row.or_else(|| self.cur_sftp().hovered_row.clone())
                 {
                     self.arm_sftp_row_drag(side, path, is_dir);
                 }
@@ -496,7 +496,7 @@ impl Oryxis {
                 // just a click), the release check below (a drag isn't a
                 // rename), and the deferred fire (a following click cancels).
                 let now = std::time::Instant::now();
-                let already_sole = self.sftp.selected_rows.as_slice() == [target.clone()];
+                let already_sole = self.cur_sftp().selected_rows.as_slice() == [target.clone()];
                 let on_name = self
                     .sftp
                     .hovered_name
@@ -506,7 +506,7 @@ impl Oryxis {
                     && !shift
                     && already_sole
                     && on_name
-                    && self.sftp.last_click.as_ref().is_some_and(|(s, p, t)| {
+                    && self.cur_sftp().last_click.as_ref().is_some_and(|(s, p, t)| {
                         *s == side && p == &path && now.duration_since(*t) >= SLOW_RENAME_MIN
                     });
                 self.sftp.pending_rename =
@@ -515,7 +515,7 @@ impl Oryxis {
                     // Range select within same pane. If the anchor lives
                     // in the other pane (or doesn't exist), fall through
                     // to a single-select to avoid silent cross-pane jumps.
-                    if let Some(anchor) = self.sftp.selection_anchor.clone()
+                    if let Some(anchor) = self.cur_sftp().selection_anchor.clone()
                         && anchor.0 == side
                     {
                         let entries = self.visible_entry_paths_in_pane(side);
@@ -551,7 +551,7 @@ impl Oryxis {
                     // type-ahead focus); a quick double click on the same
                     // folder opens it.
                     let now = std::time::Instant::now();
-                    let is_double = self.sftp.last_click.as_ref().is_some_and(|(s, p, t)| {
+                    let is_double = self.cur_sftp().last_click.as_ref().is_some_and(|(s, p, t)| {
                         *s == side
                             && p == &path
                             && now.duration_since(*t) < DOUBLE_CLICK_WINDOW
@@ -560,7 +560,7 @@ impl Oryxis {
                         self.sftp.last_click = None;
                         self.sftp.selected_rows.clear();
                         self.sftp.selection_anchor = None;
-                        return Ok(if self.sftp.pane(side).is_remote {
+                        return Ok(if self.cur_sftp().pane(side).is_remote {
                             Task::done(Message::Sftp(SftpMessage::SftpNavigateRemote(side, path)))
                         } else {
                             Task::done(Message::Sftp(SftpMessage::SftpNavigateLocal(
@@ -579,13 +579,13 @@ impl Oryxis {
                     // need decompressing the outer entry first, which
                     // defeats the ranged-read model.
                     let now = std::time::Instant::now();
-                    let is_double = self.sftp.last_click.as_ref().is_some_and(|(s, p, t)| {
+                    let is_double = self.cur_sftp().last_click.as_ref().is_some_and(|(s, p, t)| {
                         *s == side
                             && p == &path
                             && now.duration_since(*t) < DOUBLE_CLICK_WINDOW
                     });
                     if is_double
-                        && self.sftp.pane(side).zip.is_none()
+                        && self.cur_sftp().pane(side).zip.is_none()
                         && matches!(
                             oryxis_archive::names::ArchiveKind::from_name(
                                 &crate::dispatch_sftp_archive::base_name(&path)
@@ -606,7 +606,7 @@ impl Oryxis {
 
             SftpMessage::SftpTypeAheadFire(generation) => {
                 // A newer keystroke superseded this fire: skip it.
-                if generation != self.sftp.type_ahead_gen {
+                if generation != self.cur_sftp().type_ahead_gen {
                     return Ok(Task::none());
                 }
                 // On the ".." row there's no selected row, so fall back to
@@ -616,8 +616,8 @@ impl Oryxis {
                     .selected_rows
                     .last()
                     .map(|(s, _)| *s)
-                    .unwrap_or(self.sftp.focused_side);
-                let prefix = self.sftp.type_ahead.clone();
+                    .unwrap_or(self.cur_sftp().focused_side);
+                let prefix = self.cur_sftp().type_ahead.clone();
                 if prefix.is_empty() {
                     return Ok(Task::none());
                 }
@@ -626,12 +626,12 @@ impl Oryxis {
                 // search after a pause: advance past the current selection
                 // instead of restarting at the top.
                 let cycle =
-                    self.sftp.type_ahead_cycle || prefix == self.sftp.type_ahead_committed;
+                    self.cur_sftp().type_ahead_cycle || prefix == self.cur_sftp().type_ahead_committed;
 
                 // Snapshot the displayed entries as (name, full_path) in
                 // display order (same hidden + filter rules as the view).
                 let (visible, cur_path) = {
-                    let pane = self.sftp.pane(side);
+                    let pane = self.cur_sftp().pane(side);
                     let filter = pane.filter.to_lowercase();
                     let show_hidden = pane.show_hidden;
                     let cur_path = if pane.is_remote {
@@ -676,7 +676,7 @@ impl Oryxis {
                 // Cycling starts just after the current selection; otherwise
                 // from the top.
                 let start = if cycle {
-                    let cur = self.sftp.selected_rows.last().map(|(_, p)| p.clone());
+                    let cur = self.cur_sftp().selected_rows.last().map(|(_, p)| p.clone());
                     cur.and_then(|c| visible.iter().position(|(_, f)| *f == c))
                         .map(|i| i + 1)
                         .unwrap_or(0)
@@ -750,7 +750,7 @@ impl Oryxis {
                 // rows, Enter fires, Esc closes). Decline every key here so
                 // list nav / type-ahead / Ctrl+A don't steal them; this
                 // handler runs before the modal router in the chain.
-                if self.sftp.row_menu.is_some() {
+                if self.cur_sftp().row_menu.is_some() {
                     return Err(ke);
                 }
                 // Consume the activation-swallow flag on the first keyboard
@@ -770,8 +770,8 @@ impl Oryxis {
                         // Path-bar editing: Esc reverts to the breadcrumb
                         // discarding the typed text (Enter, via on_submit,
                         // is the only commit path).
-                        if self.sftp.left.path_editing.is_some()
-                            || self.sftp.right.path_editing.is_some()
+                        if self.cur_sftp().left.path_editing.is_some()
+                            || self.cur_sftp().right.path_editing.is_some()
                         {
                             self.sftp.left.path_editing = None;
                             self.sftp.right.path_editing = None;
@@ -784,14 +784,14 @@ impl Oryxis {
                         return Ok(Task::none());
                     }
                 }
-                let editing = self.sftp.rename.is_some()
-                    || self.sftp.new_entry.is_some()
-                    || self.sftp.overwrite_prompt.is_some()
-                    || !self.sftp.delete_confirm.is_empty()
-                    || self.sftp.properties.is_some()
-                    || self.sftp.picker_open
-                    || self.sftp.left.path_editing.is_some()
-                    || self.sftp.right.path_editing.is_some();
+                let editing = self.cur_sftp().rename.is_some()
+                    || self.cur_sftp().new_entry.is_some()
+                    || self.cur_sftp().overwrite_prompt.is_some()
+                    || !self.cur_sftp().delete_confirm.is_empty()
+                    || self.cur_sftp().properties.is_some()
+                    || self.cur_sftp().picker_open
+                    || self.cur_sftp().left.path_editing.is_some()
+                    || self.cur_sftp().right.path_editing.is_some();
                 // Ctrl+A / Cmd+A: select every visible row in the focused
                 // pane (post filter/sort, the same list shift-click range
                 // extension walks). Anchored on the first entry so a
@@ -806,7 +806,7 @@ impl Oryxis {
                     && !modifiers.alt()
                     && s.as_str() == "a"
                 {
-                    let side = self.sftp.focused_side;
+                    let side = self.cur_sftp().focused_side;
                     let entries = self.visible_entry_paths_in_pane(side);
                     if !entries.is_empty() {
                         self.sftp.selection_anchor = Some((side, entries[0].clone()));
@@ -865,7 +865,7 @@ impl Oryxis {
                         // to trigger by accident. A multi-selection has no
                         // single target, so it stays inert.
                         Named::F2 => {
-                            if let [(side, path)] = self.sftp.selected_rows.as_slice() {
+                            if let [(side, path)] = self.cur_sftp().selected_rows.as_slice() {
                                 let (side, path) = (*side, path.clone());
                                 return Ok(Task::done(Message::Sftp(
                                     SftpMessage::SftpStartRename(side, path),
@@ -887,7 +887,7 @@ impl Oryxis {
                         // turns Delete-on-`..` into deleting whatever was
                         // selected before.
                         Named::Delete => {
-                            if self.sftp.parent_cursor {
+                            if self.cur_sftp().parent_cursor {
                                 return Ok(Task::none());
                             }
                             return Ok(Task::done(Message::Sftp(
@@ -931,7 +931,7 @@ impl Oryxis {
                 // (the selection's pane is the focus) or the ".." parent row
                 // (which clears selected_rows but sets parent_cursor on the
                 // focused pane).
-                if self.sftp.selected_rows.last().is_none() && !self.sftp.parent_cursor {
+                if self.cur_sftp().selected_rows.last().is_none() && !self.cur_sftp().parent_cursor {
                     return Ok(Task::none());
                 }
                 let now = std::time::Instant::now();
@@ -950,7 +950,7 @@ impl Oryxis {
                 // live, pressing the SAME single character again advances to the
                 // next match instead of narrowing the buffer to "aa". A
                 // different character narrows; a pause (elapsed) starts fresh.
-                let repeat = !elapsed && self.sftp.type_ahead == lc;
+                let repeat = !elapsed && self.cur_sftp().type_ahead == lc;
                 if !repeat {
                     self.sftp.type_ahead.push_str(&lc);
                 }
@@ -958,8 +958,8 @@ impl Oryxis {
                 self.sftp.type_ahead_at = Some(now);
                 // Type-ahead moves the keyboard cursor too; mute mouse hover.
                 self.sftp.suppress_hover = true;
-                self.sftp.type_ahead_gen = self.sftp.type_ahead_gen.wrapping_add(1);
-                let generation = self.sftp.type_ahead_gen;
+                self.sftp.type_ahead_gen = self.cur_sftp().type_ahead_gen.wrapping_add(1);
+                let generation = self.cur_sftp().type_ahead_gen;
                 if repeat {
                     // Cycle immediately so each repeat of the key advances one
                     // step (debouncing would collapse a fast "eee" into one jump).

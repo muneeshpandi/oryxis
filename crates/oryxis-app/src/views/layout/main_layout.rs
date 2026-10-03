@@ -850,7 +850,7 @@ impl Oryxis {
         // SFTP row right-click menu, rendered at the layout root so the
         // window-coord click position lines up with the menu origin
         // without having to compensate for the title + tab bar height.
-        if let Some(ref row_menu) = self.sftp.row_menu {
+        if let Some(ref row_menu) = self.cur_sftp().row_menu {
             return self.layer_sftp_row_menu(base, resize_overlay, row_menu);
         }
 
@@ -867,7 +867,7 @@ impl Oryxis {
         // which is what puts something under the cursor while the
         // gesture is still over the window. Same pill either way, so a
         // file row that armed both reads as one continuous drag.
-        if let Some(drag) = &self.sftp.drag
+        if let Some(drag) = &self.cur_sftp().drag
             && drag.active
         {
             return self.layer_drag_ghost(base, resize_overlay, &drag.label);

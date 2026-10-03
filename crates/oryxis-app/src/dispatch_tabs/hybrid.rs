@@ -127,7 +127,7 @@ impl Oryxis {
         // reconnected while Files was parked and the automatic remount
         // didn't land, issue #63) falls through to the mount pipeline
         // below, which reuses this tab's fresh session.
-        if self.sftp.right.is_remote && self.sftp.right.host_label.is_some() {
+        if self.cur_sftp().right.is_remote && self.cur_sftp().right.host_label.is_some() {
             if self
                 .sftp
                 .right
@@ -147,13 +147,13 @@ impl Oryxis {
             // Land the remount at the previous directory (home
             // fallback); an explicit pending hint keeps priority.
             if self.sftp_open_at_path.is_none() {
-                self.sftp_open_at_path = Some(self.sftp.right.remote_path.clone())
+                self.sftp_open_at_path = Some(self.cur_sftp().right.remote_path.clone())
                     .filter(|p| !p.is_empty());
             }
         }
         // First open: seed the Local pane like a fresh SFTP tab,
         // then mount the host into the right pane.
-        if self.sftp.left.local_path.as_os_str().is_empty() {
+        if self.cur_sftp().left.local_path.as_os_str().is_empty() {
             self.sftp.left.local_path = std::env::var_os("HOME")
                 .or_else(|| std::env::var_os("USERPROFILE"))
                 .map(std::path::PathBuf::from)

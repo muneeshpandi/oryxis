@@ -168,8 +168,8 @@ impl Oryxis {
                                 SftpPaneSide::Left
                             };
                             let dst_side = relay_dest.unwrap_or(remote_side);
-                            let src_path = self.sftp.pane(src_side).remote_path.clone();
-                            let dst_path = self.sftp.pane(dst_side).remote_path.clone();
+                            let src_path = self.cur_sftp().pane(src_side).remote_path.clone();
+                            let dst_path = self.cur_sftp().pane(dst_side).remote_path.clone();
                             return Ok(Task::perform(
                                 remove_moved_sources(client, sources),
                                 move |r| match r {
@@ -196,13 +196,13 @@ impl Oryxis {
                                 let dst = relay_dest.unwrap_or(remote_side);
                                 Task::done(Message::Sftp(SftpMessage::SftpNavigateRemote(
                                     dst,
-                                    self.sftp.pane(dst).remote_path.clone(),
+                                    self.cur_sftp().pane(dst).remote_path.clone(),
                                 )))
                             }
                             crate::state::TransferKind::Upload => Task::done(
                                 Message::Sftp(SftpMessage::SftpNavigateRemote(
                                     remote_side,
-                                    self.sftp.pane(remote_side).remote_path.clone(),
+                                    self.cur_sftp().pane(remote_side).remote_path.clone(),
                                 )),
                             ),
                             crate::state::TransferKind::Download
@@ -403,13 +403,13 @@ impl Oryxis {
                         let dst = relay_dest.unwrap_or(remote_side);
                         return Ok(Task::done(Message::Sftp(SftpMessage::SftpNavigateRemote(
                             dst,
-                            self.sftp.pane(dst).remote_path.clone(),
+                            self.cur_sftp().pane(dst).remote_path.clone(),
                         ))));
                     }
                     Some(crate::state::TransferKind::Upload) => {
                         return Ok(Task::done(Message::Sftp(SftpMessage::SftpNavigateRemote(
                             remote_side,
-                            self.sftp.pane(remote_side).remote_path.clone(),
+                            self.cur_sftp().pane(remote_side).remote_path.clone(),
                         ))));
                     }
                     Some(_) => {

@@ -16,6 +16,22 @@ impl Oryxis {
     ) -> Result<Task<Message>, SftpMessage> {
         match message {
             SftpMessage::SelectSftpTab(idx) => {
+                // A tab another window shows: select it THERE and bring
+                // that window forward (the terminal tabs' rule, see
+                // `handle_select_tab`).
+                if let Some(id) = self.sftp_tabs.get(idx).map(|t| t.id) {
+                    let owner = self.window_of_tab(id);
+                    if owner != self.window_ctx.as_ref().map(|c| c.id) {
+                        let focus = match owner.or_else(crate::app::main_window_id) {
+                            Some(w) => iced::window::gain_focus(w),
+                            None => Task::none(),
+                        };
+                        let select = self.run_in_window(owner, |s| {
+                            s.update(Message::Sftp(SftpMessage::SelectSftpTab(idx)))
+                        });
+                        return Ok(Task::batch([select, focus]));
+                    }
+                }
                 if idx < self.sftp_tabs.len() {
                     self.focus_sftp_tab(idx);
                     self.active_tab = None;

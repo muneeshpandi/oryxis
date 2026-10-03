@@ -198,13 +198,13 @@ impl Oryxis {
                 if self.sftp_chrome.log_drag.take().is_some() {
                     self.persist_setting(
                         "sftp_log_height",
-                        &format!("{:.0}", self.sftp.log_height),
+                        &format!("{:.0}", self.cur_sftp().log_height),
                     );
                 }
                 // End a column resize: the width was updated live, so just
                 // re-seed the template and persist.
                 if let Some((side, _, _, _)) = self.sftp_chrome.col_resize.take() {
-                    self.sftp_chrome.columns_template = self.sftp.pane(side).columns.clone();
+                    self.sftp_chrome.columns_template = self.cur_sftp().pane(side).columns.clone();
                     self.persist_sftp_columns();
                 }
                 // A tab released over the content area merges into the
@@ -269,7 +269,7 @@ impl Oryxis {
                         {
                             self.sftp.pane_mut(drag.side).columns.reorder(drag.col, hcol);
                             self.sftp_chrome.columns_template =
-                                self.sftp.pane(drag.side).columns.clone();
+                                self.cur_sftp().pane(drag.side).columns.clone();
                             self.persist_sftp_columns();
                         }
                     } else if let Some(sort_col) = drag.col.sort_column() {
@@ -286,7 +286,7 @@ impl Oryxis {
                     self.sftp.pending_rename = None;
                     return self.handle_internal_drag_drop(drag);
                 }
-                if self.sftp.pending_rename.is_some() {
+                if self.cur_sftp().pending_rename.is_some() {
                     return self.defer_slow_rename();
                 }
             }

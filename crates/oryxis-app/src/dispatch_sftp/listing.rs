@@ -43,19 +43,19 @@ impl Oryxis {
                 // Zip-browse interception: a synthetic `<archive>!/...`
                 // target relists from the cached index (no I/O); any
                 // real path leaves browse mode and navigates normally.
-                if let Some(zip) = &self.sftp.pane(side).zip {
+                if let Some(zip) = &self.cur_sftp().pane(side).zip {
                     if let Some(inner) = zip.inner_from_synthetic(&path) {
                         return Ok(Task::done(Message::Sftp(SftpMessage::SftpZipNavigate(side, inner))));
                     }
                     self.sftp.pane_mut(side).zip = None;
                 }
-                let client = match self.sftp.pane(side).client.clone() {
+                let client = match self.cur_sftp().pane(side).client.clone() {
                     Some(c) => c,
                     None => {
                         // No client to load from: drop any cursor target
                         // queued for this side so a later successful load
                         // doesn't consume a stale one.
-                        if matches!(&self.sftp.pending_focus, Some((s, _)) if *s == side) {
+                        if matches!(&self.cur_sftp().pending_focus, Some((s, _)) if *s == side) {
                             self.sftp.pending_focus = None;
                         }
                         return Ok(Task::none());
@@ -86,10 +86,10 @@ impl Oryxis {
                 // navigation for this pane may apply (mirrors the local
                 // path). A global seq also means a listing from another
                 // surface, swapped out by park/hoist, can never match.
-                if self.sftp.pane(side).remote_list_seq != seq {
+                if self.cur_sftp().pane(side).remote_list_seq != seq {
                     return Ok(Task::none());
                 }
-                let sort = self.sftp.pane(side).sort;
+                let sort = self.cur_sftp().pane(side).sort;
                 let mut entries = entries;
                 sort_remote_entries(&mut entries, sort);
                 let entry_count = entries.len();
@@ -138,7 +138,7 @@ impl Oryxis {
                 self.sftp_click_gen = self.sftp_click_gen.wrapping_add(1);
                 // Inside a browsed archive, ".." climbs the virtual tree
                 // and leaves the archive at its root.
-                if let Some(zip) = &self.sftp.pane(side).zip {
+                if let Some(zip) = &self.cur_sftp().pane(side).zip {
                     if zip.inner.is_empty() {
                         return Ok(Task::done(Message::Sftp(SftpMessage::SftpZipClose(side))));
                     }
@@ -148,8 +148,8 @@ impl Oryxis {
                     };
                     return Ok(Task::done(Message::Sftp(SftpMessage::SftpZipNavigate(side, parent))));
                 }
-                if self.sftp.pane(side).is_remote {
-                    let cur = self.sftp.pane(side).remote_path.clone();
+                if self.cur_sftp().pane(side).is_remote {
+                    let cur = self.cur_sftp().pane(side).remote_path.clone();
                     // Land the cursor on the folder we're leaving once the
                     // parent loads (its full path in the parent listing).
                     let child = cur.trim_end_matches('/').to_string();
@@ -160,7 +160,7 @@ impl Oryxis {
                     let parent = parent_path(&cur);
                     return Ok(Task::done(Message::Sftp(SftpMessage::SftpNavigateRemote(side, parent))));
                 }
-                if let Some(p) = self.sftp.pane(side).local_path.parent() {
+                if let Some(p) = self.cur_sftp().pane(side).local_path.parent() {
                     let p = p.to_path_buf();
                     // The folder we're leaving, as it'll appear in the parent.
                     let child = self
@@ -190,7 +190,7 @@ impl Oryxis {
                 // Retires a deferred rename, see SftpNavigateRemote.
                 self.sftp_click_gen = self.sftp_click_gen.wrapping_add(1);
                 // Zip-browse interception, mirroring SftpNavigateRemote.
-                if let Some(zip) = &self.sftp.pane(side).zip {
+                if let Some(zip) = &self.cur_sftp().pane(side).zip {
                     if let Some(inner) = zip.inner_from_synthetic(&path.to_string_lossy()) {
                         return Ok(Task::done(Message::Sftp(SftpMessage::SftpZipNavigate(side, inner))));
                     }
@@ -234,12 +234,12 @@ impl Oryxis {
                 // Stale guard: only the most recently spawned listing
                 // for this pane may apply; anything older is a leftover
                 // from a navigation the user already moved past.
-                if self.sftp.pane(side).local_list_seq != seq {
+                if self.cur_sftp().pane(side).local_list_seq != seq {
                     return Ok(Task::none());
                 }
                 match result {
                     Ok(mut entries) => {
-                        let sort = self.sftp.pane(side).sort;
+                        let sort = self.cur_sftp().pane(side).sort;
                         crate::sftp_helpers::sort_local_entries(&mut entries, sort);
                         let pane = self.sftp.pane_mut(side);
                         if pane.is_remote {
@@ -287,20 +287,20 @@ impl Oryxis {
                 self.sftp.pane_mut(side).filter = s;
             }
             SftpMessage::SftpStartEditPath(side) => {
-                let value = if self.sftp.pane(side).is_remote {
-                    self.sftp.pane(side).remote_path.clone()
+                let value = if self.cur_sftp().pane(side).is_remote {
+                    self.cur_sftp().pane(side).remote_path.clone()
                 } else {
-                    self.sftp.pane(side).local_path.display().to_string()
+                    self.cur_sftp().pane(side).local_path.display().to_string()
                 };
                 self.sftp.pane_mut(side).path_editing = Some(value);
             }
             SftpMessage::SftpEditPath(side, s) => {
-                if self.sftp.pane(side).path_editing.is_some() {
+                if self.cur_sftp().pane(side).path_editing.is_some() {
                     self.sftp.pane_mut(side).path_editing = Some(s);
                 }
             }
             SftpMessage::SftpPathHistoryToggle(side) => {
-                let open = self.sftp.pane(side).path_history_open;
+                let open = self.cur_sftp().pane(side).path_history_open;
                 // Only one dropdown at a time across the two panes.
                 self.sftp.left.path_history_open = false;
                 self.sftp.right.path_history_open = false;
@@ -313,7 +313,7 @@ impl Oryxis {
             SftpMessage::SftpPathHistoryPick(side, path) => {
                 self.sftp.pane_mut(side).path_history_open = false;
                 self.sftp.pane_mut(side).path_editing = None;
-                if self.sftp.pane(side).is_remote {
+                if self.cur_sftp().pane(side).is_remote {
                     return Ok(Task::done(Message::Sftp(SftpMessage::SftpNavigateRemote(
                         side, path,
                     ))));
@@ -340,7 +340,7 @@ impl Oryxis {
                 if input.is_empty() {
                     return Ok(Task::none());
                 }
-                if self.sftp.pane(side).is_remote {
+                if self.cur_sftp().pane(side).is_remote {
                     return Ok(Task::done(Message::Sftp(SftpMessage::SftpNavigateRemote(side, input))));
                 }
                 // Probe + list off-thread; the path is only adopted by
@@ -366,8 +366,8 @@ impl Oryxis {
                         pane.sort.ascending = true;
                     }
                 }
-                let sort = self.sftp.pane(side).sort;
-                if self.sftp.pane(side).is_remote {
+                let sort = self.cur_sftp().pane(side).sort;
+                if self.cur_sftp().pane(side).is_remote {
                     sort_remote_entries(&mut self.sftp.pane_mut(side).remote_entries, sort);
                 } else {
                     sort_local_entries(&mut self.sftp.pane_mut(side).local_entries, sort);
@@ -379,7 +379,7 @@ impl Oryxis {
                 pane.list_viewport_h = viewport_h;
             }
             SftpMessage::SftpListPanned(side, offset_x) => {
-                self.sftp.pane(side).list_pan_x.set(offset_x);
+                self.cur_sftp().pane(side).list_pan_x.set(offset_x);
             }
             m => return Err(m),
         }

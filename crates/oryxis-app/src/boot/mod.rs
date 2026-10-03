@@ -468,6 +468,7 @@ impl Oryxis {
                 input_window: None,
                 float_window: None,
                 keynav_scratch: crate::keynav::KeyNavState::default(),
+                sftp_blank: crate::state::SftpState::default(),
                 batch_dial_windows: std::collections::HashMap::new(),
                 tab_mru: Vec::new(),
                 tab_cycle: None,

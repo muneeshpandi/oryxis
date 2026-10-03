@@ -28,7 +28,7 @@ impl Oryxis {
         // PTY keeps running underneath and output keeps processing.
         if let Some(tab) = self.cur_active_tab().and_then(|idx| self.tabs.get(idx))
             && tab.files_mode
-            && self.hybrid_sftp_owner == Some(tab._id)
+            && self.cur_hybrid_owner() == Some(tab._id)
         {
             // The ZMODEM card still floats on top: the hidden PTY keeps
             // processing output, so a remote `sz` can seize the pane

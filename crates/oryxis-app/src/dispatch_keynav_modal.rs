@@ -176,7 +176,7 @@ impl Oryxis {
         // The SFTP right-click menu is a plain context menu: arrows move,
         // Enter activates, Esc closes (via close_topmost_modal). Lowest
         // precedence, but it never coexists with the surfaces above.
-        if self.sftp.row_menu.is_some() {
+        if self.cur_sftp().row_menu.is_some() {
             return Some((ModalSurface::SftpRowMenu, SurfaceFamily::Menu));
         }
         // The connect-progress card, below everything above: any dialog,
