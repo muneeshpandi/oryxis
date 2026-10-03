@@ -98,14 +98,14 @@ impl Oryxis {
         .style(crate::widgets::rounded_pick_list_style);
         // Focusable select (Tab + Enter/Space, widget-owned keys).
         let icon_row: Element<'_, Message> = dir_row(vec![
-            text(crate::i18n::t("host_icon_style")).size(13).color(OryxisColors::t().text_secondary).into(),
-            Space::new().width(Length::Fill).into(),
+            text(crate::i18n::t("host_icon_style")).size(13).color(OryxisColors::t().text_secondary).boxed(),
+            Space::new().width(Length::Fill).boxed(),
             self.panel_nav_slot(
                 crate::keynav::RowAction::input(iced::widget::Id::new("editor-pick-icon-style")),
                 crate::widgets::INPUT_RADIUS,
-                icon_picker.into(),
+                icon_picker.boxed(),
             ),
-        ]).align_y(iced::Alignment::Center).into();
+        ]).align_y(iced::Alignment::Center).boxed();
 
         // Per-host terminal encoding. "UTF-8" is the default (stored as
         // None); the rest are encoding_rs labels the SSH engine transcodes.
@@ -132,14 +132,14 @@ impl Oryxis {
             .style(crate::widgets::rounded_pick_list_style);
         // Focusable select, same treatment as the icon row.
         let encoding_row: Element<'_, Message> = dir_row(vec![
-            text(crate::i18n::t("host_encoding")).size(13).color(OryxisColors::t().text_secondary).into(),
-            Space::new().width(Length::Fill).into(),
+            text(crate::i18n::t("host_encoding")).size(13).color(OryxisColors::t().text_secondary).boxed(),
+            Space::new().width(Length::Fill).boxed(),
             self.panel_nav_slot(
                 crate::keynav::RowAction::input(iced::widget::Id::new("editor-pick-encoding")),
                 crate::widgets::INPUT_RADIUS,
-                encoding_picker.into(),
+                encoding_picker.boxed(),
             ),
-        ]).align_y(iced::Alignment::Center).into();
+        ]).align_y(iced::Alignment::Center).boxed();
 
         // Per-host ambiguous width (J4). Next to encoding because that is
         // what `Auto` reads: a legacy CJK charset is the only per-host
@@ -168,14 +168,14 @@ impl Oryxis {
         .padding(10)
         .style(crate::widgets::rounded_pick_list_style);
         let ambiguous_row: Element<'_, Message> = dir_row(vec![
-            text(crate::i18n::t("host_ambiguous_width")).size(13).color(OryxisColors::t().text_secondary).into(),
-            Space::new().width(Length::Fill).into(),
+            text(crate::i18n::t("host_ambiguous_width")).size(13).color(OryxisColors::t().text_secondary).boxed(),
+            Space::new().width(Length::Fill).boxed(),
             self.panel_nav_slot(
                 crate::keynav::RowAction::input(iced::widget::Id::new("editor-pick-ambiguous-width")),
                 crate::widgets::INPUT_RADIUS,
-                ambiguous_picker.into(),
+                ambiguous_picker.boxed(),
             ),
-        ]).align_y(iced::Alignment::Center).into();
+        ]).align_y(iced::Alignment::Center).boxed();
         // The honest half: this side decides how to DRAW, the remote's
         // wcwidth decides where its programs PUT things, and only the
         // pair being equal makes a TUI line up.
@@ -186,7 +186,7 @@ impl Oryxis {
         )
         .width(Length::Fill)
         .align_x(dir_align_x())
-        .into();
+        .boxed();
 
         // Per-host TERM. "xterm-256color" is the default (stored as None);
         // the rest are fallbacks for hosts whose terminfo trips on it.
@@ -212,14 +212,14 @@ impl Oryxis {
             .style(crate::widgets::rounded_pick_list_style);
         // Focusable select, same treatment as the icon row.
         let term_row: Element<'_, Message> = dir_row(vec![
-            text(crate::i18n::t("host_terminal_type")).size(13).color(OryxisColors::t().text_secondary).into(),
-            Space::new().width(Length::Fill).into(),
+            text(crate::i18n::t("host_terminal_type")).size(13).color(OryxisColors::t().text_secondary).boxed(),
+            Space::new().width(Length::Fill).boxed(),
             self.panel_nav_slot(
                 crate::keynav::RowAction::input(iced::widget::Id::new("editor-pick-term")),
                 crate::widgets::INPUT_RADIUS,
-                term_picker.into(),
+                term_picker.boxed(),
             ),
-        ]).align_y(iced::Alignment::Center).into();
+        ]).align_y(iced::Alignment::Center).boxed();
 
         // Terminal card body: the theme keeps its full-width preview tile
         // (it's a live swatch, not a plain dropdown); icon and encoding
@@ -247,18 +247,18 @@ impl Oryxis {
         // the keyboard walk records in build order and must match what
         // the eye sees.
         for row in self.hp_backdrop_rows() {
-            appearance_items = appearance_items.push(Space::new().height(12)).push(row);
+            appearance_items = appearance_items.push(Space::new().height(12).boxed()).push(row);
         }
         // This host's own highlight rules, last for the same reason:
         // build order is record order for the keyboard walk. The block
         // itself is the one from Settings, pointed at the host's list.
         appearance_items = appearance_items
-            .push(Space::new().height(18))
+            .push(Space::new().height(18).boxed())
             .push(self.highlight_rules_block(
                 crate::state::RuleScope::Host,
                 &self.editor_form.highlight_rules.rules,
-            ));
-        appearance_items.into()
+            ).boxed());
+        appearance_items.boxed()
     }
 
     /// This host's backdrop overrides: opacity, background picture,
@@ -322,8 +322,8 @@ impl Oryxis {
                     text(picture_name(path))
                         .size(12)
                         .color(OryxisColors::t().text_muted)
-                        .into(),
-                    Space::new().width(Length::Fill).into(),
+                        .boxed(),
+                    Space::new().width(Length::Fill).boxed(),
                     self.panel_nav_slot(
                         crate::keynav::RowAction::activate(Message::Editor(
                             EditorMessage::EditorBgImageBrowse,
@@ -337,7 +337,7 @@ impl Oryxis {
                     ),
                 ])
                 .align_y(iced::Alignment::Center)
-                .into(),
+                .boxed(),
             );
         }
         // No Browse row in the other two states on purpose: picking
@@ -424,16 +424,16 @@ impl Oryxis {
             text(label)
                 .size(13)
                 .color(OryxisColors::t().text_secondary)
-                .into(),
-            Space::new().width(Length::Fill).into(),
+                .boxed(),
+            Space::new().width(Length::Fill).boxed(),
             self.panel_nav_slot(
                 crate::keynav::RowAction::input(iced::widget::Id::new(id)),
                 crate::widgets::INPUT_RADIUS,
-                picker.into(),
+                picker.boxed(),
             ),
         ])
         .align_y(iced::Alignment::Center)
-        .into()
+        .boxed()
     }
 
     pub(super) fn hp_row_session_logging(&self) -> Element<'_, Message> {
@@ -444,10 +444,10 @@ impl Oryxis {
             8.0,
             container(
                 dir_row(vec![
-                    iced_fonts::lucide::file_text().size(14).color(OryxisColors::t().text_muted).into(),
-                    Space::new().width(10).into(),
-                    text(t("session_logging")).size(13).color(OryxisColors::t().text_secondary).into(),
-                    Space::new().width(Length::Fill).into(),
+                    iced_fonts::lucide::file_text().size(14).color(OryxisColors::t().text_muted).boxed(),
+                    Space::new().width(10).boxed(),
+                    text(t("session_logging")).size(13).color(OryxisColors::t().text_secondary).boxed(),
+                    Space::new().width(Length::Fill).boxed(),
                     {
                         let (label_key, bg) = match self.editor_form.session_logging {
                             None => ("session_log_default", OryxisColors::t().bg_hover),
@@ -463,11 +463,11 @@ impl Oryxis {
                                 text_color: fg,
                                 ..Default::default()
                             })
-                            .into()
+                            .boxed()
                     },
                 ]).align_y(iced::Alignment::Center)
             )
-            .padding(Padding { top: 8.0, right: 0.0, bottom: 8.0, left: 0.0 }).into(),
+            .padding(Padding { top: 8.0, right: 0.0, bottom: 8.0, left: 0.0 }).boxed(),
         );
         row_session_logging
     }
@@ -501,7 +501,7 @@ impl Oryxis {
                     .width(120)
                     .padding(10)
                     .style(crate::widgets::rounded_pick_list_style)
-                    .into(),
+                    .boxed(),
             ),
         );
         row_privacy_mode
@@ -538,7 +538,7 @@ impl Oryxis {
                     .width(120)
                     .padding(10)
                     .style(crate::widgets::rounded_pick_list_style)
-                    .into(),
+                    .boxed(),
             ),
         );
         row
@@ -571,7 +571,7 @@ impl Oryxis {
                     .width(160.0)
                     .padding(10)
                     .style(crate::widgets::rounded_pick_list_style)
-                    .into(),
+                    .boxed(),
             ),
         )
     }
@@ -591,10 +591,10 @@ impl Oryxis {
             8.0,
             container(
                 dir_row(vec![
-                    icon.size(14).color(OryxisColors::t().text_muted).into(),
-                    Space::new().width(10).into(),
-                    text(label).size(13).color(OryxisColors::t().text_secondary).into(),
-                    Space::new().width(Length::Fill).into(),
+                    icon.size(14).color(OryxisColors::t().text_muted).boxed(),
+                    Space::new().width(10).boxed(),
+                    text(label).size(13).color(OryxisColors::t().text_secondary).boxed(),
+                    Space::new().width(Length::Fill).boxed(),
                     {
                         let bg = if on { OryxisColors::t().success } else { OryxisColors::t().bg_hover };
                         let fg = crate::theme::contrast_text_for(bg);
@@ -610,13 +610,13 @@ impl Oryxis {
                             text_color: fg,
                             ..Default::default()
                         })
-                        .into()
+                        .boxed()
                     },
                 ])
                 .align_y(iced::Alignment::Center),
             )
             .padding(Padding { top: 8.0, right: 0.0, bottom: 8.0, left: 0.0 })
-            .into(),
+            .boxed(),
         )
     }
 
@@ -686,7 +686,7 @@ impl Oryxis {
         )
         .width(Length::Fill)
         .align_x(dir_align_x())
-        .into();
+        .boxed();
         let title_row = self.hp_quirk_toggle_row(
             iced_fonts::lucide::r#type(),
             t("quirks_title_change"),
@@ -741,7 +741,7 @@ impl Oryxis {
                 .width(120)
                 .padding(8)
                 .style(crate::widgets::rounded_input_style)
-                .into(),
+                .boxed(),
         );
         let rekey_row = panel_option_row(
             iced_fonts::lucide::refresh_cw(),
@@ -768,7 +768,7 @@ impl Oryxis {
             rekey_row,
         ]
         .spacing(2)
-        .into()
+        .boxed()
     }
 }
 

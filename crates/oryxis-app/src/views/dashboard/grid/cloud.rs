@@ -33,8 +33,8 @@ impl Oryxis {
                 text(detail.clone())
                     .size(11)
                     .color(OryxisColors::t().text_muted)
-                    .into(),
-                Space::new().width(Length::Fill).into(),
+                    .boxed(),
+                Space::new().width(Length::Fill).boxed(),
                 button(
                     iced_fonts::lucide::refresh_cw()
                         .size(13)
@@ -61,7 +61,7 @@ impl Oryxis {
                         ..Default::default()
                     }
                 })
-                .into(),
+                .boxed(),
             ])
             .align_y(iced::Alignment::Center),
         )
@@ -83,14 +83,14 @@ impl Oryxis {
                     .color(OryxisColors::t().text_muted),
             )
             .center(Length::Fill)
-            .into(),
+            .boxed(),
             Some(crate::state::DynamicGroupState::Loading) => container(
                 text(t("cloud_discover_running"))
                     .size(13)
                     .color(OryxisColors::t().text_muted),
             )
             .center(Length::Fill)
-            .into(),
+            .boxed(),
             Some(crate::state::DynamicGroupState::Failed(msg)) => {
                 // Retry is a recorded keyboard row (Enter re-resolves
                 // the group), mirroring the new-tab picker's
@@ -127,7 +127,7 @@ impl Oryxis {
                             ..Default::default()
                         }
                     })
-                    .into(),
+                    .boxed(),
                 );
                 container(
                     column![
@@ -140,7 +140,7 @@ impl Oryxis {
                     .align_x(iced::Alignment::Center),
                 )
                 .center(Length::Fill)
-                .into()
+                .boxed()
             }
             Some(crate::state::DynamicGroupState::Loaded { hosts, .. }) => {
                 if hosts.is_empty() {
@@ -150,7 +150,7 @@ impl Oryxis {
                             .color(OryxisColors::t().text_muted),
                     )
                     .center(Length::Fill)
-                    .into()
+                    .boxed()
                 } else {
                     // Pull the ECS coordinates once per body
                     // render so each row can build its own
@@ -277,7 +277,7 @@ impl Oryxis {
                                 status_upper.clone().unwrap(),
                                 OryxisColors::t().text_muted,
                             ),
-                            None => Space::new().into(),
+                            None => Space::new().boxed(),
                         };
 
                         // Only RUNNING tasks can be exec'd into. A
@@ -304,26 +304,26 @@ impl Oryxis {
                                 .size(13)
                                 .color(primary_color)
                                 .wrapping(iced::widget::text::Wrapping::None)
-                                .into(),
+                                .boxed(),
                         ];
                         if !secondary.is_empty() {
-                            text_col.push(Space::new().height(2).into());
+                            text_col.push(Space::new().height(2).boxed());
                             text_col.push(
                                 text(secondary)
                                     .size(10)
                                     .color(OryxisColors::t().text_muted)
                                     .wrapping(iced::widget::text::Wrapping::None)
-                                    .into(),
+                                    .boxed(),
                             );
                         }
                         if !meta_line.is_empty() {
-                            text_col.push(Space::new().height(2).into());
+                            text_col.push(Space::new().height(2).boxed());
                             text_col.push(
                                 text(meta_line)
                                     .size(10)
                                     .color(OryxisColors::t().text_muted)
                                     .wrapping(iced::widget::text::Wrapping::None)
-                                    .into(),
+                                    .boxed(),
                             );
                         }
 
@@ -366,14 +366,14 @@ impl Oryxis {
                                     iced_fonts::lucide::container()
                                         .size(16)
                                         .color(OryxisColors::t().text_muted)
-                                        .into(),
-                                    Space::new().width(10).into(),
+                                        .boxed(),
+                                    Space::new().width(10).boxed(),
                                     iced::widget::Column::with_children(text_col)
                                         .width(Length::Fill)
                                         .align_x(dir_align_x())
                                         .clip(true)
-                                        .into(),
-                                    Space::new().width(10).into(),
+                                        .boxed(),
+                                    Space::new().width(10).boxed(),
                                     status_pill,
                                 ])
                                 .align_y(iced::Alignment::Center),
@@ -421,7 +421,7 @@ impl Oryxis {
                                     ..Default::default()
                                 }
                             })
-                            .into();
+                            .boxed();
                         // Copy CLI overlay: small button on the
                         // trailing edge of the row that copies
                         // the matching `aws ecs execute-command`
@@ -459,8 +459,8 @@ impl Oryxis {
                                     ..Default::default()
                                 }
                             })
-                            .into();
-                            let overlay = container(copy_btn)
+                            .boxed();
+                            let overlay = container::<_, iced::Theme>(copy_btn)
                                 .width(Length::Fill)
                                 .height(Length::Fill)
                                 .align_x(iced::alignment::Horizontal::Right)
@@ -471,10 +471,10 @@ impl Oryxis {
                                     bottom: 0.0,
                                     left: 0.0,
                                 });
-                            row_el = iced::widget::Stack::new()
+                            row_el = iced::widget::Stack::<iced::Element<'_, _>>::new()
                                 .push(row_el)
-                                .push(overlay)
-                                .into();
+                                .push(overlay.boxed())
+                                .boxed();
                         }
                         // Record connectable rows for the Content-zone
                         // keyboard (arrows move, Enter connects). The
@@ -491,9 +491,9 @@ impl Oryxis {
                         } else {
                             row_el
                         });
-                        items.push(Space::new().height(6).into());
+                        items.push(Space::new().height(6).boxed());
                     }
-                    items.push(Space::new().height(8).into());
+                    items.push(Space::new().height(8).boxed());
                     scrollable(
                         column(items).padding(Padding {
                             top: 0.0,
@@ -503,7 +503,7 @@ impl Oryxis {
                         }),
                     )
                     .height(Length::Fill)
-                    .into()
+                    .boxed()
                 }
             }
         };
@@ -511,6 +511,6 @@ impl Oryxis {
         let main_content = column![toolbar, header, body]
             .width(Length::Fill)
             .height(Length::Fill);
-        main_content.into()
+        main_content.boxed()
     }
 }

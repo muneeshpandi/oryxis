@@ -1,5 +1,6 @@
 //! Key import side panel (private/public/cert paste + browse). Split out of views/keys.rs.
 
+use iced::Widget as _;
 use super::*;
 use iced::widget::column;
 
@@ -17,8 +18,8 @@ impl Oryxis {
         // Panel header
         let panel_header = container(
             dir_row(vec![
-                text(panel_title).size(18).color(OryxisColors::t().text_primary).into(),
-                Space::new().width(Length::Fill).into(),
+                text(panel_title).size(18).color(OryxisColors::t().text_primary).boxed(),
+                Space::new().width(Length::Fill).boxed(),
                 button(text("\u{00D7}").size(14).color(OryxisColors::t().text_muted))
                     .on_press(Message::Keys(KeysMessage::HideKeyPanel))
                     .padding(Padding { top: 4.0, right: 8.0, bottom: 4.0, left: 8.0 })
@@ -26,7 +27,7 @@ impl Oryxis {
                         background: Some(Background::Color(OryxisColors::t().bg_surface)),
                         border: Border { radius: Radius::from(6.0), ..Default::default() },
                         ..Default::default()
-                    }).into(),
+                    }).boxed(),
             ])
             .align_y(iced::Alignment::Center),
         )
@@ -44,7 +45,7 @@ impl Oryxis {
                     .on_input(|v| Message::Keys(KeysMessage::KeyImportLabelChanged(v)))
                     .padding(10)
                     .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
             ),
         ]
         .width(Length::Fill)
@@ -71,7 +72,7 @@ impl Oryxis {
                         ..Default::default()
                     }
                 })
-                .into(),
+                .boxed(),
         );
 
         // Status indicator
@@ -81,19 +82,19 @@ impl Oryxis {
                     iced_fonts::lucide::circle_check()
                         .size(13)
                         .color(OryxisColors::t().success)
-                        .into(),
-                    Space::new().width(6).into(),
+                        .boxed(),
+                    Space::new().width(6).boxed(),
                     text(
                         t("loaded_bytes")
                             .replacen("{bytes}", &self.keys_ui.import_form.pem.len().to_string(), 1),
                     )
-                    .size(12).color(OryxisColors::t().success).into(),
+                    .size(12).color(OryxisColors::t().success).boxed(),
                 ]).align_y(iced::Alignment::Center),
             )
             .padding(Padding { top: 4.0, right: 0.0, bottom: 4.0, left: 0.0 })
-            .into()
+            .boxed()
         } else {
-            Space::new().into()
+            Space::new().boxed()
         };
 
         // Editable key content (text_editor = multi-line)
@@ -108,7 +109,7 @@ impl Oryxis {
                 .font(iced::Font::MONOSPACE)
                 .size(11)
                 .style(crate::widgets::rounded_editor_style)
-                .into(),
+                .boxed(),
         );
 
         // Passphrase prompt, shown only after import_key signals the key
@@ -126,8 +127,8 @@ impl Oryxis {
                 text(t("key_passphrase_label")).size(12).color(OryxisColors::t().text_secondary),
                 Space::new().height(6),
                 dir_row(vec![
-                    iced_fonts::lucide::lock().size(13).color(OryxisColors::t().text_muted).into(),
-                    Space::new().width(10).into(),
+                    iced_fonts::lucide::lock().size(13).color(OryxisColors::t().text_muted).boxed(),
+                    Space::new().width(10).boxed(),
                     crate::widgets::password_input_with_eye_nav(
                         t("key_passphrase_placeholder"),
                         &self.keys_ui.import_form.passphrase,
@@ -151,9 +152,9 @@ impl Oryxis {
             ]
             .width(Length::Fill)
             .align_x(dir_align_x())
-            .into()
+            .boxed()
         } else {
-            Space::new().into()
+            Space::new().boxed()
         };
 
         // Editable public-key line (B2.1, Termius parity): empty derives
@@ -179,7 +180,7 @@ impl Oryxis {
                     .font(iced::Font::MONOSPACE)
                     .size(11)
                     .style(crate::widgets::rounded_editor_style)
-                    .into(),
+                    .boxed(),
             ),
             Space::new().height(4),
             text(t("public_key_auto_hint")).size(11).color(OryxisColors::t().text_muted),
@@ -209,13 +210,13 @@ impl Oryxis {
                         ..Default::default()
                     }
                 })
-                .into(),
+                .boxed(),
         );
         let mut cert_section = column![
             Space::new().height(16),
             dir_row(vec![
-                text(t("certificate")).size(12).color(OryxisColors::t().text_secondary).into(),
-                Space::new().width(Length::Fill).into(),
+                text(t("certificate")).size(12).color(OryxisColors::t().text_secondary).boxed(),
+                Space::new().width(Length::Fill).boxed(),
                 cert_browse_btn,
             ]).align_y(iced::Alignment::Center),
             Space::new().height(6),
@@ -231,25 +232,25 @@ impl Oryxis {
                     .font(iced::Font::MONOSPACE)
                     .size(11)
                     .style(crate::widgets::rounded_editor_style)
-                    .into(),
+                    .boxed(),
             ),
         ]
         .width(Length::Fill)
         .align_x(dir_align_x());
         if self.keys_ui.import_form.cert_detected {
-            cert_section = cert_section.push(Space::new().height(6)).push(
+            cert_section = cert_section.push(Space::new().height(6).boxed()).push(
                 dir_row(vec![
                     iced_fonts::lucide::circle_check()
                         .size(12)
                         .color(OryxisColors::t().success)
-                        .into(),
-                    Space::new().width(6).into(),
-                    text(t("cert_detected_hint")).size(11).color(OryxisColors::t().success).into(),
-                ]).align_y(iced::Alignment::Center),
+                        .boxed(),
+                    Space::new().width(6).boxed(),
+                    text(t("cert_detected_hint")).size(11).color(OryxisColors::t().success).boxed(),
+                ]).align_y(iced::Alignment::Center).boxed(),
             );
         } else {
-            cert_section = cert_section.push(Space::new().height(4)).push(
-                text(t("certificate_desc")).size(11).color(OryxisColors::t().text_muted),
+            cert_section = cert_section.push(Space::new().height(4).boxed()).push(
+                text(t("certificate_desc")).size(11).color(OryxisColors::t().text_muted).boxed(),
             );
         }
 
@@ -286,8 +287,8 @@ impl Oryxis {
                         text(t("private_key"))
                             .size(12)
                             .color(OryxisColors::t().text_secondary)
-                            .into(),
-                        Space::new().width(Length::Fill).into(),
+                            .boxed(),
+                        Space::new().width(Length::Fill).boxed(),
                         browse_btn,
                     ])
                     .align_y(iced::Alignment::Center),
@@ -309,6 +310,6 @@ impl Oryxis {
         ]
         .height(Length::Fill);
 
-        crate::widgets::side_panel_frame(panel_content.into(), OryxisColors::t().bg_sidebar, self.panel_width)
+        crate::widgets::side_panel_frame(panel_content.boxed(), OryxisColors::t().bg_sidebar, self.panel_width)
     }
 }

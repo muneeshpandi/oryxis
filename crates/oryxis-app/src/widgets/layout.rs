@@ -1,5 +1,6 @@
 //! UI helper widgets: layout. Split out of widgets/mod.rs.
 
+use iced::Widget as _;
 use super::*;
 /// Build a `Row` from elements written in left-to-right *reading order*,
 /// reversing them when the active layout direction is RTL. Use anywhere the
@@ -9,7 +10,7 @@ use super::*;
 /// The `iced::widget::row!` macro takes positional children and can't be
 /// reversed after construction, so callers that need direction-awareness
 /// should switch to this helper instead.
-pub fn dir_row<'a, M: 'a>(items: Vec<Element<'a, M>>) -> Row<'a, M> {
+pub fn dir_row<'a, M: 'a>(items: Vec<Element<'a, M>>) -> Row<iced::Element<'a, M>> {
     if crate::i18n::is_rtl_layout() {
         Row::with_children(items.into_iter().rev().collect::<Vec<_>>())
     } else {
@@ -73,7 +74,7 @@ pub fn progress_track<'a, M: 'a>(
                     border: Border { radius, ..Default::default() },
                     ..Default::default()
                 })
-                .into(),
+                .boxed(),
         );
     }
     if remaining > 0 {
@@ -81,7 +82,7 @@ pub fn progress_track<'a, M: 'a>(
             container(Space::new())
                 .width(Length::FillPortion(remaining))
                 .height(Length::Fixed(height))
-                .into(),
+                .boxed(),
         );
     }
     container(dir_row(segments).width(Length::Fill))
@@ -92,7 +93,7 @@ pub fn progress_track<'a, M: 'a>(
             border: Border { radius, ..Default::default() },
             ..Default::default()
         })
-        .into()
+        .boxed()
 }
 
 /// Pick a column count for a card grid given the available content width.
@@ -124,7 +125,7 @@ pub fn distribute_card_grid<'a, M: 'a>(
     use iced::widget::column;
 
     if cards.is_empty() {
-        return Space::new().into();
+        return Space::new().boxed();
     }
     let cols = cols.max(1);
     let mut grid_rows: Vec<Element<'a, M>> = Vec::new();
@@ -134,19 +135,19 @@ pub fn distribute_card_grid<'a, M: 'a>(
     for (i, card) in cards.into_iter().enumerate() {
         row_buf.push(card);
         if row_buf.len() == cols {
-            grid_rows.push(dir_row(std::mem::take(&mut row_buf)).spacing(h_gap).into());
+            grid_rows.push(dir_row(std::mem::take(&mut row_buf)).spacing(h_gap).boxed());
             if i + 1 < total {
-                grid_rows.push(Space::new().height(v_gap).into());
+                grid_rows.push(Space::new().height(v_gap).boxed());
             }
         }
     }
     if !row_buf.is_empty() {
         while row_buf.len() < cols {
-            row_buf.push(Space::new().width(Length::Fill).into());
+            row_buf.push(Space::new().width(Length::Fill).boxed());
         }
-        grid_rows.push(dir_row(row_buf).spacing(h_gap).into());
+        grid_rows.push(dir_row(row_buf).spacing(h_gap).boxed());
     }
-    column(grid_rows).width(Length::Fill).into()
+    column(grid_rows).width(Length::Fill).boxed()
 }
 
 #[cfg(test)]

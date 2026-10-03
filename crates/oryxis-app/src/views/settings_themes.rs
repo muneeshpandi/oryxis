@@ -3,6 +3,7 @@
 //! (create) or the edit affordance on a custom theme card. Built-in
 //! presets aren't editable; custom themes live inline in that same grid.
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::{button, column, container, row, scrollable, text, text_input, MouseArea, Space};
 use iced::{Background, Border, Color, Element, Length, Padding};
@@ -26,7 +27,7 @@ impl Oryxis {
     /// while `theme_editor` is `Some`.
     pub(crate) fn view_theme_editor_modal(&self) -> Element<'_, Message> {
         let Some(form) = self.theme_ui.editor.as_ref() else {
-            return Space::new().into();
+            return Space::new().boxed();
         };
         let title = if form.editing_id.is_some() {
             t("theme_edit")
@@ -81,9 +82,9 @@ impl Oryxis {
         let footer = column![
             crate::widgets::form_error(form.error.as_deref()),
             dir_row(vec![
-                Space::new().width(Length::Fill).into(),
+                Space::new().width(Length::Fill).boxed(),
                 crate::widgets::form_cancel_button(Message::Settings(SettingsMessage::ThemeEditorClose)),
-                Space::new().width(8).into(),
+                Space::new().width(8).boxed(),
                 crate::widgets::form_save_button(t("save"), Some(Message::Settings(SettingsMessage::ThemeEditorSave))),
             ])
             .align_y(iced::Alignment::Center),
@@ -102,9 +103,9 @@ impl Oryxis {
             text(title).size(18).color(OryxisColors::t().text_primary),
             Space::new().height(16),
             dir_row(vec![
-                scroll_form.into(),
-                Space::new().width(24).into(),
-                preview.into(),
+                scroll_form.boxed(),
+                Space::new().width(24).boxed(),
+                preview.boxed(),
             ]),
             Space::new().height(16),
             footer,
@@ -126,7 +127,7 @@ impl Oryxis {
         // Trap clicks inside the card so they don't dismiss; backdrop click
         // closes the editor.
         let card_trap: Element<'_, Message> =
-            MouseArea::new(card).on_press(Message::NoOp).into();
+            MouseArea::new(card).on_press(Message::NoOp).boxed();
 
         let backdrop: Element<'_, Message> = MouseArea::new(
             container(Space::new()).width(Length::Fill).height(Length::Fill).style(|_| {
@@ -137,16 +138,16 @@ impl Oryxis {
             }),
         )
         .on_press(Message::Settings(SettingsMessage::ThemeEditorClose))
-        .into();
+        .boxed();
 
-        let mut stack = iced::widget::Stack::new()
+        let mut stack = iced::widget::Stack::<iced::Element<'_, _>>::new()
             .push(backdrop)
             .push(
                 container(card_trap)
                     .width(Length::Fill)
                     .height(Length::Fill)
                     .center_x(Length::Fill)
-                    .center_y(Length::Fill),
+                    .center_y(Length::Fill).boxed(),
             )
             .width(Length::Fill)
             .height(Length::Fill);
@@ -156,7 +157,7 @@ impl Oryxis {
         }
         // `opaque` makes the whole modal capture every mouse event so
         // clicks / scroll / hover don't fall through to the view behind.
-        iced::widget::opaque(stack)
+        iced::widget::opaque(stack).boxed()
     }
 
     /// Compact color picker popover (SV square + hue bar + hex + presets),
@@ -208,7 +209,7 @@ impl Oryxis {
             ..Default::default()
         });
         let card_trap: Element<'_, Message> =
-            MouseArea::new(card).on_press(Message::NoOp).into();
+            MouseArea::new(card).on_press(Message::NoOp).boxed();
 
         // Clamp the anchor so the popover stays on screen.
         const PW: f32 = 236.0;
@@ -216,21 +217,21 @@ impl Oryxis {
         let x = anchor.x.min((self.cur_window_size().width - PW).max(0.0)).max(0.0);
         let y = anchor.y.min((self.cur_window_size().height - PH).max(0.0)).max(0.0);
         let positioned = column![row![Space::new().width(x), card_trap]]
-            .push(Space::new());
+            .push(Space::new().boxed());
         let positioned = column![Space::new().height(y), positioned];
 
         let pop_backdrop: Element<'_, Message> = MouseArea::new(
             container(Space::new()).width(Length::Fill).height(Length::Fill),
         )
         .on_press(Message::Settings(SettingsMessage::ThemeEditorClosePicker))
-        .into();
+        .boxed();
 
-        iced::widget::Stack::new()
+        iced::widget::Stack::<iced::Element<'_, _>>::new()
             .push(pop_backdrop)
-            .push(positioned)
+            .push(positioned.boxed())
             .width(Length::Fill)
             .height(Length::Fill)
-            .into()
+            .boxed()
     }
 
     /// Import-a-scheme modal: paste an iTerm / Windows Terminal / base16
@@ -265,23 +266,23 @@ impl Oryxis {
         .spacing(0);
         // Shared form chrome (buttons + error slot); the row itself
         // keeps the modal card's trailing alignment.
-        col = col.push(Space::new().height(8));
+        col = col.push(Space::new().height(8).boxed());
         col = col.push(crate::widgets::form_error(self.theme_ui.import_error.as_deref()));
-        col = col.push(Space::new().height(8));
+        col = col.push(Space::new().height(8).boxed());
         // "Load from file" fills the paste box from a scheme file picked
         // on disk; Apply then parses it like any pasted content.
         col = col.push(
             dir_row(vec![
                 import_browse_button(Message::Settings(SettingsMessage::ThemeImportBrowse)),
-                Space::new().width(Length::Fill).into(),
+                Space::new().width(Length::Fill).boxed(),
                 crate::widgets::form_cancel_button(Message::Settings(SettingsMessage::ThemeImportClose)),
-                Space::new().width(8).into(),
+                Space::new().width(8).boxed(),
                 crate::widgets::form_save_button(
                     t("theme_import"),
                     Some(Message::Settings(SettingsMessage::ThemeImportApply)),
                 ),
             ])
-            .align_y(iced::Alignment::Center),
+            .align_y(iced::Alignment::Center).boxed(),
         );
 
         let card = container(col)
@@ -298,7 +299,7 @@ impl Oryxis {
             });
         // Bare card; `widgets::modal_overlay` (the caller) owns centering,
         // the absorbing scrim, and the click-trap.
-        card.into()
+        card.boxed()
     }
 }
 
@@ -318,7 +319,7 @@ impl Oryxis {
             is_selected,
             Message::Settings(SettingsMessage::TerminalThemeChanged(name.to_string())),
         );
-        let mut stack = iced::widget::Stack::new().push(card);
+        let mut stack = iced::widget::Stack::<iced::Element<'_, _>>::new().push(card);
         if self.hover.theme_card == Some(idx) {
             let actions = container(
                 dir_row(vec![
@@ -327,19 +328,19 @@ impl Oryxis {
                         Message::Settings(SettingsMessage::ThemeEditorEdit(idx)),
                         t("edit"),
                     ),
-                    Space::new().width(4).into(),
+                    Space::new().width(4).boxed(),
                     theme_icon_btn(
                         iced_fonts::lucide::copy(),
                         Message::Settings(SettingsMessage::ThemeClone(idx)),
                         t("duplicate"),
                     ),
-                    Space::new().width(4).into(),
+                    Space::new().width(4).boxed(),
                     theme_icon_btn(
                         iced_fonts::lucide::upload(),
                         Message::Settings(SettingsMessage::ThemeExport(idx)),
                         t("theme_export"),
                     ),
-                    Space::new().width(4).into(),
+                    Space::new().width(4).boxed(),
                     theme_icon_btn(
                         iced_fonts::lucide::trash(),
                         Message::Settings(SettingsMessage::ThemeDeleteRequested(idx)),
@@ -353,12 +354,12 @@ impl Oryxis {
             .align_x(iced::alignment::Horizontal::Right)
             .align_y(iced::alignment::Vertical::Top)
             .padding(6);
-            stack = stack.push(actions);
+            stack = stack.push(actions.boxed());
         }
         MouseArea::new(stack)
             .on_enter(Message::Settings(SettingsMessage::ThemeCardHovered(idx)))
             .on_exit(Message::Settings(SettingsMessage::ThemeCardUnhovered(idx)))
-            .into()
+            .boxed()
     }
 
     /// A built-in terminal theme card in the settings grid with a floating
@@ -377,7 +378,7 @@ impl Oryxis {
             is_selected,
             Message::Settings(SettingsMessage::TerminalThemeChanged(name.to_string())),
         );
-        let mut stack = iced::widget::Stack::new().push(card);
+        let mut stack = iced::widget::Stack::<iced::Element<'_, _>>::new().push(card);
         if self.hover.builtin_theme_card == Some(idx) {
             let actions = container(
                 dir_row(vec![
@@ -386,7 +387,7 @@ impl Oryxis {
                         Message::Settings(SettingsMessage::ThemeCloneBuiltin(idx)),
                         t("duplicate"),
                     ),
-                    Space::new().width(4).into(),
+                    Space::new().width(4).boxed(),
                     theme_icon_btn(
                         iced_fonts::lucide::upload(),
                         Message::Settings(SettingsMessage::ThemeExportBuiltin(idx)),
@@ -400,12 +401,12 @@ impl Oryxis {
             .align_x(iced::alignment::Horizontal::Right)
             .align_y(iced::alignment::Vertical::Top)
             .padding(6);
-            stack = stack.push(actions);
+            stack = stack.push(actions.boxed());
         }
         MouseArea::new(stack)
             .on_enter(Message::Settings(SettingsMessage::ThemeBuiltinCardHovered(idx)))
             .on_exit(Message::Settings(SettingsMessage::ThemeBuiltinCardUnhovered(idx)))
-            .into()
+            .boxed()
     }
 }
 
@@ -453,12 +454,12 @@ pub(crate) fn import_browse_button<'a>(msg: Message) -> Element<'a, Message> {
             iced_fonts::lucide::folder_open()
                 .size(13)
                 .color(OryxisColors::t().text_secondary)
-                .into(),
-            Space::new().width(6).into(),
+                .boxed(),
+            Space::new().width(6).boxed(),
             text(t("theme_import_browse"))
                 .size(12)
                 .color(OryxisColors::t().text_secondary)
-                .into(),
+                .boxed(),
         ])
         .align_y(iced::Alignment::Center),
     )
@@ -481,7 +482,7 @@ pub(crate) fn import_browse_button<'a>(msg: Message) -> Element<'a, Message> {
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }
 
 /// Small floating icon button used for the per-card actions (edit / clone /
@@ -513,7 +514,7 @@ fn theme_icon_btn<'a>(
             ..Default::default()
         }
     });
-    crate::views::terminal::icon_tooltip(btn.into(), tip)
+    crate::views::terminal::icon_tooltip(btn.boxed(), tip)
 }
 
 /// One editable color slot: label, clickable swatch (opens the color-picker
@@ -541,25 +542,25 @@ fn color_row<'a>(
             .size(13)
             .color(OryxisColors::t().text_secondary)
             .width(Length::Fixed(100.0))
-            .into(),
-        swatch.into(),
-        Space::new().width(10).into(),
+            .boxed(),
+        swatch.boxed(),
+        Space::new().width(10).boxed(),
         text_input("#RRGGBB", hex)
             .on_input(move |v| Message::Settings(SettingsMessage::ThemeEditorColorChanged(slot, v)))
             .padding(7)
             .size(12)
             .width(Length::Fixed(110.0))
             .style(crate::widgets::rounded_input_style)
-            .into(),
+            .boxed(),
     ])
     .align_y(iced::Alignment::Center)
-    .into()
+    .boxed()
 }
 
 /// Compact preset-color grid inside the picker popover.
 fn preset_grid<'a>(slot: ThemeColorSlot) -> Element<'a, Message> {
-    let mut rows = column![].spacing(5);
-    let mut current = row![].spacing(5);
+    let mut rows = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(5);
+    let mut current = iced::widget::Row::<iced::Element<'_, _>>::new().spacing(5);
     let mut n = 0;
     for hex in crate::os_icon::PRESET_COLORS.iter() {
         let color = parse_hex_color(hex).unwrap_or(Color::TRANSPARENT);
@@ -577,17 +578,17 @@ fn preset_grid<'a>(slot: ThemeColorSlot) -> Element<'a, Message> {
                     ..Default::default()
                 }
             });
-        current = current.push(sw);
+        current = current.push(sw.boxed());
         n += 1;
         if n % 9 == 0 {
-            rows = rows.push(current);
+            rows = rows.push(current.boxed());
             current = row![].spacing(5);
         }
     }
     if n % 9 != 0 {
-        rows = rows.push(current);
+        rows = rows.push(current.boxed());
     }
-    rows.into()
+    rows.boxed()
 }
 
 /// Live preview: a sample terminal box painted with the in-progress colors.
@@ -611,26 +612,26 @@ fn theme_preview<'a>(form: &'a crate::state::ThemeEditorForm) -> Element<'a, Mes
                     border: Border { radius: Radius::from(3.0), ..Default::default() },
                     ..Default::default()
                 })
-                .into()
+                .boxed()
         })
         .collect();
 
     container(
         column![
             dir_row(vec![
-                line("user", green).into(),
-                line("@host", blue).into(),
-                line(":~$ ", fg).into(),
-                line("git status", fg).into(),
+                line("user", green).boxed(),
+                line("@host", blue).boxed(),
+                line(":~$ ", fg).boxed(),
+                line("git status", fg).boxed(),
             ]),
             line("On branch main", fg),
             dir_row(vec![
-                line("  modified: ", fg).into(),
-                line("src/main.rs", red).into(),
+                line("  modified: ", fg).boxed(),
+                line("src/main.rs", red).boxed(),
             ]),
             dir_row(vec![
-                line("  new file: ", fg).into(),
-                line("themes.rs", green).into(),
+                line("  new file: ", fg).boxed(),
+                line("themes.rs", green).boxed(),
             ]),
             line("warning: 2 files changed", yellow),
             Space::new().height(12),
@@ -649,6 +650,6 @@ fn theme_preview<'a>(form: &'a crate::state::ThemeEditorForm) -> Element<'a, Mes
         },
         ..Default::default()
     })
-    .into()
+    .boxed()
 }
 

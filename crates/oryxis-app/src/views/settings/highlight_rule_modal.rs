@@ -132,7 +132,7 @@ impl Oryxis {
                 .find(|s| s.id.to_string() == *id)
                 .map(|s| s.label.clone())
                 .unwrap_or_default();
-            body = body.push(Space::new().height(10)).push(self.hl_modal_pick(
+            body = body.push(Space::new().height(10).boxed()).push(self.hl_modal_pick(
                 t("hl_rule_snippet"),
                 self.snippets.iter().map(|s| s.label.clone()).collect(),
                 selected,
@@ -140,17 +140,17 @@ impl Oryxis {
             ));
         }
         if rule.action.is_trigger() {
-            body = body.push(Space::new().height(8)).push(
+            body = body.push(Space::new().height(8).boxed()).push(
                 text(t("hl_rule_trigger_note"))
                     .size(11)
-                    .color(c.text_muted),
+                    .color(c.text_muted).boxed(),
             );
         }
 
         if let Some(err) = &form.error {
             body = body
-                .push(Space::new().height(10))
-                .push(text(err.clone()).size(11).color(c.error));
+                .push(Space::new().height(10).boxed())
+                .push(text(err.clone()).size(11).color(c.error).boxed());
         }
 
         // Cancel then the primary action, matching the app's other form
@@ -180,12 +180,12 @@ impl Oryxis {
                 c.accent,
             ),
         );
-        body = body.push(Space::new().height(18)).push(dir_row(vec![
-            Space::new().width(Length::Fill).into(),
+        body = body.push(Space::new().height(18).boxed()).push(dir_row(vec![
+            Space::new().width(Length::Fill).boxed(),
             cancel,
-            Space::new().width(8).into(),
+            Space::new().width(8).boxed(),
             save,
-        ]));
+        ]).boxed());
 
         container(body)
             .width(Length::Fixed(CARD_WIDTH))
@@ -204,7 +204,7 @@ impl Oryxis {
                 },
                 ..Default::default()
             })
-            .into()
+            .boxed()
     }
 
     /// A text field, recorded so Tab reaches it and Enter focuses it.
@@ -229,7 +229,7 @@ impl Oryxis {
             crate::keynav::RowAction::input(iced::widget::Id::new(id)),
             crate::widgets::INPUT_RADIUS,
             false,
-            input.into(),
+            input.boxed(),
         )
     }
 
@@ -270,15 +270,15 @@ impl Oryxis {
                 .width(Length::Fixed(220.0))
                 .padding(10)
                 .style(crate::widgets::rounded_pick_list_style)
-                .into(),
+                .boxed(),
         );
         dir_row(vec![
-            text(label).size(13).color(OryxisColors::t().text_primary).into(),
-            Space::new().width(Length::Fill).into(),
+            text(label).size(13).color(OryxisColors::t().text_primary).boxed(),
+            Space::new().width(Length::Fill).boxed(),
             picker,
         ])
         .align_y(iced::Alignment::Center)
-        .into()
+        .boxed()
     }
 
     /// The colour block: the app's own HSV picker, the presets, and the
@@ -313,11 +313,11 @@ impl Oryxis {
                         },
                         ..Default::default()
                     })
-                    .into(),
+                    .boxed(),
             ));
-            swatches.push(Space::new().width(6).into());
+            swatches.push(Space::new().width(6).boxed());
         }
-        swatches.push(Space::new().width(6).into());
+        swatches.push(Space::new().width(6).boxed());
         swatches.push(self.modal_nav_slot(
             crate::keynav::RowAction::input(iced::widget::Id::new("set-hl-rule-color")),
             crate::widgets::INPUT_RADIUS,
@@ -329,7 +329,7 @@ impl Oryxis {
                 .size(12)
                 .width(Length::Fixed(110.0))
                 .style(crate::widgets::rounded_input_style)
-                .into(),
+                .boxed(),
         ));
 
         column![
@@ -340,6 +340,6 @@ impl Oryxis {
             dir_row(swatches).align_y(iced::Alignment::Center),
         ]
         .align_x(dir_align_x())
-        .into()
+        .boxed()
     }
 }

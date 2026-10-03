@@ -1,5 +1,6 @@
 //! UI helper widgets: inputs. Split out of widgets/mod.rs.
 
+use iced::Widget as _;
 use super::*;
 
 /// Focus a text input by id AND land the cursor at the end of its
@@ -15,7 +16,7 @@ pub(crate) fn focus_input<T: Send + 'static>(id: impl Into<iced::widget::Id>) ->
     let id = id.into();
     iced::Task::batch([
         iced::widget::operation::focus(id.clone()),
-        iced::widget::operation::move_cursor_to_end(id),
+        iced::widget::operation::text_input::move_cursor_to_end(id),
     ])
 }
 
@@ -264,7 +265,7 @@ where
             }),
         iced::widget::tooltip::Position::Bottom,
     );
-    let toggle = wrap_eye(toggle.into());
+    let toggle = wrap_eye(toggle.boxed());
 
     let (align, overlay_pad) = if rtl {
         (
@@ -278,18 +279,18 @@ where
         )
     };
 
-    let toggle_overlay = container(toggle)
+    let toggle_overlay = container::<_, iced::Theme>(toggle)
         .width(Length::Fill)
         .height(Length::Fill)
         .align_x(align)
         .align_y(iced::alignment::Vertical::Center)
         .padding(overlay_pad);
 
-    Stack::new()
-        .push(field)
-        .push(toggle_overlay)
+    Stack::<iced::Element<'_, _>>::new()
+        .push(field.boxed())
+        .push(toggle_overlay.boxed())
         .width(Length::Fill)
-        .into()
+        .boxed()
 }
 
 /// Shared style closure for `pick_list`, matches `rounded_input_style` so

@@ -6,6 +6,7 @@
 //! tab needs no live transport, so a region holding only this tab is
 //! always available.
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::{column, container, text, Space};
 use iced::{Background, Border, Color, Element, Length, Padding};
@@ -49,7 +50,7 @@ impl Oryxis {
                 .padding(8)
                 .size(13)
                 .style(crate::widgets::rounded_input_style)
-                .into(),
+                .boxed(),
         );
         let header = container(
             dir_row(vec![search]).align_y(iced::Alignment::Center),
@@ -67,7 +68,7 @@ impl Oryxis {
             return column![header, placeholder(t("hosts_tree_empty"))]
                 .width(Length::Fill)
                 .height(Length::Fill)
-                .into();
+                .boxed();
         }
 
         let needle = self.hosts_tree_search.trim().to_lowercase();
@@ -160,7 +161,7 @@ impl Oryxis {
         column![header, body]
             .width(Length::Fill)
             .height(Length::Fill)
-            .into()
+            .boxed()
     }
 
     /// Append one group's row (and, when expanded, its subtree) to
@@ -411,9 +412,9 @@ impl Oryxis {
             None => {
                 let tint = group_color.unwrap_or(c.text_muted);
                 if expanded {
-                    iced_fonts::lucide::folder_open().size(14).color(tint).into()
+                    iced_fonts::lucide::folder_open().size(14).color(tint).boxed()
                 } else {
-                    iced_fonts::lucide::folder().size(14).color(tint).into()
+                    iced_fonts::lucide::folder().size(14).color(tint).boxed()
                 }
             }
         };
@@ -429,21 +430,21 @@ impl Oryxis {
             counts.hosts.get(&group.id).copied().unwrap_or(0)
         };
         let mut items: Vec<Element<'a, Message>> = vec![
-            Space::new().width(depth as f32 * INDENT).into(),
-            chevron.size(12).color(c.text_muted).into(),
-            Space::new().width(4).into(),
+            Space::new().width(depth as f32 * INDENT).boxed(),
+            chevron.size(12).color(c.text_muted).boxed(),
+            Space::new().width(4).boxed(),
             folder,
-            Space::new().width(6).into(),
+            Space::new().width(6).boxed(),
             text(group.label.as_str())
                 .size(12)
                 .color(c.text_primary)
                 .width(Length::Fill)
                 .wrapping(iced::widget::text::Wrapping::None)
-                .into(),
+                .boxed(),
         ];
         if subtree_hosts > 0 {
-            items.push(Space::new().width(6).into());
-            items.push(text(subtree_hosts.to_string()).size(11).color(c.text_muted).into());
+            items.push(Space::new().width(6).boxed());
+            items.push(text(subtree_hosts.to_string()).size(11).color(c.text_muted).boxed());
         }
         let msg = Message::Ai(AiMessage::HostsTreeToggleGroup(group.id));
         self.sidebar_nav_slot(
@@ -507,17 +508,17 @@ impl Oryxis {
             18.0,
         );
         let mut items: Vec<Element<'a, Message>> = vec![
-            Space::new().width(depth as f32 * INDENT + 16.0).into(),
+            Space::new().width(depth as f32 * INDENT + 16.0).boxed(),
             icon_box,
-            Space::new().width(6).into(),
+            Space::new().width(6).boxed(),
             text(conn.label.as_str())
                 .size(12)
                 .color(c.text_primary)
                 .wrapping(iced::widget::text::Wrapping::None)
-                .into(),
+                .boxed(),
         ];
         if live {
-            items.push(Space::new().width(5).into());
+            items.push(Space::new().width(5).boxed());
             items.push(
                 container(Space::new().width(6).height(6))
                     .style(|_| container::Style {
@@ -525,10 +526,10 @@ impl Oryxis {
                         border: Border { radius: Radius::from(3.0), ..Default::default() },
                         ..Default::default()
                     })
-                    .into(),
+                    .boxed(),
             );
         }
-        items.push(Space::new().width(Length::Fill).into());
+        items.push(Space::new().width(Length::Fill).boxed());
         if self.prefs.show_host_address {
             // Privacy Mode masks the address behind blocks, same as
             // the card subtitle (no hover reveal here: tree rows are
@@ -545,7 +546,7 @@ impl Oryxis {
                     .size(11)
                     .color(c.text_muted)
                     .wrapping(iced::widget::text::Wrapping::None)
-                    .into(),
+                    .boxed(),
             );
         }
         let msg = Message::Ssh(SshMessage::ConnectSsh(idx));
@@ -557,7 +558,7 @@ impl Oryxis {
         let row: Element<'a, Message> =
             iced::widget::MouseArea::new(tree_row_button(items, msg.clone()))
                 .on_right_press(menu_msg.clone())
-                .into();
+                .boxed();
         self.sidebar_nav_slot(
             crate::keynav::SidebarRow::list_button(msg).with_menu(menu_msg),
             STAB,
@@ -624,15 +625,15 @@ impl Oryxis {
                 18.0,
             );
             let items: Vec<Element<'a, Message>> = vec![
-                Space::new().width(depth as f32 * INDENT + 16.0).into(),
+                Space::new().width(depth as f32 * INDENT + 16.0).boxed(),
                 icon_box,
-                Space::new().width(6).into(),
+                Space::new().width(6).boxed(),
                 text(sg.label.as_str())
                     .size(12)
                     .color(c.text_primary)
                     .wrapping(iced::widget::text::Wrapping::None)
-                    .into(),
-                Space::new().width(Length::Fill).into(),
+                    .boxed(),
+                Space::new().width(Length::Fill).boxed(),
                 text(format!(
                     "{} {}",
                     crate::views::dashboard::grid::count_leaves(&sg.layout),
@@ -641,7 +642,7 @@ impl Oryxis {
                     .size(11)
                     .color(c.text_muted)
                     .wrapping(iced::widget::text::Wrapping::None)
-                    .into(),
+                    .boxed(),
             ];
             let msg = Message::SessionGroup(SessionGroupMessage::OpenSessionGroup(idx));
             rows.push(self.sidebar_nav_slot(
@@ -735,16 +736,16 @@ impl Oryxis {
             Some(DynamicGroupState::Failed(msg)) => {
                 let retry_msg = Message::Cloud(CloudMessage::DynamicGroupResolve(gid));
                 let retry_items: Vec<Element<'a, Message>> = vec![
-                    Space::new().width(depth as f32 * INDENT + 16.0).into(),
+                    Space::new().width(depth as f32 * INDENT + 16.0).boxed(),
                     iced_fonts::lucide::refresh_cw()
                         .size(13)
                         .color(OryxisColors::t().text_primary)
-                        .into(),
-                    Space::new().width(6).into(),
+                        .boxed(),
+                    Space::new().width(6).boxed(),
                     text(t("cloud_discover_refresh"))
                         .size(12)
                         .color(OryxisColors::t().text_primary)
-                        .into(),
+                        .boxed(),
                 ];
                 let retry = self.sidebar_nav_slot(
                     crate::keynav::SidebarRow::list_button(retry_msg.clone()),
@@ -820,26 +821,26 @@ impl Oryxis {
                     };
                     let c = OryxisColors::t();
                     let mut items: Vec<Element<'a, Message>> = vec![
-                        Space::new().width(depth as f32 * INDENT + 16.0).into(),
+                        Space::new().width(depth as f32 * INDENT + 16.0).boxed(),
                         iced_fonts::lucide::cloud()
                             .size(13)
                             .color(if connectable { c.text_muted } else { c.border })
-                            .into(),
-                        Space::new().width(6).into(),
+                            .boxed(),
+                        Space::new().width(6).boxed(),
                         text(redact(&primary))
                             .size(12)
                             .color(if connectable { c.text_primary } else { c.text_muted })
                             .wrapping(iced::widget::text::Wrapping::None)
-                            .into(),
+                            .boxed(),
                     ];
                     if let Some(status) = status_upper.as_deref().filter(|s| *s != "RUNNING")
                     {
-                        items.push(Space::new().width(6).into());
+                        items.push(Space::new().width(6).boxed());
                         items.push(
-                            text(status.to_string()).size(10).color(c.text_muted).into(),
+                            text(status.to_string()).size(10).color(c.text_muted).boxed(),
                         );
                     }
-                    items.push(Space::new().width(Length::Fill).into());
+                    items.push(Space::new().width(Length::Fill).boxed());
                     let row = tree_row_button(items, msg.clone());
                     // Non-connectable tasks stay unrecorded so the
                     // keyboard never lands on a dead row (the click
@@ -898,7 +899,7 @@ fn tree_row_button<'a>(
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }
 
 /// Muted, indented informational row for a dynamic group's transient
@@ -911,18 +912,18 @@ fn tree_info_row(label: &str, depth: usize) -> Element<'_, Message> {
 fn tree_info_row_owned<'a>(label: String, depth: usize) -> Element<'a, Message> {
     container(
         dir_row(vec![
-            Space::new().width(depth as f32 * INDENT + 16.0).into(),
+            Space::new().width(depth as f32 * INDENT + 16.0).boxed(),
             text(label)
                 .size(11)
                 .color(OryxisColors::t().text_muted)
                 .wrapping(iced::widget::text::Wrapping::None)
-                .into(),
+                .boxed(),
         ])
         .align_y(iced::Alignment::Center),
     )
     .padding(Padding { top: 5.0, right: 6.0, bottom: 5.0, left: 6.0 })
     .width(Length::Fill)
-    .into()
+    .boxed()
 }
 
 /// Centered muted text for the empty / no-matches states.
@@ -931,6 +932,6 @@ fn placeholder(label: &str) -> Element<'_, Message> {
         .center_x(Length::Fill)
         .padding(Padding { top: 40.0, right: 12.0, bottom: 0.0, left: 12.0 })
         .width(Length::Fill)
-        .into()
+        .boxed()
 }
 

@@ -40,7 +40,7 @@ impl Oryxis {
                         OryxisColors::t().bg_selected,
                     ),
                 ),
-                Space::new().width(10).into(),
+                Space::new().width(10).boxed(),
                 self.settings_nav_slot(
                     crate::keynav::RowAction::activate(Message::Settings(SettingsMessage::ClearDebugLog)),
                     6.0,
@@ -89,7 +89,7 @@ impl Oryxis {
         };
         // Debug logging, the performance HUD and the environment
         // report are one diagnostics theme, so they share a card.
-        let diagnostics_section = panel_section(debug_col.push(Space::new().height(16)).push(column![
+        let diagnostics_section = panel_section(debug_col.push(Space::new().height(16).boxed()).push(column![
             text(t("env_info")).size(13).color(OryxisColors::t().text_primary),
             Space::new().height(4),
             text(t("env_info_desc")).size(11).color(OryxisColors::t().text_muted),
@@ -110,7 +110,7 @@ impl Oryxis {
                     OryxisColors::t().accent,
                 ),
             ),
-        ]));
+        ].boxed()));
 
         scrollable(
             container(
@@ -130,7 +130,7 @@ impl Oryxis {
         .id(iced::widget::Id::new("settings-advanced-scroll"))
         .on_scroll(|s| Message::Settings(SettingsMessage::SectionScrolled(s.viewport.relative_offset().y)))
         .height(Length::Fill)
-        .into()
+        .boxed()
     }
 
     /// One card for what the app fetches on its own: the offline switch
@@ -154,7 +154,7 @@ impl Oryxis {
             rows = rows.push(
                 text(t("offline_mode_mirror_superseded"))
                     .size(11)
-                    .color(OryxisColors::t().text_secondary),
+                    .color(OryxisColors::t().text_secondary).boxed(),
             );
         } else {
             rows = rows.push(self.download_mirror_rows());
@@ -249,7 +249,7 @@ impl Oryxis {
                         .padding(10)
                         .width(360)
                         .style(crate::widgets::rounded_input_style)
-                        .into(),
+                        .boxed(),
                 );
                 let save_btn = self.settings_nav_slot(
                     crate::keynav::RowAction::activate(Message::Settings(SettingsMessage::DownloadMirrorUrlCommitted)),
@@ -262,50 +262,50 @@ impl Oryxis {
                 );
                 let test_btn = make_test_btn(self);
                 rows = rows
-                    .push(Space::new().height(10))
+                    .push(Space::new().height(10).boxed())
                     .push(
                         dir_row(vec![
                             url_field,
-                            Space::new().width(8).into(),
+                            Space::new().width(8).boxed(),
                             save_btn,
-                            Space::new().width(8).into(),
+                            Space::new().width(8).boxed(),
                             test_btn,
                         ])
-                        .align_y(iced::Alignment::Center),
+                        .align_y(iced::Alignment::Center).boxed(),
                     );
                 if ui.url_error {
-                    rows = rows.push(Space::new().height(6)).push(
+                    rows = rows.push(Space::new().height(6).boxed()).push(
                         text(t("download_mirror_https_required"))
                             .size(11)
-                            .color(OryxisColors::t().error),
+                            .color(OryxisColors::t().error).boxed(),
                     );
                 }
             } else {
                 // The project mirror has no address to type: the host
                 // is the app's own, so Test is the whole control.
                 rows = rows
-                    .push(Space::new().height(10))
-                    .push(dir_row(vec![make_test_btn(self)]).align_y(iced::Alignment::Center));
+                    .push(Space::new().height(10).boxed())
+                    .push(dir_row(vec![make_test_btn(self)]).align_y(iced::Alignment::Center).boxed());
             }
             match &ui.test_result {
                 Some(Ok(ms)) => {
-                    rows = rows.push(Space::new().height(6)).push(
+                    rows = rows.push(Space::new().height(6).boxed()).push(
                         text(format!("{} ({ms} ms)", t("download_mirror_test_ok")))
                             .size(11)
-                            .color(OryxisColors::t().success),
+                            .color(OryxisColors::t().success).boxed(),
                     );
                 }
                 Some(Err(cause)) => {
-                    rows = rows.push(Space::new().height(6)).push(
+                    rows = rows.push(Space::new().height(6).boxed()).push(
                         text(format!("{}: {cause}", t("download_mirror_test_fail")))
                             .size(11)
-                            .color(OryxisColors::t().error),
+                            .color(OryxisColors::t().error).boxed(),
                     );
                 }
                 None => {}
             }
         }
 
-        rows.into()
+        rows.boxed()
     }
 }

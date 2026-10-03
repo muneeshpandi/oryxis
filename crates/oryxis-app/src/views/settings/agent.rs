@@ -15,7 +15,7 @@ impl Oryxis {
         // (agent enabled + a listener on this platform).
         self.keynav_settings_reset();
 
-        let mut content_col: iced::widget::Column<'_, Message> = column![]
+        let mut content_col: iced::widget::Column<iced::Element<'_, Message>> = column![]
             .width(Length::Fill)
             .align_x(dir_align_x());
 
@@ -73,12 +73,11 @@ impl Oryxis {
                         toggle,
                         Space::new().height(6),
                         text(err.clone()).size(11).color(OryxisColors::t().error),
-                    ]
-                    .into(),
-                    None => column![Space::new().height(12), toggle].into(),
+                    ].boxed(),
+                    None => column![Space::new().height(12), toggle].boxed(),
                 }
             } else {
-                Space::new().into()
+                Space::new().boxed()
             };
 
             let copy_btn = |label_key: &'static str, msg: Message| -> Element<'_, Message> {
@@ -95,8 +94,8 @@ impl Oryxis {
                     .size(11)
                     .font(iced::Font::MONOSPACE)
                     .color(OryxisColors::t().text_secondary)
-                    .into(),
-                Space::new().width(Length::Fill).into(),
+                    .boxed(),
+                Space::new().width(Length::Fill).boxed(),
                 copy_btn("agent_server_copy_path", Message::Agent(AgentMessage::CopyAgentPath)),
             ])
             .align_y(iced::Alignment::Center);
@@ -112,13 +111,13 @@ impl Oryxis {
                     text(format!("{}: {}", t("agent_vault_keys_served"), vault_served))
                         .size(11)
                         .color(OryxisColors::t().text_secondary)
-                        .into(),
+                        .boxed(),
                 ];
                 if self.agent.allow_add
                     && let Some(rt) = &self.agent.runtime
                 {
                     let held = rt.external_key_count();
-                    parts.push(Space::new().width(16).into());
+                    parts.push(Space::new().width(16).boxed());
                     parts.push(
                         text(format!("{}: {}", t("agent_external_keys_held"), held))
                             .size(11)
@@ -127,10 +126,10 @@ impl Oryxis {
                             } else {
                                 OryxisColors::t().text_secondary
                             })
-                            .into(),
+                            .boxed(),
                     );
                 }
-                dir_row(parts).into()
+                dir_row(parts).boxed()
             };
 
             content_col = content_col
@@ -140,9 +139,9 @@ impl Oryxis {
                     allow_add,
                     openssh_pipe,
                 ]))
-                .push(Space::new().height(12))
+                .push(Space::new().height(12).boxed())
                 .push(panel_section(column![
-                    panel_field(t("agent_server_path"), path_row.into()),
+                    panel_field(t("agent_server_path"), path_row.boxed()),
                     Space::new().height(8),
                     status_row,
                     Space::new().height(10),
@@ -156,7 +155,7 @@ impl Oryxis {
                             Message::Agent(AgentMessage::CopyAgentSnippet(crate::state::AgentSnippetKind::SshConfig)),
                         )];
                         if cfg!(unix) {
-                            row.push(Space::new().width(8).into());
+                            row.push(Space::new().width(8).boxed());
                             row.push(copy_btn(
                                 "agent_server_snippet_env",
                                 Message::Agent(AgentMessage::CopyAgentSnippet(crate::state::AgentSnippetKind::ShellEnv)),
@@ -166,7 +165,7 @@ impl Oryxis {
                     },
                 ]));
         }
-        content_col = content_col.push(Space::new().height(24));
+        content_col = content_col.push(Space::new().height(24).boxed());
 
         scrollable(
             container(content_col)
@@ -177,6 +176,6 @@ impl Oryxis {
         .id(iced::widget::Id::new("settings-agent-scroll"))
         .on_scroll(|s| Message::Settings(SettingsMessage::SectionScrolled(s.viewport.relative_offset().y)))
         .height(Length::Fill)
-        .into()
+        .boxed()
     }
 }

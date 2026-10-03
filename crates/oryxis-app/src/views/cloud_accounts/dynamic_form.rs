@@ -3,6 +3,7 @@
 //! form, sticky save at bottom) so the visual pattern stays consistent
 //! with the rest of the app.
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::button::Status as BtnStatus;
 use iced::widget::{button, column, container, pick_list, scrollable, text, text_input, Space};
@@ -27,8 +28,8 @@ impl Oryxis {
                 text(t("cloud_dynamic_form_title"))
                     .size(16)
                     .color(OryxisColors::t().text_primary)
-                    .into(),
-                Space::new().width(Length::Fill).into(),
+                    .boxed(),
+                Space::new().width(Length::Fill).boxed(),
                 button(
                     text("\u{00D7}")
                         .size(20)
@@ -46,7 +47,7 @@ impl Oryxis {
                     border: Border::default(),
                     ..Default::default()
                 })
-                .into(),
+                .boxed(),
             ])
             .align_y(iced::Alignment::Center),
         )
@@ -168,7 +169,7 @@ impl Oryxis {
                 ..Default::default()
             }
         })
-        .into();
+        .boxed();
 
         // Parent Group combo, same shape as the host editor: text
         // input + chevron that opens the shared group picker popover.
@@ -217,13 +218,13 @@ impl Oryxis {
                 container(parent_input)
                     .width(Length::Fill)
                     .height(Length::Fixed(PARENT_COMBO_HEIGHT))
-                    .into(),
-                Space::new().width(6).into(),
+                    .boxed(),
+                Space::new().width(6).boxed(),
                 container(parent_chevron)
                     .height(Length::Fixed(PARENT_COMBO_HEIGHT))
-                    .into(),
+                    .boxed(),
             ])
-            .align_y(iced::Alignment::Center),
+            .align_y(iced::Alignment::Center).boxed(),
             self.dynamic_form_parent_combo_bounds.clone(),
         );
 
@@ -238,13 +239,13 @@ impl Oryxis {
             Space::new().height(10),
             dir_row(vec![
                 preview_box,
-                Space::new().width(10).into(),
+                Space::new().width(10).boxed(),
                 text_input("group label", &self.cloud_dynamic_form.label)
                     .on_input(|v| Message::Cloud(CloudMessage::DynamicGroupFormLabelChanged(v)))
                     .padding(10)
                     .style(crate::widgets::rounded_input_style)
                     .align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
             ])
             .align_y(iced::Alignment::Center),
             Space::new().height(14),
@@ -326,7 +327,7 @@ impl Oryxis {
             ]
             .width(Length::Fill)
             .align_x(dir_align_x())
-            .into()
+            .boxed()
         } else {
             column![
                 text(t("cloud_dynamic_form_cluster"))
@@ -365,7 +366,7 @@ impl Oryxis {
             ]
             .width(Length::Fill)
             .align_x(dir_align_x())
-            .into()
+            .boxed()
         };
 
         let source_section = column![
@@ -486,6 +487,6 @@ impl Oryxis {
         // Standardised side-panel chrome: same `bg_surface` as the
         // host editor (`view_host_panel`) so all right-side editors
         // share the same visual frame.
-        crate::widgets::side_panel_frame(panel_content.into(), OryxisColors::t().bg_surface, self.panel_width)
+        crate::widgets::side_panel_frame(panel_content.boxed(), OryxisColors::t().bg_surface, self.panel_width)
     }
 }

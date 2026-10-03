@@ -40,7 +40,7 @@ impl Oryxis {
                     .width(200)
                     .padding(10)
                     .style(crate::widgets::rounded_pick_list_style)
-                    .into(),
+                    .boxed(),
             ),
             )
         } else {
@@ -101,7 +101,7 @@ impl Oryxis {
                         ..Default::default()
                     }
                 })
-                .into(),
+                .boxed(),
             );
             // Forced-selection searchable key combo (same pattern as the
             // startup combo): options + clear-on-focus built in
@@ -142,16 +142,16 @@ impl Oryxis {
                 .input_style(crate::widgets::rounded_input_style)
                 .menu_style(crate::widgets::combo_menu_style)
                 .width(Length::Fill)
-                .into(),
+                .boxed(),
             );
             let key_row = dir_row(vec![
                 iced_fonts::lucide::key_round()
                     .size(13)
                     .color(OryxisColors::t().text_muted)
-                    .into(),
-                Space::new().width(10).into(),
+                    .boxed(),
+                Space::new().width(10).boxed(),
                 key_combo,
-                Space::new().width(8).into(),
+                Space::new().width(8).boxed(),
                 add_key_btn,
             ])
             .align_y(iced::Alignment::Center);
@@ -169,7 +169,7 @@ impl Oryxis {
             // which file to import to get one.
             let cert_hint: Option<Element<'_, Message>> = if agent_mode {
                 Some(
-                    iced::widget::Column::new()
+                    iced::widget::Column::<iced::Element<'_, _>>::new()
                         .push(
                             container(
                                 text(t("preferred_agent_key"))
@@ -177,9 +177,9 @@ impl Oryxis {
                                     .color(OryxisColors::t().text_muted),
                             )
                             .width(Length::Fill)
-                            .align_x(dir_align_x()),
+                            .align_x(dir_align_x()).boxed(),
                         )
-                        .push(Space::new().height(2))
+                        .push(Space::new().height(2).boxed())
                         .push(
                             container(
                                 text(t("pkcs11_help"))
@@ -187,10 +187,10 @@ impl Oryxis {
                                     .color(OryxisColors::t().text_muted),
                             )
                             .width(Length::Fill)
-                            .align_x(dir_align_x()),
+                            .align_x(dir_align_x()).boxed(),
                         )
                         .width(Length::Fill)
-                        .into(),
+                        .boxed(),
                 )
             } else if hardware_mode {
                 // The hardware-only mode has one failure shape the user
@@ -210,7 +210,7 @@ impl Oryxis {
                         self.editor_form.disk_key_status,
                         oryxis_vault::DiskKeyStatus::Ready { .. }
                     );
-                let mut col = iced::widget::Column::new();
+                let mut col = iced::widget::Column::<iced::Element<'_, _>>::new();
                 if !oryxis_ssh::sk::native_signing_supported() {
                     // A host synced from a machine that can drive a token,
                     // opened on one that cannot: say so rather than let the
@@ -223,9 +223,9 @@ impl Oryxis {
                                     .color(OryxisColors::t().warning),
                             )
                             .width(Length::Fill)
-                            .align_x(dir_align_x()),
+                            .align_x(dir_align_x()).boxed(),
                         )
-                        .push(Space::new().height(2));
+                        .push(Space::new().height(2).boxed());
                 } else if !signable {
                     col = col
                         .push(
@@ -235,9 +235,9 @@ impl Oryxis {
                                     .color(OryxisColors::t().warning),
                             )
                             .width(Length::Fill)
-                            .align_x(dir_align_x()),
+                            .align_x(dir_align_x()).boxed(),
                         )
-                        .push(Space::new().height(2));
+                        .push(Space::new().height(2).boxed());
                 }
                 Some(
                     col.push(
@@ -247,10 +247,10 @@ impl Oryxis {
                                 .color(OryxisColors::t().text_muted),
                         )
                         .width(Length::Fill)
-                        .align_x(dir_align_x()),
+                        .align_x(dir_align_x()).boxed(),
                     )
                     .width(Length::Fill)
-                    .into(),
+                    .boxed(),
                 )
             } else if !cert_mode {
                 None
@@ -270,7 +270,7 @@ impl Oryxis {
                     )
                     .width(Length::Fill)
                     .align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
                 )
             } else {
                 let selected = self.keys.iter().find(|k| k.label == key_selected);
@@ -316,7 +316,7 @@ impl Oryxis {
                             container(text(label).size(11).color(color))
                                 .width(Length::Fill)
                                 .align_x(dir_align_x())
-                                .into()
+                                .boxed()
                         },
                     ),
                     // A selected key without a cert (removed after this
@@ -330,20 +330,20 @@ impl Oryxis {
                         )
                         .width(Length::Fill)
                         .align_x(dir_align_x())
-                        .into(),
+                        .boxed(),
                     ),
                     None => None,
                 }
             };
 
-            let mut col = iced::widget::Column::new()
-                .push(key_row)
+            let mut col = iced::widget::Column::<iced::Element<'_, _>>::new()
+                .push(key_row.boxed())
                 .width(Length::Fill)
                 .align_x(dir_align_x());
             if let Some(hint) = cert_hint {
-                col = col.push(Space::new().height(4)).push(hint);
+                col = col.push(Space::new().height(4).boxed()).push(hint);
             }
-            Some(col.into())
+            Some(col.boxed())
         } else {
             None
         };
@@ -378,7 +378,7 @@ impl Oryxis {
         if !is_ssh || !offers_key || self.editor_form.selected_identity.is_some() {
             return empty();
         }
-        let mut items = iced::widget::Column::new().push(self.panel_nav_slot(
+        let mut items = iced::widget::Column::<iced::Element<'_, _>>::new().push(self.panel_nav_slot(
             crate::keynav::RowAction::activate(Message::Editor(
                 EditorMessage::EditorUseDiskKeyToggled
             )),
@@ -388,13 +388,13 @@ impl Oryxis {
                     iced_fonts::lucide::file_key()
                         .size(13)
                         .color(OryxisColors::t().text_muted)
-                        .into(),
-                    Space::new().width(10).into(),
+                        .boxed(),
+                    Space::new().width(10).boxed(),
                     text(t("use_disk_key"))
                         .size(13)
                         .color(OryxisColors::t().text_secondary)
-                        .into(),
-                    Space::new().width(Length::Fill).into(),
+                        .boxed(),
+                    Space::new().width(Length::Fill).boxed(),
                     {
                         let on = self.editor_form.use_disk_key;
                         let bg = if on {
@@ -422,7 +422,7 @@ impl Oryxis {
                             text_color: fg,
                             ..Default::default()
                         })
-                        .into()
+                        .boxed()
                     },
                 ])
                 .align_y(iced::Alignment::Center)
@@ -433,10 +433,10 @@ impl Oryxis {
                 bottom: 8.0,
                 left: 0.0,
             })
-            .into(),
+            .boxed(),
         ));
         if !self.editor_form.use_disk_key {
-            return items.into();
+            return items.boxed();
         }
         // Keyboard rows: the field first (Tab focuses the input by id),
         // then Browse as its own stop, matching the visual order.
@@ -477,11 +477,11 @@ impl Oryxis {
                     ..Default::default()
                 }
             })
-            .into(),
+            .boxed(),
         );
         items = items.push(
             dir_row(vec![
-                Space::new().width(23).into(),
+                Space::new().width(23).boxed(),
                 text_input(t("disk_key_path"), &self.editor_form.identity_file)
                     .id(iced::widget::Id::new("editor-identity-file"))
                     .on_input(|v| Message::Editor(EditorMessage::EditorIdentityFileChanged(v)))
@@ -489,11 +489,11 @@ impl Oryxis {
                     .padding(10)
                     .style(crate::widgets::rounded_input_style)
                     .align_x(dir_align_x())
-                    .into(),
-                Space::new().width(8).into(),
+                    .boxed(),
+                Space::new().width(8).boxed(),
                 browse,
             ])
-            .align_y(iced::Alignment::Center),
+            .align_y(iced::Alignment::Center).boxed(),
         );
         let (hint, color) = match &self.editor_form.disk_key_status {
             // The toggle is on, so `Off` cannot happen here; treat it
@@ -527,13 +527,13 @@ impl Oryxis {
             ),
         };
         items = items
-            .push(Space::new().height(4))
+            .push(Space::new().height(4).boxed())
             .push(
                 container(text(hint).size(11).color(color))
                     .width(Length::Fill)
-                    .align_x(dir_align_x()),
+                    .align_x(dir_align_x()).boxed(),
             )
-            .push(Space::new().height(2))
+            .push(Space::new().height(2).boxed())
             .push(
                 container(
                     text(t("disk_key_help"))
@@ -541,9 +541,9 @@ impl Oryxis {
                         .color(OryxisColors::t().text_muted),
                 )
                 .width(Length::Fill)
-                .align_x(dir_align_x()),
+                .align_x(dir_align_x()).boxed(),
             );
-        items.into()
+        items.boxed()
     }
 
     pub(super) fn hp_row_agent_fwd(&self, is_ssh: bool) -> Element<'_, Message> {
@@ -555,10 +555,10 @@ impl Oryxis {
             8.0,
             container(
                 dir_row(vec![
-                    iced_fonts::lucide::share().size(14).color(OryxisColors::t().text_muted).into(),
-                    Space::new().width(10).into(),
-                    text(t("forward_ssh_agent")).size(13).color(OryxisColors::t().text_secondary).into(),
-                    Space::new().width(Length::Fill).into(),
+                    iced_fonts::lucide::share().size(14).color(OryxisColors::t().text_muted).boxed(),
+                    Space::new().width(10).boxed(),
+                    text(t("forward_ssh_agent")).size(13).color(OryxisColors::t().text_secondary).boxed(),
+                    Space::new().width(Length::Fill).boxed(),
                     {
                         let on = self.editor_form.agent_forwarding;
                         let bg = if on { OryxisColors::t().success } else { OryxisColors::t().bg_hover };
@@ -571,11 +571,11 @@ impl Oryxis {
                                 text_color: fg,
                                 ..Default::default()
                             })
-                            .into()
+                            .boxed()
                     },
                 ]).align_y(iced::Alignment::Center)
             )
-            .padding(Padding { top: 8.0, right: 0.0, bottom: 8.0, left: 0.0 }).into(),
+            .padding(Padding { top: 8.0, right: 0.0, bottom: 8.0, left: 0.0 }).boxed(),
             )
         } else {
             empty()
@@ -593,10 +593,10 @@ impl Oryxis {
             8.0,
             container(
                 dir_row(vec![
-                    iced_fonts::lucide::monitor().size(14).color(OryxisColors::t().text_muted).into(),
-                    Space::new().width(10).into(),
-                    text(t("forward_x11")).size(13).color(OryxisColors::t().text_secondary).into(),
-                    Space::new().width(Length::Fill).into(),
+                    iced_fonts::lucide::monitor().size(14).color(OryxisColors::t().text_muted).boxed(),
+                    Space::new().width(10).boxed(),
+                    text(t("forward_x11")).size(13).color(OryxisColors::t().text_secondary).boxed(),
+                    Space::new().width(Length::Fill).boxed(),
                     {
                         let on = self.editor_form.x11_forwarding;
                         let bg = if on { OryxisColors::t().success } else { OryxisColors::t().bg_hover };
@@ -609,11 +609,11 @@ impl Oryxis {
                                 text_color: fg,
                                 ..Default::default()
                             })
-                            .into()
+                            .boxed()
                     },
                 ]).align_y(iced::Alignment::Center)
             )
-            .padding(Padding { top: 8.0, right: 0.0, bottom: 8.0, left: 0.0 }).into(),
+            .padding(Padding { top: 8.0, right: 0.0, bottom: 8.0, left: 0.0 }).boxed(),
             )
         } else {
             empty()

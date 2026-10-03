@@ -86,18 +86,18 @@ impl Oryxis {
             let mut header: Vec<Element<'_, Message>> = vec![
                 burger_menu_btn(self.panels.burger_menu),
                 self.home_area_tab(solid_fill),
-                Space::new().width(Length::Fill).into(),
+                Space::new().width(Length::Fill).boxed(),
             ];
             if self.cur_active_tab().is_some() {
                 for toggle_side in self.sidebar_toggle_sides() {
                     header.push(sidebar_btn(toggle_side, SIDEBAR_TOGGLE_WIDTH, HEADER_CHROME_H));
                 }
             }
-            header.push(self.window_chrome_row(HEADER_CHROME_W, HEADER_CHROME_H).into());
+            header.push(self.window_chrome_row(HEADER_CHROME_W, HEADER_CHROME_H).boxed());
             head.push(
                 crate::widgets::dir_row(header)
                     .align_y(iced::Alignment::Center)
-                    .into(),
+                    .boxed(),
             );
         }
         let pins_docked_here = hide_top_bar && pins_top;
@@ -131,7 +131,7 @@ impl Oryxis {
                     items.push(
                         row(std::mem::take(&mut chip_row))
                             .spacing(TAB_SPACING)
-                            .into(),
+                            .boxed(),
                     );
                     row_count += 1;
                 }
@@ -140,7 +140,7 @@ impl Oryxis {
                     items.push(
                         row(std::mem::take(&mut chip_row))
                             .spacing(TAB_SPACING)
-                            .into(),
+                            .boxed(),
                     );
                     row_count += 1;
                 }
@@ -149,7 +149,7 @@ impl Oryxis {
             }
         }
         if !chip_row.is_empty() {
-            items.push(row(chip_row).spacing(TAB_SPACING).into());
+            items.push(row(chip_row).spacing(TAB_SPACING).boxed());
             row_count += 1;
         }
 
@@ -181,13 +181,13 @@ impl Oryxis {
             self.plus_btn_bounds.clone(),
         ))
         .on_enter(Message::Tabs(TabsMessage::TabDragToEnd))
-        .into();
+        .boxed();
         let mut footer: Option<Element<'_, Message>> = None;
         if overflow {
             footer = Some(
-                row(vec![plus_btn, Space::new().width(2).into(), tab_jump_btn()])
+                row(vec![plus_btn, Space::new().width(2).boxed(), tab_jump_btn()])
                     .align_y(iced::Alignment::Center)
-                    .into(),
+                    .boxed(),
             );
         } else {
             items.push(plus_btn);
@@ -215,7 +215,7 @@ impl Oryxis {
         // Column::push void-filters any zero-FIXED child, which would
         // silently drop the slot (see the skeleton note in
         // `main_layout.rs`).
-        let empty = || -> Element<'_, Message> { Space::new().into() };
+        let empty = || -> Element<'_, Message> { Space::new().boxed() };
         let mut head_slots = head.into_iter();
         let header_slot = head_slots.next().unwrap_or_else(empty);
         let pins_slot: Element<'_, Message> = {
@@ -232,9 +232,9 @@ impl Oryxis {
                         ))
                         .width(Length::Fill)
                         .height(Length::Fixed(pins_h_max))
-                        .into()
+                        .boxed()
                 } else {
-                    dock.into()
+                    dock.boxed()
                 }
             }
         };
@@ -242,7 +242,7 @@ impl Oryxis {
         let inner = iced::widget::Column::with_children(vec![
             header_slot,
             pins_slot,
-            strip_scroll.into(),
+            strip_scroll.boxed(),
             footer_slot,
         ])
         .spacing(TAB_SPACING);
@@ -269,7 +269,7 @@ impl Oryxis {
                 background: Some(bar_bg),
                 ..Default::default()
             })
-            .into();
+            .boxed();
         // With no top bar this strip IS the titlebar: its empty areas
         // (header gap, space below the tabs) drag the window and
         // double-click maximizes, exactly like the horizontal strips.
@@ -287,7 +287,7 @@ impl Oryxis {
                 .on_press(Message::Tabs(TabsMessage::WindowDrag))
                 .on_double_click(Message::Tabs(TabsMessage::WindowMaximizeToggle));
         }
-        bar = area.into();
+        bar = area.boxed();
 
         // Floating drag ghost, tracking the cursor's y (the horizontal
         // bars track x). Non-interactive so the tab MouseAreas below
@@ -305,20 +305,20 @@ impl Oryxis {
         {
             let gy = (self.cur_mouse().y - strip_top - 6.0 - SIDE_ROW_HEIGHT / 2.0)
                 .max(0.0);
-            let positioned: Element<'_, Message> = iced::widget::Column::new()
-                .push(Space::new().height(gy))
+            let positioned: Element<'_, Message> = iced::widget::Column::<iced::Element<'_, _>>::new()
+                .push(Space::new().height(gy).boxed())
                 .push(
-                    iced::widget::Row::new()
-                        .push(Space::new().width(8.0))
-                        .push(ghost),
+                    iced::widget::Row::<iced::Element<'_, _>>::new()
+                        .push(Space::new().width(8.0).boxed())
+                        .push(ghost).boxed(),
                 )
-                .into();
-            return iced::widget::Stack::new()
+                .boxed();
+            return iced::widget::Stack::<iced::Element<'_, _>>::new()
                 .push(bar)
                 .push(positioned)
                 .width(Length::Fixed(SIDE_STRIP_WIDTH))
                 .height(Length::Fill)
-                .into();
+                .boxed();
         }
         bar
     }
@@ -346,7 +346,7 @@ impl Oryxis {
                     rows.push(
                         row(std::mem::take(&mut chip_row))
                             .spacing(TAB_SPACING)
-                            .into(),
+                            .boxed(),
                     );
                 }
             } else {
@@ -354,7 +354,7 @@ impl Oryxis {
             }
         }
         if !chip_row.is_empty() {
-            rows.push(row(chip_row).spacing(TAB_SPACING).into());
+            rows.push(row(chip_row).spacing(TAB_SPACING).boxed());
         }
         rows
     }

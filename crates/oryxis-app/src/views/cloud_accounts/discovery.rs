@@ -4,6 +4,7 @@
 //! footer. Already-imported entries are greyed out so the user
 //! doesn't dupe them.
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::button::Status as BtnStatus;
 use iced::widget::{button, column, container, row, scrollable, text, text_input, Space};
@@ -48,7 +49,7 @@ impl Oryxis {
                 left: 8.0,
             })
             .style(header_icon_style)
-            .into(),
+            .boxed(),
         );
         // The close (X) is intentionally not a keyboard row: Esc
         // already owns panel close, and recording it would make the
@@ -67,11 +68,11 @@ impl Oryxis {
                 text(t("cloud_discover"))
                     .size(16)
                     .color(OryxisColors::t().text_primary)
-                    .into(),
-                Space::new().width(Length::Fill).into(),
+                    .boxed(),
+                Space::new().width(Length::Fill).boxed(),
                 refresh_icon_btn,
-                Space::new().width(2).into(),
-                close_btn.into(),
+                Space::new().width(2).boxed(),
+                close_btn.boxed(),
             ])
             .align_y(iced::Alignment::Center),
         )
@@ -124,7 +125,7 @@ impl Oryxis {
                     .size(13)
                     .style(search_input_style)
                     .align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
             ),
         )
         .padding(Padding {
@@ -137,14 +138,14 @@ impl Oryxis {
         // Body content varies by state, keep each branch self-
         // contained so the layout above stays readable.
         let body: Element<'_, Message> = match &self.cloud_discover.state {
-            CloudDiscoverState::Idle => Space::new().into(),
+            CloudDiscoverState::Idle => Space::new().boxed(),
             CloudDiscoverState::Running => container(
                 text(t("cloud_discover_running"))
                     .size(13)
                     .color(OryxisColors::t().text_muted),
             )
             .center(Length::Fill)
-            .into(),
+            .boxed(),
             CloudDiscoverState::Failed(msg) => container(
                 column![
                     text(format!("{}: {msg}", t("cloud_test_failed")))
@@ -178,13 +179,13 @@ impl Oryxis {
                             },
                             ..Default::default()
                         })
-                        .into(),
+                        .boxed(),
                     ),
                 ]
                 .align_x(iced::Alignment::Center),
             )
             .center(Length::Fill)
-            .into(),
+            .boxed(),
             CloudDiscoverState::Loaded(result) => self.view_discover_result_body(result),
         };
 
@@ -242,10 +243,10 @@ impl Oryxis {
                 self.panel_nav_slot(
                     crate::keynav::RowAction::activate(Message::Cloud(CloudMessage::CloudDiscoverImport)),
                     8.0,
-                    b.into(),
+                    b.boxed(),
                 )
             } else {
-                Element::from(b)
+                b.boxed()
             }
         };
 
@@ -284,7 +285,7 @@ impl Oryxis {
         // editor and the dynamic-group / wizard panels so the
         // right side of the dashboard reads as one consistent
         // surface regardless of which editor is open.
-        crate::widgets::side_panel_frame(panel_content.into(), OryxisColors::t().bg_surface, self.panel_width)
+        crate::widgets::side_panel_frame(panel_content.boxed(), OryxisColors::t().bg_surface, self.panel_width)
     }
 
     /// Render the EC2 / ECS / K8s sections of the loaded discovery result.
@@ -304,7 +305,7 @@ impl Oryxis {
                     .color(OryxisColors::t().text_muted),
             )
             .center(Length::Fill)
-            .into();
+            .boxed();
         }
 
         // Index of currently-imported (profile, instance_id) pairs so
@@ -395,7 +396,7 @@ impl Oryxis {
                 4.0,
                 section_header("ec2", &header_text, ec2_collapsed),
             ));
-            sections.push(Space::new().height(6).into());
+            sections.push(Space::new().height(6).boxed());
         }
 
         if !show_ec2_section || ec2_collapsed {
@@ -408,9 +409,9 @@ impl Oryxis {
                 text(format!("📍 {region}"))
                     .size(11)
                     .color(OryxisColors::t().text_muted)
-                    .into(),
+                    .boxed(),
             );
-            sections.push(Space::new().height(4).into());
+            sections.push(Space::new().height(4).boxed());
             for e in items {
                 let is_imported = already.contains(&e.instance_id);
                 let checked = self.cloud_discover.selected_ec2.contains(&e.instance_id);
@@ -431,7 +432,7 @@ impl Oryxis {
                     text(label_text)
                         .size(11)
                         .color(OryxisColors::t().text_muted)
-                        .into()
+                        .boxed()
                 } else {
                     let mark = if checked {
                         iced_fonts::lucide::circle_check()
@@ -480,13 +481,13 @@ impl Oryxis {
                                 ..Default::default()
                             }
                         })
-                        .into(),
+                        .boxed(),
                     )
                 };
                 sections.push(row_el);
-                sections.push(Space::new().height(2).into());
+                sections.push(Space::new().height(2).boxed());
             }
-            sections.push(Space::new().height(8).into());
+            sections.push(Space::new().height(8).boxed());
         }
         } // end `if !ec2_collapsed` block
 
@@ -535,7 +536,7 @@ impl Oryxis {
         // Same auto-hide policy as EC2: only emit the ECS section if
         // there's at least one entry surviving the filter.
         if !ecs_filtered.is_empty() {
-            sections.push(Space::new().height(8).into());
+            sections.push(Space::new().height(8).boxed());
             let ecs_header = if needle.is_empty() {
                 format!("ECS Services ({})", result.ecs_services.len())
             } else {
@@ -553,7 +554,7 @@ impl Oryxis {
                 4.0,
                 section_header("ecs", &ecs_header, ecs_collapsed),
             ));
-            sections.push(Space::new().height(6).into());
+            sections.push(Space::new().height(6).boxed());
 
             if ecs_collapsed {
                 // collapsed, skip body
@@ -579,9 +580,9 @@ impl Oryxis {
                     text(format!("📍 {region}  ·  {cluster}"))
                         .size(11)
                         .color(OryxisColors::t().text_muted)
-                        .into(),
+                        .boxed(),
                 );
-                sections.push(Space::new().height(4).into());
+                sections.push(Space::new().height(4).boxed());
                 for s in items {
                     let key = format!("{}/{}/{}", s.cluster, s.service, s.container);
                     let is_imported = already_ecs.contains(&key);
@@ -602,7 +603,7 @@ impl Oryxis {
                         text(label_text)
                             .size(11)
                             .color(OryxisColors::t().text_muted)
-                            .into()
+                            .boxed()
                     } else {
                         let mark = if checked {
                             iced_fonts::lucide::circle_check()
@@ -651,13 +652,13 @@ impl Oryxis {
                                     ..Default::default()
                                 }
                             })
-                            .into(),
+                            .boxed(),
                         )
                     };
                     sections.push(row_el);
-                    sections.push(Space::new().height(2).into());
+                    sections.push(Space::new().height(2).boxed());
                 }
-                sections.push(Space::new().height(8).into());
+                sections.push(Space::new().height(8).boxed());
             }
             } // end `if !ecs_collapsed` block
         }
@@ -710,7 +711,7 @@ impl Oryxis {
             .collect();
 
         if !k8s_filtered.is_empty() {
-            sections.push(Space::new().height(8).into());
+            sections.push(Space::new().height(8).boxed());
             let k8s_header = if needle.is_empty() {
                 format!("{} ({})", t("cloud_k8s_workloads"), result.k8s_workloads.len())
             } else {
@@ -729,7 +730,7 @@ impl Oryxis {
                 4.0,
                 section_header("k8s", &k8s_header, k8s_collapsed),
             ));
-            sections.push(Space::new().height(6).into());
+            sections.push(Space::new().height(6).boxed());
 
             if !k8s_collapsed {
                 // Group by namespace so the user reads `▸ namespace` then
@@ -746,9 +747,9 @@ impl Oryxis {
                         text(format!("\u{25B8} {namespace}"))
                             .size(11)
                             .color(OryxisColors::t().text_muted)
-                            .into(),
+                            .boxed(),
                     );
-                    sections.push(Space::new().height(4).into());
+                    sections.push(Space::new().height(4).boxed());
                     for w in items {
                         // Selection key: workload identity. Import looks the
                         // workload back up by this same triple.
@@ -768,7 +769,7 @@ impl Oryxis {
                             text(label_text)
                                 .size(11)
                                 .color(OryxisColors::t().text_muted)
-                                .into()
+                                .boxed()
                         } else {
                             let mark = if checked {
                                 iced_fonts::lucide::circle_check()
@@ -817,13 +818,13 @@ impl Oryxis {
                                         ..Default::default()
                                     }
                                 })
-                                .into(),
+                                .boxed(),
                             )
                         };
                         sections.push(row_el);
-                        sections.push(Space::new().height(2).into());
+                        sections.push(Space::new().height(2).boxed());
                     }
-                    sections.push(Space::new().height(8).into());
+                    sections.push(Space::new().height(8).boxed());
                 }
             }
         }
@@ -858,7 +859,7 @@ impl Oryxis {
                         .map(str::to_string)
                 })
                 .collect();
-            sections.push(Space::new().height(8).into());
+            sections.push(Space::new().height(8).boxed());
             let gke_header = if needle.is_empty() {
                 format!("{} ({})", t("cloud_gke_clusters"), result.gke_clusters.len())
             } else {
@@ -877,7 +878,7 @@ impl Oryxis {
                 4.0,
                 section_header("gke", &gke_header, gke_collapsed),
             ));
-            sections.push(Space::new().height(6).into());
+            sections.push(Space::new().height(6).boxed());
             if !gke_collapsed {
                 for c in &gke_filtered {
                     let added = existing_contexts.contains(&c.context);
@@ -893,7 +894,7 @@ impl Oryxis {
                         text(format!("{info}  ·  {}", t("cloud_discover_already_imported")))
                             .size(11)
                             .color(OryxisColors::t().text_muted)
-                            .into()
+                            .boxed()
                     } else {
                         let add_msg = Message::Cloud(CloudMessage::CloudDiscoverAddGke {
                             cluster: c.name.clone(),
@@ -904,7 +905,7 @@ impl Oryxis {
                                 .size(11)
                                 .color(OryxisColors::t().text_secondary)
                                 .width(Length::Fill)
-                                .into(),
+                                .boxed(),
                             self.panel_nav_slot(
                                 crate::keynav::RowAction::activate(add_msg.clone()),
                                 4.0,
@@ -932,16 +933,16 @@ impl Oryxis {
                                         ..Default::default()
                                     }
                                 })
-                                .into(),
+                                .boxed(),
                             ),
                         ])
                         .align_y(iced::Alignment::Center)
-                        .into()
+                        .boxed()
                     };
                     sections.push(row_el);
-                    sections.push(Space::new().height(2).into());
+                    sections.push(Space::new().height(2).boxed());
                 }
-                sections.push(Space::new().height(8).into());
+                sections.push(Space::new().height(8).boxed());
             }
         }
 
@@ -974,7 +975,7 @@ impl Oryxis {
                         .map(str::to_string)
                 })
                 .collect();
-            sections.push(Space::new().height(8).into());
+            sections.push(Space::new().height(8).boxed());
             let aks_header = if needle.is_empty() {
                 format!("{} ({})", t("cloud_aks_clusters"), result.aks_clusters.len())
             } else {
@@ -993,7 +994,7 @@ impl Oryxis {
                 4.0,
                 section_header("aks", &aks_header, aks_collapsed),
             ));
-            sections.push(Space::new().height(6).into());
+            sections.push(Space::new().height(6).boxed());
             if !aks_collapsed {
                 for c in &aks_filtered {
                     // Match the composite `<cluster>-<resource_group>`
@@ -1015,7 +1016,7 @@ impl Oryxis {
                         text(format!("{info}  ·  {}", t("cloud_discover_already_imported")))
                             .size(11)
                             .color(OryxisColors::t().text_muted)
-                            .into()
+                            .boxed()
                     } else {
                         let add_msg = Message::Cloud(CloudMessage::CloudDiscoverAddAks {
                             cluster: c.name.clone(),
@@ -1026,7 +1027,7 @@ impl Oryxis {
                                 .size(11)
                                 .color(OryxisColors::t().text_secondary)
                                 .width(Length::Fill)
-                                .into(),
+                                .boxed(),
                             self.panel_nav_slot(
                                 crate::keynav::RowAction::activate(add_msg.clone()),
                                 4.0,
@@ -1054,16 +1055,16 @@ impl Oryxis {
                                         ..Default::default()
                                     }
                                 })
-                                .into(),
+                                .boxed(),
                             ),
                         ])
                         .align_y(iced::Alignment::Center)
-                        .into()
+                        .boxed()
                     };
                     sections.push(row_el);
-                    sections.push(Space::new().height(2).into());
+                    sections.push(Space::new().height(2).boxed());
                 }
-                sections.push(Space::new().height(8).into());
+                sections.push(Space::new().height(8).boxed());
             }
         }
 
@@ -1121,7 +1122,7 @@ impl Oryxis {
                     "tke" => t("cloud_tke_clusters").to_string(),
                     other => other.to_uppercase(),
                 };
-                sections.push(Space::new().height(8).into());
+                sections.push(Space::new().height(8).boxed());
                 let header = if needle.is_empty() {
                     format!("{title} ({total})")
                 } else {
@@ -1143,7 +1144,7 @@ impl Oryxis {
                     4.0,
                     section_header(section_key, &header, collapsed),
                 ));
-                sections.push(Space::new().height(6).into());
+                sections.push(Space::new().height(6).boxed());
                 if collapsed {
                     continue;
                 }
@@ -1194,7 +1195,7 @@ impl Oryxis {
                             .size(11)
                             .color(info_color)
                             .width(Length::Fill)
-                            .into(),
+                            .boxed(),
                         self.panel_nav_slot(
                             crate::keynav::RowAction::activate(add_msg.clone()),
                             4.0,
@@ -1225,15 +1226,15 @@ impl Oryxis {
                                     ..Default::default()
                                 }
                             })
-                            .into(),
+                            .boxed(),
                         ),
                     ])
                     .align_y(iced::Alignment::Center)
-                    .into();
+                    .boxed();
                     sections.push(row_el);
-                    sections.push(Space::new().height(2).into());
+                    sections.push(Space::new().height(2).boxed());
                 }
-                sections.push(Space::new().height(8).into());
+                sections.push(Space::new().height(8).boxed());
             }
         }
 
@@ -1261,7 +1262,7 @@ impl Oryxis {
                     bottom: 0.0,
                     left: 0.0,
                 })
-                .into(),
+                .boxed(),
             );
         }
 
@@ -1280,6 +1281,6 @@ impl Oryxis {
         // Shared id: the keyboard router keeps the selected row in view.
         .id(iced::widget::Id::new("side-panel-scroll"))
         .height(Length::Fill)
-        .into()
+        .boxed()
     }
 }

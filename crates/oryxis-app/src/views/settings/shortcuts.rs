@@ -77,7 +77,7 @@ impl Oryxis {
         .id(iced::widget::Id::new("settings-shortcuts-scroll"))
         .on_scroll(|s| Message::Settings(SettingsMessage::SectionScrolled(s.viewport.relative_offset().y)))
         .height(Length::Fill)
-        .into()
+        .boxed()
     }
 
     /// One chord chip in the Shortcuts editor: the badge cluster on a
@@ -112,7 +112,7 @@ impl Oryxis {
             text(crate::i18n::t(placeholder))
                 .size(12)
                 .color(OryxisColors::t().button_text)
-                .into()
+                .boxed()
         } else if let Some(b) = chord {
             // For family actions the suffix badge is rendered with a
             // distinct muted style so the user sees at a glance which
@@ -153,7 +153,7 @@ impl Oryxis {
                             },
                             ..Default::default()
                         })
-                        .into()
+                        .boxed()
                     } else {
                         key_badge_owned(lbl)
                     }
@@ -162,7 +162,7 @@ impl Oryxis {
             iced::widget::Row::with_children(badges)
                 .spacing(4)
                 .align_y(iced::Alignment::Center)
-                .into()
+                .boxed()
         } else if empty_row {
             // Nothing bound at all: the add chip carries the unbound
             // placeholder, so the row still reads as one affordance
@@ -173,12 +173,12 @@ impl Oryxis {
             text(crate::i18n::t("hotkey_unbound"))
                 .size(11)
                 .color(OryxisColors::t().button_text)
-                .into()
+                .boxed()
         } else {
             text("+")
                 .size(13)
                 .color(OryxisColors::t().button_text)
-                .into()
+                .boxed()
         };
 
         let btn = button(inner)
@@ -205,7 +205,7 @@ impl Oryxis {
                     ..Default::default()
                 }
             });
-        self.settings_nav_ring_at(idx, 6.0, btn.into())
+        self.settings_nav_ring_at(idx, 6.0, btn.boxed())
     }
 
     /// Single row in the Shortcuts editor list. Renders one chip per
@@ -297,20 +297,20 @@ impl Oryxis {
             self.settings_nav_slot(
                 crate::keynav::RowAction::activate(Message::Settings(SettingsMessage::ResetHotkey(action))),
                 4.0,
-                btn.into(),
+                btn.boxed(),
             )
         } else {
-            Space::new().into()
+            Space::new().boxed()
         };
 
         dir_row(vec![
-            pills_box.into(),
-            label.into(),
-            Space::new().width(Length::Fill).into(),
+            pills_box.boxed(),
+            label.boxed(),
+            Space::new().width(Length::Fill).boxed(),
             reset_el,
         ])
         .align_y(iced::Alignment::Center)
-        .into()
+        .boxed()
     }
 }
 
@@ -332,5 +332,5 @@ fn key_badge_owned(label: String) -> Element<'static, Message> {
             },
             ..Default::default()
         })
-        .into()
+        .boxed()
 }

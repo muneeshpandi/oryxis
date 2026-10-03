@@ -29,13 +29,13 @@ impl Oryxis {
                 text(crate::i18n::t("sync_passphrase_match_hint"))
                     .size(11)
                     .color(OryxisColors::t().success)
-                    .into(),
+                    .boxed(),
             ),
             Some(false) => Some(
                 text(crate::i18n::t("sync_passphrase_mismatch_hint"))
                     .size(11)
                     .color(OryxisColors::t().warning)
-                    .into(),
+                    .boxed(),
             ),
             None => None,
         }
@@ -62,7 +62,7 @@ impl Oryxis {
             text(crate::i18n::t("sync_passphrase_forgot_hint"))
                 .size(11)
                 .color(OryxisColors::t().text_muted)
-                .into(),
+                .boxed(),
         )
     }
 
@@ -131,7 +131,7 @@ impl Oryxis {
                 t("sftp_sync_passphrase"),
                 crate::keynav::RowAction::activate(change),
                 8.0,
-                display.into(),
+                display.boxed(),
             )
         } else {
             // Editable: the input with the live match hint below it.
@@ -183,15 +183,15 @@ impl Oryxis {
                             )
                         },
                     ))
-                    .width(width),
+                    .width(width).boxed(),
                     self.sync.passphrase_field_bounds.clone(),
                 ),
             );
             let mut col = column![field];
             if let Some(hint) = self.sync_passphrase_hint() {
-                col = col.push(Space::new().height(6)).push(hint);
+                col = col.push(Space::new().height(6).boxed()).push(hint);
             }
-            col.into()
+            col.boxed()
         }
     }
 
@@ -239,7 +239,7 @@ impl Oryxis {
         // the master toggle is off, every other Sync panel
         // is hidden below so the surface collapses to just
         // the on/off knob.
-        let enable_section: iced::widget::Column<'_, Message> = column![
+        let enable_section: iced::widget::Column<iced::Element<'_, Message>> = column![
             engine_state,
         ];
 
@@ -249,7 +249,7 @@ impl Oryxis {
     /// SFTP snapshot-transport config block: host, remote path,
     /// passphrase, and the group/known-host notes. Joins the
     /// Transport card right below the method picker.
-    fn sync_snapshot_card(&self) -> iced::widget::Column<'_, Message> {
+    fn sync_snapshot_card(&self) -> iced::widget::Column<iced::Element<'_, Message>> {
         // Host field opens the same rich "Select a host" modal as
         // the SFTP file browser (OS badge + label + address +
         // search), not a flat dropdown. The trigger shows the
@@ -260,27 +260,27 @@ impl Oryxis {
         let host_trigger_inner: Element<'_, Message> = if let Some(c) = selected_conn {
             dir_row(vec![
                 host_badge(c, &self.prefs.default_host_icon, 22.0),
-                Space::new().width(10).into(),
+                Space::new().width(10).boxed(),
                 text(c.label.clone())
                     .size(13)
                     .color(OryxisColors::t().text_primary)
-                    .into(),
-                Space::new().width(Length::Fill).into(),
-                text("\u{25BE}").size(12).color(OryxisColors::t().text_muted).into(),
+                    .boxed(),
+                Space::new().width(Length::Fill).boxed(),
+                text("\u{25BE}").size(12).color(OryxisColors::t().text_muted).boxed(),
             ])
             .align_y(iced::Alignment::Center)
-            .into()
+            .boxed()
         } else {
             dir_row(vec![
                 text(crate::i18n::t("select_a_host"))
                     .size(13)
                     .color(OryxisColors::t().text_muted)
-                    .into(),
-                Space::new().width(Length::Fill).into(),
-                text("\u{25BE}").size(12).color(OryxisColors::t().text_muted).into(),
+                    .boxed(),
+                Space::new().width(Length::Fill).boxed(),
+                text("\u{25BE}").size(12).color(OryxisColors::t().text_muted).boxed(),
             ])
             .align_y(iced::Alignment::Center)
-            .into()
+            .boxed()
         };
         let host_pick = self.settings_nav_slot_labeled(
             t("sftp_sync_host"),
@@ -307,7 +307,7 @@ impl Oryxis {
                         ..Default::default()
                     }
                 })
-                .into(),
+                .boxed(),
         );
         let path_input = self.settings_nav_slot_labeled(
             t("sftp_sync_path"),
@@ -323,7 +323,7 @@ impl Oryxis {
             .width(300)
             .style(crate::widgets::rounded_input_style)
             .align_x(dir_align_x())
-            .into(),
+            .boxed(),
         );
         let mut sftp_section_col = column![
             text(crate::i18n::t("sftp_sync_title"))
@@ -343,23 +343,23 @@ impl Oryxis {
         // options panel above, not here, so feedback sits next to
         // the control that triggers it.)
         sftp_section_col = sftp_section_col
-            .push(Space::new().height(12))
+            .push(Space::new().height(12).boxed())
             .push(
                 text(crate::i18n::t("sftp_sync_note_group"))
                     .size(11)
-                    .color(OryxisColors::t().text_muted),
+                    .color(OryxisColors::t().text_muted).boxed(),
             )
-            .push(Space::new().height(4))
+            .push(Space::new().height(4).boxed())
             .push(
                 text(crate::i18n::t("sftp_sync_note_bridge"))
                     .size(11)
-                    .color(OryxisColors::t().text_muted),
+                    .color(OryxisColors::t().text_muted).boxed(),
             )
-            .push(Space::new().height(4))
+            .push(Space::new().height(4).boxed())
             .push(
                 text(crate::i18n::t("sftp_sync_note_hostkey"))
                     .size(11)
-                    .color(OryxisColors::t().text_muted),
+                    .color(OryxisColors::t().text_muted).boxed(),
             );
         sftp_section_col
     }
@@ -432,19 +432,19 @@ impl Oryxis {
                 text(crate::i18n::t("sync_transport_field"))
                     .size(13)
                     .color(OryxisColors::t().text_secondary)
-                    .into(),
-                Space::new().width(Length::Fill).into(),
-                transport_pick.into(),
+                    .boxed(),
+                Space::new().width(Length::Fill).boxed(),
+                transport_pick.boxed(),
             ])
             .align_y(iced::Alignment::Center)
-            .into(),
+            .boxed(),
         );
         let mut transport_col = column![transport_row];
         // The selected transport's config joins the Transport card so
         // the picker and its settings read as one theme; built here so
         // the keyboard rows record before Options renders.
         let config: Option<Element<'_, Message>> = match self.sync.transport.as_str() {
-            _ if is_sftp => Some(self.sync_snapshot_card().into()),
+            _ if is_sftp => Some(self.sync_snapshot_card().boxed()),
             "folder" => Some(self.sync_folder_card()),
             "git" => Some(self.sync_git_card()),
             "webdav" => Some(self.sync_webdav_card()),
@@ -452,7 +452,7 @@ impl Oryxis {
         };
         if let Some(config) = config {
             transport_col = transport_col
-                .push(Space::new().height(16))
+                .push(Space::new().height(16).boxed())
                 .push(config);
         }
         panel_section(transport_col)
@@ -483,7 +483,7 @@ impl Oryxis {
                 .width(Length::Fill)
                 .style(crate::widgets::rounded_input_style)
                 .align_x(dir_align_x())
-                .into(),
+                .boxed(),
         )
     }
 
@@ -535,16 +535,16 @@ impl Oryxis {
                 .push(
                     text(t(label))
                         .size(12)
-                        .color(OryxisColors::t().text_secondary),
+                        .color(OryxisColors::t().text_secondary).boxed(),
                 )
-                .push(Space::new().height(4))
+                .push(Space::new().height(4).boxed())
                 .push(self.webdav_field(label, id, value, secure, to_msg));
             if let Some(hint) = placeholder {
-                col = col.push(Space::new().height(4)).push(
-                    text(hint).size(10).color(OryxisColors::t().text_muted),
+                col = col.push(Space::new().height(4).boxed()).push(
+                    text(hint).size(10).color(OryxisColors::t().text_muted).boxed(),
                 );
             }
-            col = col.push(Space::new().height(10));
+            col = col.push(Space::new().height(10).boxed());
         }
         // The group passphrase is deliberately NOT a webdav_field: with
         // a stored passphrase it is a read-only masked box until the
@@ -554,13 +554,13 @@ impl Oryxis {
             .push(
                 text(t("sftp_sync_passphrase"))
                     .size(12)
-                    .color(OryxisColors::t().text_secondary),
+                    .color(OryxisColors::t().text_secondary).boxed(),
             )
-            .push(Space::new().height(4))
+            .push(Space::new().height(4).boxed())
             .push(self.sync_passphrase_block("sync-webdav-passphrase", Length::Fill))
-            .push(Space::new().height(10));
+            .push(Space::new().height(10).boxed());
 
-        col = col.push(Space::new().height(2)).push(
+        col = col.push(Space::new().height(2).boxed()).push(
             self.settings_nav_slot_labeled(
                 t("sync_now"),
                 crate::keynav::RowAction::activate(Message::Sync(SyncMessage::WebdavSyncNow)),
@@ -582,10 +582,10 @@ impl Oryxis {
         // typed instead of leaving it to the manual. Loopback is
         // exempt because there is no path.
         if webdav_is_cleartext(&self.sync.webdav.url) {
-            col = col.push(Space::new().height(2)).push(
+            col = col.push(Space::new().height(2).boxed()).push(
                 text(t("webdav_sync_cleartext"))
                     .size(11)
-                    .color(OryxisColors::t().warning),
+                    .color(OryxisColors::t().warning).boxed(),
             );
         }
 
@@ -595,19 +595,19 @@ impl Oryxis {
                 Err(e) => (e.clone(), OryxisColors::t().error),
             };
             col = col
-                .push(Space::new().height(8))
-                .push(text(msg).size(11).color(color));
+                .push(Space::new().height(8).boxed())
+                .push(text(msg).size(11).color(color).boxed());
             if let Some(hint) = self.sync_passphrase_recovery_hint(status) {
-                col = col.push(Space::new().height(4)).push(hint);
+                col = col.push(Space::new().height(4).boxed()).push(hint);
             }
         }
 
-        col = col.push(Space::new().height(10)).push(
+        col = col.push(Space::new().height(10).boxed()).push(
             text(t("webdav_sync_cas_note"))
                 .size(10)
-                .color(OryxisColors::t().text_muted),
+                .color(OryxisColors::t().text_muted).boxed(),
         );
-        col.into()
+        col.boxed()
     }
 
     /// Git-transport config: the remote, the group passphrase, and the
@@ -636,25 +636,25 @@ impl Oryxis {
         // The warning fills a slot that is always there: the probe
         // answers on its own, and a line inserted above the inputs below
         // dropped the focus of whichever one was being typed into.
-        let mut no_git_slot = column![];
+        let mut no_git_slot = iced::widget::Column::<iced::Element<'_, _>>::new();
         if self.sync.git.git_available == Some(false) {
             no_git_slot = no_git_slot
                 .push(
                     text(t("git_sync_no_git"))
                         .size(11)
-                        .color(OryxisColors::t().warning),
+                        .color(OryxisColors::t().warning).boxed(),
                 )
-                .push(Space::new().height(10));
+                .push(Space::new().height(10).boxed());
         }
-        col = col.push(no_git_slot);
+        col = col.push(no_git_slot.boxed());
 
         col = col
             .push(
                 text(t("git_sync_remote"))
                     .size(12)
-                    .color(OryxisColors::t().text_secondary),
+                    .color(OryxisColors::t().text_secondary).boxed(),
             )
-            .push(Space::new().height(4))
+            .push(Space::new().height(4).boxed())
             .push(self.settings_nav_slot_labeled(
                 t("git_sync_remote"),
                 crate::keynav::RowAction::input(iced::widget::Id::new("sync-git-remote")),
@@ -666,17 +666,17 @@ impl Oryxis {
                     .width(Length::Fill)
                     .style(crate::widgets::rounded_input_style)
                     .align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
             ))
-            .push(Space::new().height(10))
+            .push(Space::new().height(10).boxed())
             .push(
                 text(t("sftp_sync_passphrase"))
                     .size(12)
-                    .color(OryxisColors::t().text_secondary),
+                    .color(OryxisColors::t().text_secondary).boxed(),
             )
-            .push(Space::new().height(4))
+            .push(Space::new().height(4).boxed())
             .push(self.sync_passphrase_block("sync-git-pass", Length::Fill))
-            .push(Space::new().height(12));
+            .push(Space::new().height(12).boxed());
 
         col = col.push(self.settings_nav_slot_labeled(
             t("sync_now"),
@@ -695,19 +695,19 @@ impl Oryxis {
                 Err(e) => (e.clone(), OryxisColors::t().error),
             };
             col = col
-                .push(Space::new().height(8))
-                .push(text(msg).size(11).color(color));
+                .push(Space::new().height(8).boxed())
+                .push(text(msg).size(11).color(color).boxed());
             if let Some(hint) = self.sync_passphrase_recovery_hint(status) {
-                col = col.push(Space::new().height(4)).push(hint);
+                col = col.push(Space::new().height(4).boxed()).push(hint);
             }
         }
 
-        col = col.push(Space::new().height(10)).push(
+        col = col.push(Space::new().height(10).boxed()).push(
             text(t("git_sync_history_note"))
                 .size(10)
-                .color(OryxisColors::t().text_muted),
+                .color(OryxisColors::t().text_muted).boxed(),
         );
-        col.into()
+        col.boxed()
     }
 
     /// Folder-transport config: where the snapshot lives, the group
@@ -739,9 +739,9 @@ impl Oryxis {
                     .width(Length::Fill)
                     .style(crate::widgets::rounded_input_style)
                     .align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
             ),
-            Space::new().width(8).into(),
+            Space::new().width(8).boxed(),
             self.settings_nav_slot_labeled(
                 t("folder_sync_pick"),
                 crate::keynav::RowAction::activate(Message::Sync(
@@ -756,7 +756,7 @@ impl Oryxis {
             ),
         ])
         .align_y(iced::Alignment::Center);
-        col = col.push(path_row).push(Space::new().height(10));
+        col = col.push(path_row.boxed()).push(Space::new().height(10).boxed());
 
         // Same group passphrase as the SFTP transport, deliberately:
         // it derives the snapshot key, so two devices that disagree
@@ -765,11 +765,11 @@ impl Oryxis {
             .push(
                 text(t("sftp_sync_passphrase"))
                     .size(12)
-                    .color(OryxisColors::t().text_secondary),
+                    .color(OryxisColors::t().text_secondary).boxed(),
             )
-            .push(Space::new().height(4))
+            .push(Space::new().height(4).boxed())
             .push(self.sync_passphrase_block("sync-folder-pass", Length::Fill))
-            .push(Space::new().height(12));
+            .push(Space::new().height(12).boxed());
 
         col = col.push(self.settings_nav_slot_labeled(
             t("sync_now"),
@@ -788,22 +788,22 @@ impl Oryxis {
                 Err(e) => (e.clone(), OryxisColors::t().error),
             };
             col = col
-                .push(Space::new().height(8))
-                .push(text(msg).size(11).color(color));
+                .push(Space::new().height(8).boxed())
+                .push(text(msg).size(11).color(color).boxed());
             if let Some(hint) = self.sync_passphrase_recovery_hint(status) {
-                col = col.push(Space::new().height(4)).push(hint);
+                col = col.push(Space::new().height(4).boxed()).push(hint);
             }
         }
 
         // Stated in the UI rather than buried in docs: a user pointing
         // two machines at one cloud folder is choosing a trade-off, and
         // they can only choose it if they know it exists.
-        col = col.push(Space::new().height(10)).push(
+        col = col.push(Space::new().height(10).boxed()).push(
             text(t("folder_sync_shared_warning"))
                 .size(10)
-                .color(OryxisColors::t().text_muted),
+                .color(OryxisColors::t().text_muted).boxed(),
         );
-        col.into()
+        col.boxed()
     }
 
     /// Options card: the Auto/Manual mode picker, the password-sync
@@ -856,12 +856,12 @@ impl Oryxis {
             crate::keynav::RowAction::picker(mode_prev, mode_next),
             8.0,
             dir_row(vec![
-                text(crate::i18n::t("sync_mode")).size(13).color(OryxisColors::t().text_secondary).into(),
-                Space::new().width(Length::Fill).into(),
-                mode_pick.into(),
+                text(crate::i18n::t("sync_mode")).size(13).color(OryxisColors::t().text_secondary).boxed(),
+                Space::new().width(Length::Fill).boxed(),
+                mode_pick.boxed(),
             ])
             .align_y(iced::Alignment::Center)
-            .into(),
+            .boxed(),
         );
 
         let passwords_toggle = self.nav_toggle_row(
@@ -870,7 +870,7 @@ impl Oryxis {
             Message::Sync(SyncMessage::TogglePasswords),
         );
 
-        let mut options_section: iced::widget::Column<'_, Message> = column![
+        let mut options_section: iced::widget::Column<iced::Element<'_, Message>> = column![
             mode_row,
             Space::new().height(8),
             passwords_toggle,
@@ -911,7 +911,7 @@ impl Oryxis {
                     sync_btn
                 };
                 options_section =
-                    options_section.push(Space::new().height(8)).push(sync_btn);
+                    options_section.push(Space::new().height(8).boxed()).push(sync_btn);
             } else {
                 // P2P: swap Sync Now <-> Cancel while a sync is in
                 // flight. Cancel races a oneshot against the sync
@@ -941,7 +941,7 @@ impl Oryxis {
                     )
                 };
                 options_section = options_section
-                    .push(Space::new().height(8))
+                    .push(Space::new().height(8).boxed())
                     .push(action_btn);
             }
         }
@@ -957,11 +957,11 @@ impl Oryxis {
                     Err(e) => (e.clone(), OryxisColors::t().error),
                 };
                 options_section = options_section
-                    .push(Space::new().height(8))
-                    .push(text(txt).size(12).color(color));
+                    .push(Space::new().height(8).boxed())
+                    .push(text(txt).size(12).color(color).boxed());
                 if let Some(hint) = self.sync_passphrase_recovery_hint(status) {
                     options_section = options_section
-                        .push(Space::new().height(4))
+                        .push(Space::new().height(4).boxed())
                         .push(hint);
                 }
             }
@@ -969,8 +969,8 @@ impl Oryxis {
             && let Some(status) = &self.sync.status
         {
             options_section = options_section
-                .push(Space::new().height(8))
-                .push(text(status.as_str()).size(12).color(OryxisColors::t().text_muted));
+                .push(Space::new().height(8).boxed())
+                .push(text(status.as_str()).size(12).color(OryxisColors::t().text_muted).boxed());
         }
 
         // Persistent P2P health under the (transient) status line:
@@ -978,14 +978,14 @@ impl Oryxis {
         // survives later events overwriting `status`, so "signaling
         // has been failing" stays visible instead of flashing once.
         if is_p2p {
-            options_section = options_section.push(Space::new().height(8)).push(
+            options_section = options_section.push(Space::new().height(8).boxed()).push(
                 text(format!(
                     "{} {}",
                     self.sync.discovered.len(),
                     crate::i18n::t("sync_health_lan"),
                 ))
                 .size(11)
-                .color(OryxisColors::t().text_muted),
+                .color(OryxisColors::t().text_muted).boxed(),
             );
             if let Some(sig) = &self.sync.signaling_last {
                 let (txt, color) = match sig {
@@ -1005,8 +1005,8 @@ impl Oryxis {
                     ),
                 };
                 options_section = options_section
-                    .push(Space::new().height(4))
-                    .push(text(txt).size(11).color(color));
+                    .push(Space::new().height(4).boxed())
+                    .push(text(txt).size(11).color(color).boxed());
             }
         }
 
@@ -1033,7 +1033,7 @@ impl Oryxis {
             .padding(10)
             .width(300)
             .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
-            .into(),
+            .boxed(),
         );
 
         let device_col = column![
@@ -1045,7 +1045,7 @@ impl Oryxis {
         // Pairing. The sub-view depends on `sync_pairing.state`:
         // Idle shows the two entry buttons; Hosting shows the
         // generated code; Joining shows the code + address form.
-        let mut pairing_section: iced::widget::Column<'_, Message> = column![
+        let mut pairing_section: iced::widget::Column<iced::Element<'_, Message>> = column![
             text(crate::i18n::t("sync_pairing")).size(13).color(OryxisColors::t().text_primary),
             Space::new().height(8),
         ];
@@ -1063,7 +1063,7 @@ impl Oryxis {
                             OryxisColors::t().accent,
                         ),
                     ),
-                    Space::new().width(8).into(),
+                    Space::new().width(8).boxed(),
                     self.settings_nav_slot_labeled(
                         t("sync_join_pairing"),
                         crate::keynav::RowAction::activate(
@@ -1076,18 +1076,18 @@ impl Oryxis {
                             OryxisColors::t().button_bg,
                         ),
                     ),
-                ]));
+                ]).boxed());
                 // Live mDNS-discovered devices on the LAN.
                 // One-click "Pair" switches to the join form
                 // with the address pre-filled, so the user
                 // only has to enter the 6-digit code.
                 if !self.sync.discovered.is_empty() {
                     pairing_section = pairing_section
-                        .push(Space::new().height(14))
+                        .push(Space::new().height(14).boxed())
                         .push(text(crate::i18n::t("sync_discovered_devices"))
                             .size(12)
-                            .color(OryxisColors::t().text_secondary))
-                        .push(Space::new().height(6));
+                            .color(OryxisColors::t().text_secondary).boxed())
+                        .push(Space::new().height(6).boxed());
                     for peer in &self.sync.discovered {
                         let label = if peer.device_name.is_empty() {
                             crate::i18n::t("sync_discovered_unnamed").to_string()
@@ -1110,17 +1110,17 @@ impl Oryxis {
                                 text(label)
                                     .size(13)
                                     .color(OryxisColors::t().text_primary)
-                                    .into(),
-                                Space::new().width(8).into(),
+                                    .boxed(),
+                                Space::new().width(8).boxed(),
                                 text(peer.addr.to_string())
                                     .size(11)
                                     .color(OryxisColors::t().text_muted)
-                                    .into(),
-                                Space::new().width(Length::Fill).into(),
+                                    .boxed(),
+                                Space::new().width(Length::Fill).boxed(),
                                 pair_btn,
                             ])
-                            .align_y(iced::Alignment::Center))
-                            .push(Space::new().height(4));
+                            .align_y(iced::Alignment::Center).boxed())
+                            .push(Space::new().height(4).boxed());
                     }
                 }
             }
@@ -1128,13 +1128,13 @@ impl Oryxis {
                 pairing_section = pairing_section
                     .push(text(crate::i18n::t("sync_pairing_show_code"))
                         .size(12)
-                        .color(OryxisColors::t().text_secondary))
-                    .push(Space::new().height(6));
+                        .color(OryxisColors::t().text_secondary).boxed())
+                    .push(Space::new().height(6).boxed());
                 if let Some(code) = &self.sync.pairing.code {
                     pairing_section = pairing_section
                         .push(text(code.as_str())
                             .size(30)
-                            .color(OryxisColors::t().success));
+                            .color(OryxisColors::t().success).boxed());
                 }
                 // Cross-network pairing block: the link + a
                 // Copy button + the QR. The link works only
@@ -1142,15 +1142,15 @@ impl Oryxis {
                 // (Settings > Sync > Advanced).
                 if let Some(link) = &self.sync.pairing.link {
                     pairing_section = pairing_section
-                        .push(Space::new().height(12))
+                        .push(Space::new().height(12).boxed())
                         .push(text(crate::i18n::t("sync_pairing_link_label"))
                             .size(12)
-                            .color(OryxisColors::t().text_secondary))
-                        .push(Space::new().height(4))
+                            .color(OryxisColors::t().text_secondary).boxed())
+                        .push(Space::new().height(4).boxed())
                         .push(text(link.as_str())
                             .size(11)
-                            .color(OryxisColors::t().text_muted))
-                        .push(Space::new().height(6))
+                            .color(OryxisColors::t().text_muted).boxed())
+                        .push(Space::new().height(6).boxed())
                         .push(self.settings_nav_slot(
                             crate::keynav::RowAction::activate(
                                 Message::CopyToClipboard(link.clone()),
@@ -1164,7 +1164,7 @@ impl Oryxis {
                         ));
                 }
                 pairing_section = pairing_section
-                    .push(Space::new().height(12))
+                    .push(Space::new().height(12).boxed())
                     .push(self.settings_nav_slot(
                         crate::keynav::RowAction::activate(
                             Message::Sync(SyncMessage::CancelHostingPairing),
@@ -1193,7 +1193,7 @@ impl Oryxis {
                     .width(280)
                     .style(crate::widgets::rounded_input_style)
                     .align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
                 );
                 let target_input = self.settings_nav_slot(
                     crate::keynav::RowAction::input(iced::widget::Id::new(
@@ -1210,7 +1210,7 @@ impl Oryxis {
                     .width(320)
                     .style(crate::widgets::rounded_input_style)
                     .align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
                 );
                 let connect_btn = self.settings_nav_slot(
                     crate::keynav::RowAction::activate(Message::Sync(SyncMessage::JoinPairingConnect)),
@@ -1248,7 +1248,7 @@ impl Oryxis {
                     .width(360)
                     .style(crate::widgets::rounded_input_style)
                     .align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
                 );
                 let link_connect_btn = self.settings_nav_slot(
                     crate::keynav::RowAction::activate(Message::Sync(SyncMessage::JoinPairingByLink)),
@@ -1261,21 +1261,21 @@ impl Oryxis {
                 );
                 pairing_section = pairing_section
                     .push(code_input)
-                    .push(Space::new().height(8))
+                    .push(Space::new().height(8).boxed())
                     .push(target_input)
-                    .push(Space::new().height(10))
+                    .push(Space::new().height(10).boxed())
                     .push(dir_row(vec![
                         connect_btn,
-                        Space::new().width(8).into(),
+                        Space::new().width(8).boxed(),
                         cancel_btn,
-                    ]))
-                    .push(Space::new().height(14))
+                    ]).boxed())
+                    .push(Space::new().height(14).boxed())
                     .push(text(crate::i18n::t("sync_pairing_or_separator"))
                         .size(11)
-                        .color(OryxisColors::t().text_muted))
-                    .push(Space::new().height(6))
+                        .color(OryxisColors::t().text_muted).boxed())
+                    .push(Space::new().height(6).boxed())
                     .push(link_input)
-                    .push(Space::new().height(8))
+                    .push(Space::new().height(8).boxed())
                     .push(link_connect_btn);
             }
         }
@@ -1289,10 +1289,10 @@ impl Oryxis {
             && let Some(status) = &self.sync.status
         {
             pairing_section = pairing_section
-                .push(Space::new().height(8))
+                .push(Space::new().height(8).boxed())
                 .push(text(status.as_str())
                     .size(11)
-                    .color(OryxisColors::t().text_muted));
+                    .color(OryxisColors::t().text_muted).boxed());
         }
 
         // Paired devices list. Empty until the first successful
@@ -1300,11 +1300,11 @@ impl Oryxis {
         // populated this because the engine wasn't wired.
         if !self.sync.peers.is_empty() {
             pairing_section = pairing_section
-                .push(Space::new().height(14))
+                .push(Space::new().height(14).boxed())
                 .push(text(crate::i18n::t("sync_paired_devices"))
                     .size(12)
-                    .color(OryxisColors::t().text_secondary))
-                .push(Space::new().height(6));
+                    .color(OryxisColors::t().text_secondary).boxed())
+                .push(Space::new().height(6).boxed());
             for peer in &self.sync.peers {
                 let last_sync = peer.last_synced_at
                     // Stored UTC; show in the user's local timezone.
@@ -1325,24 +1325,24 @@ impl Oryxis {
                         background: Some(Background::Color(Color::TRANSPARENT)),
                         ..Default::default()
                     })
-                    .into(),
+                    .boxed(),
                 );
                 pairing_section = pairing_section.push(
                     dir_row(vec![
-                        text(&peer.device_name).size(13).color(OryxisColors::t().text_primary).into(),
-                        Space::new().width(Length::Fill).into(),
-                        text(last_sync).size(11).color(OryxisColors::t().text_muted).into(),
-                        Space::new().width(8).into(),
+                        text(&peer.device_name).size(13).color(OryxisColors::t().text_primary).boxed(),
+                        Space::new().width(Length::Fill).boxed(),
+                        text(last_sync).size(11).color(OryxisColors::t().text_muted).boxed(),
+                        Space::new().width(8).boxed(),
                         unpair,
-                    ]).align_y(iced::Alignment::Center),
-                ).push(Space::new().height(4));
+                    ]).align_y(iced::Alignment::Center).boxed(),
+                ).push(Space::new().height(4).boxed());
             }
         }
 
         panel_section(
             device_col
-                .push(Space::new().height(16))
-                .push(pairing_section),
+                .push(Space::new().height(16).boxed())
+                .push(pairing_section.boxed()),
         )
     }
 
@@ -1371,12 +1371,12 @@ impl Oryxis {
     /// the endpoint (signaling URL + token settings) once the
     /// reachability test passes. The in-app fast path for what
     /// SELF_HOSTING.md documents long-form.
-    fn sync_relay_wizard_card(&self) -> iced::widget::Column<'_, Message> {
+    fn sync_relay_wizard_card(&self) -> iced::widget::Column<iced::Element<'_, Message>> {
         let w = &self.sync.relay_wizard;
         // A deploy probe or run bakes the domain, public port and token
         // into its plan: they are frozen while one is in flight.
         let deploy_busy = self.sync.relay_deploy.busy;
-        let mut wizard_col: iced::widget::Column<'_, Message> =
+        let mut wizard_col: iced::widget::Column<iced::Element<'_, Message>> =
             column![self.settings_nav_slot_labeled(
                 t("sync_wizard_button"),
                 crate::keynav::RowAction::activate(Message::Sync(SyncMessage::WizardToggle)),
@@ -1389,19 +1389,19 @@ impl Oryxis {
             )];
         if w.open {
             wizard_col = wizard_col
-                .push(Space::new().height(8))
+                .push(Space::new().height(8).boxed())
                 .push(
                     text(crate::i18n::t("sync_wizard_intro"))
                         .size(11)
-                        .color(OryxisColors::t().text_muted),
+                        .color(OryxisColors::t().text_muted).boxed(),
                 )
-                .push(Space::new().height(10))
+                .push(Space::new().height(10).boxed())
                 .push(
                     text(crate::i18n::t("sync_wizard_domain"))
                         .size(12)
-                        .color(OryxisColors::t().text_muted),
+                        .color(OryxisColors::t().text_muted).boxed(),
                 )
-                .push(Space::new().height(4))
+                .push(Space::new().height(4).boxed())
                 .push(self.wizard_input_slot(
                     "set-sync-wizard-domain",
                     text_input("relay.example.com", &w.domain)
@@ -1414,15 +1414,15 @@ impl Oryxis {
                         .width(320)
                         .style(crate::widgets::rounded_input_style)
                         .align_x(dir_align_x())
-                        .into(),
+                        .boxed(),
                 ))
-                .push(Space::new().height(8))
+                .push(Space::new().height(8).boxed())
                 .push(
                     text(crate::i18n::t("sync_wizard_public_port"))
                         .size(12)
-                        .color(OryxisColors::t().text_muted),
+                        .color(OryxisColors::t().text_muted).boxed(),
                 )
-                .push(Space::new().height(4))
+                .push(Space::new().height(4).boxed())
                 .push(self.wizard_input_slot(
                     "set-sync-wizard-port",
                     text_input("443", &w.port)
@@ -1435,9 +1435,9 @@ impl Oryxis {
                         .width(120)
                         .style(crate::widgets::rounded_input_style)
                         .align_x(dir_align_x())
-                        .into(),
+                        .boxed(),
                 ))
-                .push(Space::new().height(8))
+                .push(Space::new().height(8).boxed())
                 .push(
                     text(format!(
                         "{}: {}",
@@ -1445,9 +1445,9 @@ impl Oryxis {
                         w.token,
                     ))
                     .size(11)
-                    .color(OryxisColors::t().text_muted),
+                    .color(OryxisColors::t().text_muted).boxed(),
                 )
-                .push(Space::new().height(6))
+                .push(Space::new().height(6).boxed())
                 .push(if deploy_busy {
                     // Disabled, and an inert stop of the walk so the
                     // rows below keep their indices.
@@ -1496,22 +1496,22 @@ impl Oryxis {
                     ),
                 )
             };
-            wizard_col = wizard_col.push(Space::new().height(12)).push(dir_row(vec![
+            wizard_col = wizard_col.push(Space::new().height(12).boxed()).push(dir_row(vec![
                 fmt_btn("Docker Compose", crate::state::RelayWizardFormat::Compose),
-                Space::new().width(8).into(),
+                Space::new().width(8).boxed(),
                 fmt_btn("systemd", crate::state::RelayWizardFormat::Systemd),
-                Space::new().width(8).into(),
+                Space::new().width(8).boxed(),
                 fmt_btn("Caddy", crate::state::RelayWizardFormat::Caddy),
-            ]));
+            ]).boxed());
             let artifact = w.artifact();
             wizard_col = wizard_col
-                .push(Space::new().height(10))
+                .push(Space::new().height(10).boxed())
                 .push(
                     text(crate::i18n::t("sync_wizard_files"))
                         .size(12)
-                        .color(OryxisColors::t().text_secondary),
+                        .color(OryxisColors::t().text_secondary).boxed(),
                 )
-                .push(Space::new().height(4))
+                .push(Space::new().height(4).boxed())
                 .push(
                     container(
                         text(artifact.clone())
@@ -1531,9 +1531,9 @@ impl Oryxis {
                             width: 1.0,
                         },
                         ..Default::default()
-                    }),
+                    }).boxed(),
                 )
-                .push(Space::new().height(6))
+                .push(Space::new().height(6).boxed())
                 .push(self.settings_nav_slot(
                     crate::keynav::RowAction::activate(
                         Message::CopyToClipboard(artifact.clone()),
@@ -1545,13 +1545,13 @@ impl Oryxis {
                         OryxisColors::t().button_bg,
                     ),
                 ))
-                .push(Space::new().height(10))
+                .push(Space::new().height(10).boxed())
                 .push(
                     text(crate::i18n::t("sync_wizard_steps"))
                         .size(11)
-                        .color(OryxisColors::t().text_muted),
+                        .color(OryxisColors::t().text_muted).boxed(),
                 )
-                .push(Space::new().height(10));
+                .push(Space::new().height(10).boxed());
             // Test button only fires with a domain typed and no
             // probe in flight; recorded only when enabled so
             // keyboard Enter can't double-fire a probe.
@@ -1576,7 +1576,7 @@ impl Oryxis {
             // seconds later), so it fills a slot that is always there:
             // two children pushed only once it arrived shifted the
             // deploy block below and dropped its inputs' focus.
-            let mut result_slot = column![];
+            let mut result_slot = iced::widget::Column::<iced::Element<'_, _>>::new();
             if let Some(result) = &w.result {
                 let (txt, color) = match result {
                     Ok(()) => (
@@ -1592,16 +1592,16 @@ impl Oryxis {
                     ),
                 };
                 result_slot = result_slot
-                    .push(Space::new().height(8))
-                    .push(text(txt).size(11).color(color));
+                    .push(Space::new().height(8).boxed())
+                    .push(text(txt).size(11).color(color).boxed());
             }
-            wizard_col = wizard_col.push(result_slot);
+            wizard_col = wizard_col.push(result_slot.boxed());
             // Level 2: the app installs the relay itself, on a vault
             // host, over SSH (E3). Below the manual path so the domain
             // and token typed above are what it deploys.
             wizard_col = wizard_col
-                .push(Space::new().height(16))
-                .push(self.sync_relay_deploy_block());
+                .push(Space::new().height(16).boxed())
+                .push(self.sync_relay_deploy_block().boxed());
         }
         wizard_col
     }
@@ -1622,7 +1622,7 @@ impl Oryxis {
                 .padding(8)
                 .width(300)
                 .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
-                .into(),
+                .boxed(),
         );
         // Keyboard rows (audit fix: this field recorded
         // nothing): the field, then its reveal eye.
@@ -1661,7 +1661,7 @@ impl Oryxis {
                 ),
             )
             .width(300)
-            .into(),
+            .boxed(),
         );
         let relay_input = self.settings_nav_slot_labeled(
             t("sync_relay_url"),
@@ -1673,7 +1673,7 @@ impl Oryxis {
                 .padding(8)
                 .width(300)
                 .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
-                .into(),
+                .boxed(),
         );
         let port_input = self.settings_nav_slot_labeled(
             t("sync_listen_port"),
@@ -1687,7 +1687,7 @@ impl Oryxis {
                 .padding(8)
                 .width(100)
                 .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
-                .into(),
+                .boxed(),
         );
 
         let advanced_col = column![
@@ -1712,8 +1712,8 @@ impl Oryxis {
 
         panel_section(
             advanced_col
-                .push(Space::new().height(16))
-                .push(self.sync_relay_wizard_card()),
+                .push(Space::new().height(16).boxed())
+                .push(self.sync_relay_wizard_card().boxed()),
         )
     }
 
@@ -1744,16 +1744,16 @@ impl Oryxis {
                 .color(OryxisColors::t().text_secondary),
         ]);
 
-        let mut content_col: iced::widget::Column<'_, Message> = column![
+        let mut content_col: iced::widget::Column<iced::Element<'_, Message>> = column![
             enable_card,
         ]
         .width(Length::Fill)
         .align_x(dir_align_x());
 
         content_col = content_col
-            .push(Space::new().height(18))
+            .push(Space::new().height(18).boxed())
             .push(crate::widgets::settings_group_header(crate::i18n::t("sync_how_title")))
-            .push(Space::new().height(8))
+            .push(Space::new().height(8).boxed())
             .push(how_section);
 
         if self.sync.enabled {
@@ -1761,13 +1761,13 @@ impl Oryxis {
             let options_section = self.sync_options_card(is_sftp, is_p2p);
 
             content_col = content_col
-                .push(Space::new().height(18))
+                .push(Space::new().height(18).boxed())
                 .push(crate::widgets::settings_group_header(crate::i18n::t("sync_transport")))
-                .push(Space::new().height(8))
+                .push(Space::new().height(8).boxed())
                 .push(transport_section)
-                .push(Space::new().height(18))
+                .push(Space::new().height(18).boxed())
                 .push(crate::widgets::settings_group_header(crate::i18n::t("sync_options")))
-                .push(Space::new().height(8))
+                .push(Space::new().height(8).boxed())
                 .push(options_section);
 
             if is_p2p {
@@ -1775,17 +1775,17 @@ impl Oryxis {
                 let advanced_card = self.sync_advanced_card();
 
                 content_col = content_col
-                    .push(Space::new().height(18))
+                    .push(Space::new().height(18).boxed())
                     .push(crate::widgets::settings_group_header(crate::i18n::t("sync_device")))
-                    .push(Space::new().height(8))
+                    .push(Space::new().height(8).boxed())
                     .push(devices_card)
-                    .push(Space::new().height(18))
+                    .push(Space::new().height(18).boxed())
                     .push(crate::widgets::settings_group_header(crate::i18n::t("sync_advanced")))
-                    .push(Space::new().height(8))
+                    .push(Space::new().height(8).boxed())
                     .push(advanced_card);
             }
         }
-        content_col = content_col.push(Space::new().height(24));
+        content_col = content_col.push(Space::new().height(24).boxed());
 
         scrollable(
             container(content_col)
@@ -1796,7 +1796,7 @@ impl Oryxis {
         .id(iced::widget::Id::new("settings-sync-scroll"))
         .on_scroll(|s| Message::Settings(SettingsMessage::SectionScrolled(s.viewport.relative_offset().y)))
         .height(Length::Fill)
-        .into()
+        .boxed()
     }
 }
 

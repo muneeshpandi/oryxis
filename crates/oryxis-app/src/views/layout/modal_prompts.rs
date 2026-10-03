@@ -14,7 +14,7 @@ impl Oryxis {
     ) -> Element<'a, Message> {
         let c = OryxisColors::t();
         self.modal_nav_reset();
-        let mut fields = column![].spacing(10);
+        let mut fields = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(10);
         for (i, (name, value)) in pending.vars.iter().enumerate() {
             let input_id = iced::widget::Id::from(format!("snippet-var-{i}"));
             fields = fields.push(
@@ -32,11 +32,11 @@ impl Oryxis {
                             .padding(10)
                             .style(crate::widgets::rounded_input_style)
                             .align_x(dir_align_x())
-                            .into(),
+                            .boxed(),
                     ),
                 ]
                 .width(Length::Fill)
-                .align_x(dir_align_x()),
+                .align_x(dir_align_x()).boxed(),
             );
         }
         let confirm_label = if pending.run {
@@ -47,8 +47,8 @@ impl Oryxis {
         let dialog = container(
             column![
                 dir_row(vec![
-                    iced_fonts::lucide::braces().size(16).color(c.accent).into(),
-                    Space::new().width(8).into(),
+                    iced_fonts::lucide::braces().size(16).color(c.accent).boxed(),
+                    Space::new().width(8).boxed(),
                     container(
                         text(crate::i18n::t("snippet_vars_title"))
                             .size(16)
@@ -56,7 +56,7 @@ impl Oryxis {
                     )
                     .width(Length::Fill)
                     .align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
                 ])
                 .align_y(iced::Alignment::Center),
                 Space::new().height(12),
@@ -69,7 +69,7 @@ impl Oryxis {
                         true,
                         styled_button(confirm_label, Message::Snippet(SnippetMessage::ConfirmSnippetVars), c.accent),
                     ),
-                    Space::new().width(8).into(),
+                    Space::new().width(8).boxed(),
                     self.modal_nav_slot(
                         crate::keynav::RowAction::activate(Message::Snippet(SnippetMessage::CancelSnippetVars)),
                         6.0,
@@ -92,7 +92,7 @@ impl Oryxis {
             border: Border { radius: Radius::from(12.0), color: c.border, width: 1.0 },
             ..Default::default()
         });
-        dialog.into()
+        dialog.boxed()
     }
 
     /// Content for the careful-paste confirmation (line-count, preview,
@@ -110,7 +110,7 @@ impl Oryxis {
         // clipped so a minified one-liner can't blow the dialog up.
         const PREVIEW_LINES: usize = 8;
         const PREVIEW_COLS: usize = 100;
-        let mut preview_col = column![].spacing(2);
+        let mut preview_col = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(2);
         for line in normalized.lines().take(PREVIEW_LINES) {
             let clipped: String = if line.chars().count() > PREVIEW_COLS {
                 let mut s: String = line.chars().take(PREVIEW_COLS).collect();
@@ -129,12 +129,12 @@ impl Oryxis {
                     // Wrap long lines inside the fixed-width dialog
                     // instead of letting them bleed past its edge.
                     // Glyph (not Word) so an unbroken token still wraps.
-                    .wrapping(iced::widget::text::Wrapping::Glyph),
+                    .wrapping(iced::widget::text::Wrapping::Glyph).boxed(),
             );
         }
         if line_count > PREVIEW_LINES {
             preview_col = preview_col.push(
-                text("…").size(12).font(iced::Font::MONOSPACE).color(c.text_muted),
+                text("…").size(12).font(iced::Font::MONOSPACE).color(c.text_muted).boxed(),
             );
         }
         let preview = container(preview_col)
@@ -155,48 +155,46 @@ impl Oryxis {
                     iced_fonts::lucide::triangle_alert()
                         .size(13)
                         .color(c.warning)
-                        .into(),
-                    Space::new().width(6).into(),
+                        .boxed(),
+                    Space::new().width(6).boxed(),
                     container(
                         text(crate::i18n::t("careful_paste_trailing"))
                             .size(11)
                             .color(c.warning),
                     )
                     .width(Length::Fill)
-                    .into(),
+                    .boxed(),
                 ])
                 .align_y(iced::Alignment::Center),
-            ]
-            .into()
+            ].boxed()
         } else {
-            Space::new().into()
+            Space::new().boxed()
         };
 
         // Content-heuristic warnings (paste_guard): one line per
         // detected class, re-derived from the parked text.
-        let mut guard_notes = column![].spacing(4);
+        let mut guard_notes = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(4);
         for w in crate::paste_guard::paste_warnings(pending) {
             guard_notes = guard_notes.push(
                 dir_row(vec![
                     iced_fonts::lucide::triangle_alert()
                         .size(13)
                         .color(c.error)
-                        .into(),
-                    Space::new().width(6).into(),
+                        .boxed(),
+                    Space::new().width(6).boxed(),
                     container(
                         text(crate::i18n::t(w.label_key())).size(11).color(c.error),
                     )
                     .width(Length::Fill)
-                    .into(),
+                    .boxed(),
                 ])
-                .align_y(iced::Alignment::Center),
+                .align_y(iced::Alignment::Center).boxed(),
             );
         }
         let guard_notes: Element<'_, Message> = column![
             Space::new().height(8),
             guard_notes,
-        ]
-        .into();
+        ].boxed();
 
         // Broadcast input (C2): when the active tab is armed, this paste fans
         // out to every participating pane. Name the blast radius so the user
@@ -217,8 +215,8 @@ impl Oryxis {
                 column![
                     Space::new().height(8),
                     dir_row(vec![
-                        iced_fonts::lucide::radio().size(13).color(c.warning).into(),
-                        Space::new().width(6).into(),
+                        iced_fonts::lucide::radio().size(13).color(c.warning).boxed(),
+                        Space::new().width(6).boxed(),
                         container(
                             text(
                                 crate::i18n::t("broadcast_paste_notice")
@@ -228,13 +226,12 @@ impl Oryxis {
                             .color(c.warning),
                         )
                         .width(Length::Fill)
-                        .into(),
+                        .boxed(),
                     ])
                     .align_y(iced::Alignment::Center),
-                ]
-                .into()
+                ].boxed()
             })
-            .unwrap_or_else(|| Space::new().into());
+            .unwrap_or_else(|| Space::new().boxed());
 
         let dialog = container(
             column![
@@ -242,8 +239,8 @@ impl Oryxis {
                     iced_fonts::lucide::clipboard_list()
                         .size(16)
                         .color(c.accent)
-                        .into(),
-                    Space::new().width(8).into(),
+                        .boxed(),
+                    Space::new().width(8).boxed(),
                     container(
                         // An install script (issue #147) parks in the
                         // same dialog; the title says what confirming
@@ -259,7 +256,7 @@ impl Oryxis {
                     )
                     .width(Length::Fill)
                     .align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
                 ])
                 .align_y(iced::Alignment::Center),
                 Space::new().height(6),
@@ -299,7 +296,7 @@ impl Oryxis {
                             ),
                         )
                     },
-                    Space::new().width(8).into(),
+                    Space::new().width(8).boxed(),
                     self.modal_nav_slot(
                         crate::keynav::RowAction::activate(Message::Terminal(TerminalMessage::CancelPendingPaste)),
                         6.0,
@@ -322,7 +319,7 @@ impl Oryxis {
             border: Border { radius: Radius::from(12.0), color: c.border, width: 1.0 },
             ..Default::default()
         });
-        dialog.into()
+        dialog.boxed()
     }
 
     /// Content for the tab-rename modal (an empty name restores the
@@ -352,7 +349,7 @@ impl Oryxis {
                 Space::new().height(12),
                 dir_row(vec![
                     styled_button(crate::i18n::t("save"), Message::Tabs(TabsMessage::ConfirmTabRename), OryxisColors::t().accent),
-                    Space::new().width(8).into(),
+                    Space::new().width(8).boxed(),
                     styled_button(crate::i18n::t("cancel"), Message::Tabs(TabsMessage::CancelTabRename), OryxisColors::t().text_muted),
                 ]),
             ]
@@ -366,7 +363,7 @@ impl Oryxis {
             border: Border { radius: Radius::from(12.0), color: OryxisColors::t().border, width: 1.0 },
             ..Default::default()
         });
-        dialog.into()
+        dialog.boxed()
     }
 
     /// Content for the folder-rename modal.
@@ -388,7 +385,7 @@ impl Oryxis {
                 Space::new().height(12),
                 dir_row(vec![
                     styled_button(crate::i18n::t("save"), Message::Tabs(TabsMessage::ConfirmRenameFolder), OryxisColors::t().accent),
-                    Space::new().width(8).into(),
+                    Space::new().width(8).boxed(),
                     styled_button(crate::i18n::t("cancel"), Message::Tabs(TabsMessage::CancelFolderModal), OryxisColors::t().text_muted),
                 ]),
             ]
@@ -402,7 +399,7 @@ impl Oryxis {
             border: Border { radius: Radius::from(12.0), color: OryxisColors::t().border, width: 1.0 },
             ..Default::default()
         });
-        dialog.into()
+        dialog.boxed()
     }
 
     /// Content for the three-way folder-delete confirmation (keep hosts /
@@ -556,6 +553,6 @@ impl Oryxis {
             border: Border { radius: Radius::from(14.0), color: c.border, width: 1.0 },
             ..Default::default()
         });
-        dialog.into()
+        dialog.boxed()
     }
 }

@@ -1,5 +1,6 @@
 //! Terminal view + AI chat sidebar.
 
+use iced::Widget as _;
 use std::sync::Arc;
 
 use iced::border::Radius;
@@ -33,11 +34,11 @@ impl Oryxis {
             // The ZMODEM card still floats on top: the hidden PTY keeps
             // processing output, so a remote `sz` can seize the pane
             // while the files surface is up and must stay visible.
-            let mut stack = iced::widget::Stack::new().push(self.view_sftp());
+            let mut stack = iced::widget::Stack::<iced::Element<'_, _>>::new().push(self.view_sftp());
             if let Some(zm) = self.transfer_overlay() {
                 stack = stack.push(zm);
             }
-            return stack.into();
+            return stack.boxed();
         }
         // Which sidebar regions are on screen (issue #102): each side
         // is open on the tab AND has at least one available tab. Both
@@ -111,7 +112,13 @@ impl Oryxis {
                 // pane has no sibling to tell itself apart from, and its
                 // end-of-session card is the answer it already has.
                 let headers = multipane && self.prefs.pane_headers;
-                let grid = iced::widget::pane_grid(&tab.pane_grid, move |pane, pane_data, _max| {
+                // The body of a pane, shared by both grids below: the title
+                // bar is part of the content's TYPE, so a grid with headers
+                // and one without are two different widgets.
+                macro_rules! pane_body {
+                    ($pane:expr, $pane_data:expr) => {{
+                    let pane = $pane;
+                    let pane_data = $pane_data;
                     let is_focused = pane == focused;
                     // The outline (focus accent, or the warning tint while
                     // broadcasting) is drawn INSIDE `render_pane_canvas`, as a
@@ -131,12 +138,12 @@ impl Oryxis {
                         .width(Length::Fill)
                         .height(Length::Fill),
                     );
-                    if headers {
-                        content.title_bar(self.pane_header(tab, pane_data, is_focused))
-                    } else {
-                        content
-                    }
-                })
+                    (content, is_focused)
+                    }};
+                }
+                macro_rules! finish_grid {
+                    ($grid:expr) => {
+                        $grid
                 .on_click(|v| Message::Terminal(TerminalMessage::FocusPane(v)))
                 // The panes sit FLUSH: no gutter at all (owner call). The
                 // divider stays grabbable because each pane declines
@@ -191,7 +198,24 @@ impl Oryxis {
                 })
                 .spacing(if multipane { gap } else { 0.0 })
                 .width(Length::Fill)
-                .height(Length::Fill);
+                .height(Length::Fill)
+                .boxed()
+                    };
+                }
+                let grid: Element<'_, Message> = if headers {
+                    finish_grid!(iced::widget::pane_grid(
+                        &tab.pane_grid,
+                        move |pane, pane_data, _max| {
+                            let (content, is_focused) = pane_body!(pane, pane_data);
+                            content.title_bar(self.pane_header(tab, pane_data, is_focused))
+                        }
+                    ))
+                } else {
+                    finish_grid!(iced::widget::pane_grid(
+                        &tab.pane_grid,
+                        move |pane, pane_data, _max| pane_body!(pane, pane_data).0
+                    ))
+                };
 
                 // The AI/sidebar toggle now lives in the tab bar (panel
                 // button right of `+`), so the terminal canvas no longer
@@ -205,9 +229,9 @@ impl Oryxis {
                 // half-applied (field report).
                 let term_with_toggle: Element<'_, Message> =
                     if multipane && gap > 0.0 {
-                        container(grid).padding(gap).into()
+                        container(grid).padding(gap).boxed()
                     } else {
-                        grid.into()
+                        grid.boxed()
                     };
 
                 // The session-group editor renders here, as a sibling of the
@@ -236,17 +260,17 @@ impl Oryxis {
                     iced::widget::Row::with_children(children)
                         .width(Length::Fill)
                         .height(Length::Fill)
-                        .into()
+                        .boxed()
                 } else {
                     term_with_toggle
                 }
             } else {
                 container(text(t("no_active_session")).size(14).color(OryxisColors::t().text_muted))
-                    .center(Length::Fill).into()
+                    .center(Length::Fill).boxed()
             }
         } else {
             container(text(t("no_active_session")).size(14).color(OryxisColors::t().text_muted))
-                .center(Length::Fill).into()
+                .center(Length::Fill).boxed()
         };
 
         // The terminal's own backdrop, and the only layer that carries
@@ -259,7 +283,7 @@ impl Oryxis {
         let base = container(terminal_area)
             .width(Length::Fill)
             .height(Length::Fill)
-            .style(move |_| container::Style {
+            .style(move |_: &iced::Theme| container::Style {
                 background: Some(Background::Color(Color {
                     a: backdrop_alpha.unwrap_or(1.0),
                     ..OryxisColors::t().terminal_bg
@@ -271,11 +295,11 @@ impl Oryxis {
         // chip is NOT layered here: it mounts at the window root
         // (`root_view.rs`), so notifications raised while the user sits
         // in the Dashboard / Settings views are visible too.
-        let mut stack = iced::widget::Stack::new().push(base);
+        let mut stack = iced::widget::Stack::<iced::Element<'_, _>>::new().push(base.boxed());
         if let Some(zm) = self.transfer_overlay() {
             stack = stack.push(zm);
         }
-        stack.into()
+        stack.boxed()
     }
 
     /// Bottom-center transfer card over the terminal while the active
@@ -327,16 +351,16 @@ impl Oryxis {
             text(format!("{verb} {name}{batch}"))
                 .size(12)
                 .color(OryxisColors::t().text_primary)
-                .into(),
-            Space::new().width(Length::Fill).into(),
-            text(bytes_line).size(11).color(OryxisColors::t().text_muted).into(),
+                .boxed(),
+            Space::new().width(Length::Fill).boxed(),
+            text(bytes_line).size(11).color(OryxisColors::t().text_muted).boxed(),
         ])
         .align_y(iced::Alignment::Center);
 
         let mut body = column![header].spacing(6).width(Length::Fixed(320.0));
         if let Some(total) = total.filter(|t| *t > 0) {
             let frac = (transferred as f32 / total as f32).clamp(0.0, 1.0);
-            body = body.push(iced::widget::progress_bar(0.0..=1.0, frac));
+            body = body.push(iced::widget::progress_bar(0.0..=1.0, frac).boxed());
         }
         let cancel = button(text(t("cancel")).size(11).color(OryxisColors::t().text_primary))
             .on_press(cancel_msg)
@@ -360,7 +384,7 @@ impl Oryxis {
         body = body.push(
             container(cancel)
                 .width(Length::Fill)
-                .align_x(iced::alignment::Horizontal::Right),
+                .align_x(iced::alignment::Horizontal::Right).boxed(),
         );
 
         let card = container(body)
@@ -391,7 +415,7 @@ impl Oryxis {
             )
             .width(Length::Fill)
             .height(Length::Fill)
-            .into(),
+            .boxed(),
         )
     }
 
@@ -441,7 +465,7 @@ impl Oryxis {
             )
             .width(Length::Fill)
             .height(Length::Fill)
-            .into(),
+            .boxed(),
         )
     }
 
@@ -735,19 +759,19 @@ impl Oryxis {
         // (selection, cursor, cell backgrounds, fade) over the picture and
         // lets the fade actually show (see `oryxis_terminal::Backdrop`).
         let term_canvas: Element<'a, Message> = if let Some(image) = appearance.image {
-            iced::widget::Stack::new()
+            iced::widget::Stack::<iced::Element<'_, _>>::new()
                 .push(
                     canvas(oryxis_terminal::Backdrop::new(
                         Arc::clone(&pane.terminal),
                         image,
                     ))
                     .width(Length::Fill)
-                    .height(Length::Fill),
+                    .height(Length::Fill).boxed(),
                 )
-                .push(term_canvas)
-                .into()
+                .push(term_canvas.boxed())
+                .boxed()
         } else {
-            term_canvas.into()
+            term_canvas.boxed()
         };
         let host = crate::widgets::ime_host(
             term_canvas,
@@ -821,7 +845,7 @@ impl Oryxis {
                     border: Border { color, width, radius: Radius::from(0.0) },
                     ..Default::default()
                 })
-                .into()
+                .boxed()
         });
         // The end-of-session card (issue #208). Not gated on `multipane`:
         // a local shell in a tab of its own raises `ended` too, and it is
@@ -841,7 +865,7 @@ impl Oryxis {
         if overlay.is_none() && link_chip.is_none() && ring.is_none() && ended_card.is_none() {
             return host;
         }
-        let mut stack = iced::widget::Stack::new().push(host);
+        let mut stack = iced::widget::Stack::<iced::Element<'_, _>>::new().push(host);
         // Under the chips: a 2 px ring at the edges and a padded chip in
         // the corner do not overlap, and keeping the chips last means a
         // future wider ring can never cover the find bar.
@@ -855,7 +879,7 @@ impl Oryxis {
                     .height(Length::Fill)
                     .align_x(iced::alignment::Horizontal::Right)
                     .align_y(iced::alignment::Vertical::Top)
-                    .padding(Padding::from([6.0, 10.0])),
+                    .padding(Padding::from([6.0, 10.0])).boxed(),
             );
         }
         if let Some(chip) = link_chip {
@@ -865,7 +889,7 @@ impl Oryxis {
                     .height(Length::Fill)
                     .align_x(crate::widgets::dir_align_x())
                     .align_y(iced::alignment::Vertical::Bottom)
-                    .padding(Padding::from([6.0, 10.0])),
+                    .padding(Padding::from([6.0, 10.0])).boxed(),
             );
         }
         // Last, so nothing layers over the only controls a dead pane has.
@@ -875,10 +899,10 @@ impl Oryxis {
                     .width(Length::Fill)
                     .height(Length::Fill)
                     .center_x(Length::Fill)
-                    .center_y(Length::Fill),
+                    .center_y(Length::Fill).boxed(),
             );
         }
-        stack.into()
+        stack.boxed()
     }
 
     /// Bottom-leading reveal chip (C3) for the OSC 8 hyperlink under the
@@ -926,7 +950,7 @@ impl Oryxis {
             },
             ..Default::default()
         })
-        .into()
+        .boxed()
     }
 
     /// Whether `pane` has something to restart INTO: a saved host that
@@ -1003,15 +1027,15 @@ impl Oryxis {
                         border: Border { radius: Radius::from(3.0), ..Default::default() },
                         ..Default::default()
                     })
-                    .into(),
+                    .boxed(),
             );
-            title.push(Space::new().width(6).into());
+            title.push(Space::new().width(6).boxed());
         }
         title.push(
             text(label)
                 .size(11)
                 .color(if is_focused { colors.text_primary } else { colors.text_secondary })
-                .into(),
+                .boxed(),
         );
 
         // Not recorded on a keynav ring, on purpose: the grid is the
@@ -1068,7 +1092,7 @@ impl Oryxis {
                 .center_y(Length::Fixed(PANE_HEADER_HEIGHT)),
         )
         .on_right_press(Message::Terminal(TerminalMessage::ShowPaneHeaderMenu(pane_id)))
-        .into();
+        .boxed();
         iced::widget::pane_grid::TitleBar::new(title)
         .controls(iced::widget::pane_grid::Controls::new(
             container(dir_row(controls).align_y(iced::Alignment::Center))
@@ -1145,7 +1169,7 @@ impl Oryxis {
         // Swallow presses that miss the buttons, so a click aimed at the
         // card never falls through to the canvas and starts a selection
         // in the dead pane's scrollback.
-        MouseArea::new(card).on_press(Message::NoOp).into()
+        MouseArea::new(card).on_press(Message::NoOp).boxed()
     }
 
     /// Broadcast opt-out chip (C2): a small button in the pane's top-right
@@ -1182,7 +1206,7 @@ impl Oryxis {
                 ..Default::default()
             }
         });
-        icon_tooltip(btn.into(), tip)
+        icon_tooltip(btn.boxed(), tip)
     }
 
     /// The scrollback find-bar row (C1): needle input + `N / M` counter +
@@ -1229,7 +1253,7 @@ impl Oryxis {
             .on_input(|v| Message::Terminal(TerminalMessage::TerminalSearchInput(v)))
             .width(Length::Fixed(input_w))
             .padding(6);
-        let mut items: Vec<Element<'_, Message>> = vec![input.into()];
+        let mut items: Vec<Element<'_, Message>> = vec![input.boxed()];
         if show_counter {
             items.push(
                 container(
@@ -1239,7 +1263,7 @@ impl Oryxis {
                         .width(Length::Fixed(COUNTER_W)),
                 )
                 .center_y(Length::Fixed(28.0))
-                .into(),
+                .boxed(),
             );
         }
         if show_steps {
@@ -1273,7 +1297,7 @@ impl Oryxis {
                 },
                 ..Default::default()
             })
-            .into()
+            .boxed()
     }
 
     pub(crate) fn view_terminal_sidebar<'a>(
@@ -1297,7 +1321,7 @@ impl Oryxis {
         // the remembered active tab against the same offers.
         let region_tabs = self.sidebar_region_tabs(side);
         let Some(active) = self.sidebar_region_tab(side) else {
-            return Space::new().into();
+            return Space::new().boxed();
         };
 
         // ── Tab strip ──
@@ -1312,7 +1336,7 @@ impl Oryxis {
                 t(region_tab.label_key()),
             ));
         }
-        strip.push(Space::new().width(Length::Fill).into());
+        strip.push(Space::new().width(Length::Fill).boxed());
         // The trailing header actions (Reset on Chat, Close always) join
         // the Tab walk, recorded FIRST (the strip renders above every tab
         // body) under the active tab's tag. The tab icons stay off
@@ -1331,7 +1355,7 @@ impl Oryxis {
                     t("chat_reset_tip"),
                 ),
             ));
-            strip.push(Space::new().width(4).into());
+            strip.push(Space::new().width(4).boxed());
         }
         strip.push(self.sidebar_nav_slot(
             crate::keynav::SidebarRow::button(Message::Ai(AiMessage::ToggleSidebarRegion(side)))
@@ -1376,7 +1400,7 @@ impl Oryxis {
         )
         .on_press(Message::Ai(AiMessage::ChatSidebarResizeStart(side)))
         .interaction(iced::mouse::Interaction::ResizingHorizontally)
-        .into();
+        .boxed();
 
         // ── Assemble sidebar ──
         // Tab bodies are built lazily inside the match: building an
@@ -1411,14 +1435,14 @@ impl Oryxis {
         // the terminal): the left region's right, the right region's
         // left (issues #85 / #102). A physical placement, like the
         // region itself: plain row!, never dir_row.
-        let handle_and_panel: iced::widget::Row<'_, Message> = match side {
+        let handle_and_panel: iced::widget::Row<iced::Element<'_, Message>> = match side {
             crate::state::SidebarSide::Left => row![panel, resize_handle],
             crate::state::SidebarSide::Right => row![resize_handle, panel],
         };
         container(handle_and_panel.width(Length::Fill).height(Length::Fill))
             .width(Length::Fixed(self.chat_ui.sidebar_width[side.idx()]))
             .height(Length::Fill)
-            .into()
+            .boxed()
     }
 
     /// Chat tab body: the message list, the floating Stop pill, the
@@ -1427,7 +1451,7 @@ impl Oryxis {
     /// keyboard rows) when the Chat tab is the active one.
     fn chat_tab_body<'a>(&'a self, tab: &'a TerminalTab) -> Element<'a, Message> {
         // ── Messages list ──
-        let mut messages_col = column![].spacing(8).padding(Padding { top: 8.0, right: 12.0, bottom: 8.0, left: 12.0 });
+        let mut messages_col = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(8).padding(Padding { top: 8.0, right: 12.0, bottom: 8.0, left: 12.0 });
 
         if tab.chat_history.is_empty() {
             messages_col = messages_col.push(
@@ -1440,7 +1464,7 @@ impl Oryxis {
                     .align_x(iced::Alignment::Center),
                 )
                 .center_x(Length::Fill)
-                .padding(Padding { top: 40.0, right: 0.0, bottom: 0.0, left: 0.0 }),
+                .padding(Padding { top: 40.0, right: 0.0, bottom: 0.0, left: 0.0 }).boxed(),
             );
         } else {
             // Markdown settings are identical for every assistant
@@ -1482,11 +1506,11 @@ impl Oryxis {
                     background: Some(Background::Color(OryxisColors::t().bg_surface)),
                     border: Border { radius: Radius::from(8.0), ..Default::default() },
                     ..Default::default()
-                }),
+                }).boxed(),
             );
         }
 
-        let messages_scroll = scrollable(messages_col)
+        let messages_scroll = scrollable::<_, _, iced::Theme>(messages_col)
             .id(iced::widget::Id::new("chat-scroll"))
             .on_scroll(|scroll| Message::Ai(AiMessage::ChatScrolled(scroll.viewport.relative_offset().y)))
             .width(Length::Fill)
@@ -1574,7 +1598,7 @@ impl Oryxis {
                 crate::keynav::SidebarRow::input(iced::widget::Id::new("chat-input")),
                 crate::state::TerminalSidebarTab::Chat,
                 crate::widgets::INPUT_RADIUS,
-                container(chat_editor).height(Length::Shrink.max(150.0)).into(),
+                container(chat_editor).height(Length::Shrink.max(150.0)).boxed(),
             ),
         )
         .padding(Padding { top: 8.0, right: 12.0, bottom: 12.0, left: 12.0 })
@@ -1603,11 +1627,11 @@ impl Oryxis {
                     iced_fonts::lucide::circle_stop()
                         .size(12)
                         .color(OryxisColors::t().text_primary)
-                        .into(),
+                        .boxed(),
                     text(t("chat_stop"))
                         .size(11)
                         .color(OryxisColors::t().text_primary)
-                        .into(),
+                        .boxed(),
                 ])
                 .spacing(6)
                 .align_y(iced::Alignment::Center),
@@ -1645,7 +1669,7 @@ impl Oryxis {
                 .align_x(iced::alignment::Horizontal::Center)
                 .align_y(iced::alignment::Vertical::Bottom)
                 .padding(Padding { top: 0.0, right: 0.0, bottom: 10.0, left: 0.0 })
-                .into()
+                .boxed()
         });
 
         // Base is the scrollable message list; the Stop pill (when present)
@@ -1653,7 +1677,7 @@ impl Oryxis {
         // layer 0: wrapping it only while a reply streams re-parented the
         // list when a message was sent and again when the reply ended,
         // resetting its scroll each time.
-        let mut messages_area = iced::widget::Stack::new().push(messages_scroll);
+        let mut messages_area = iced::widget::Stack::<iced::Element<'_, _>>::new().push(messages_scroll.boxed());
         if let Some(overlay) = stop_overlay {
             messages_area = messages_area.push(overlay);
         }
@@ -1661,7 +1685,7 @@ impl Oryxis {
         column![messages_area, input_separator, mode_row, chat_disclaimer, input_row]
             .width(Length::Fill)
             .height(Length::Fill)
-            .into()
+            .boxed()
     }
 }
 
@@ -1698,7 +1722,7 @@ fn sidebar_tab_btn<'a>(
             ..Default::default()
         }
     });
-    icon_tooltip(btn.into(), tip)
+    icon_tooltip(btn.boxed(), tip)
 }
 
 /// Lucide glyph for a sidebar tab's strip button. One table, so a
@@ -1745,7 +1769,7 @@ fn pane_header_button<'a>(
         border: Border { radius: Radius::from(4.0), ..Default::default() },
         ..Default::default()
     });
-    icon_tooltip(btn.into(), tip)
+    icon_tooltip(btn.boxed(), tip)
 }
 
 /// `icon_tooltip` for a tip built at render time (a formatted figure, a
@@ -1770,7 +1794,7 @@ pub(crate) fn icon_tooltip_owned<'a>(
             }),
         iced::widget::tooltip::Position::Bottom,
     )
-    .into()
+    .boxed()
 }
 
 /// Wrap an icon control in a small bottom-anchored tooltip, the shared
@@ -1791,7 +1815,7 @@ pub(crate) fn icon_tooltip<'a>(inner: Element<'a, Message>, tip: &'a str) -> Ele
             }),
         iced::widget::tooltip::Position::Bottom,
     )
-    .into()
+    .boxed()
 }
 
 
@@ -1836,5 +1860,5 @@ pub(crate) fn chat_header_btn<'a>(
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }

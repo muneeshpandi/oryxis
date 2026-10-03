@@ -176,7 +176,7 @@ impl Oryxis {
         // viewport when it overflows; the title and the hint stay
         // OUTSIDE it, because scrolling away the box's own labels would
         // leave a floating stack of credentials with nothing naming it.
-        let mut list = iced::widget::Column::new()
+        let mut list = iced::widget::Column::<iced::Element<'_, _>>::new()
             .spacing(COLUMN_SPACING)
             .width(Length::Fill);
 
@@ -189,7 +189,7 @@ impl Oryxis {
                 labels = labels.push(
                     text(entry.sublabel.clone())
                         .size(SUBLABEL_SIZE)
-                        .color(OryxisColors::t().text_muted),
+                        .color(OryxisColors::t().text_muted).boxed(),
                 );
             }
             let row: Element<'static, Message> = button(
@@ -202,9 +202,9 @@ impl Oryxis {
                             } else {
                                 OryxisColors::t().text_secondary
                             })
-                            .into(),
-                        Space::new().width(8).into(),
-                        labels.into(),
+                            .boxed(),
+                        Space::new().width(8).boxed(),
+                        labels.boxed(),
                     ])
                     .align_y(iced::Alignment::Center),
                 )
@@ -241,7 +241,7 @@ impl Oryxis {
                     ..Default::default()
                 }
             })
-            .into();
+            .boxed();
             // No hover wiring on purpose. The button's own `Hovered`
             // status already highlights the row under the cursor, and
             // hover must never reach `selected`: that would arm Enter,
@@ -275,13 +275,13 @@ impl Oryxis {
                         scroll.viewport.absolute_offset().y,
                     ))
                 })
-                .into(),
-            None => list.into(),
+                .boxed(),
+            None => list.boxed(),
         };
 
         column![title, list, hint]
             .spacing(COLUMN_SPACING)
-            .into()
+            .boxed()
     }
 }
 

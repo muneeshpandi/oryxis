@@ -59,7 +59,7 @@ pub(crate) fn area_tab<'a>(
         .padding(0)
         .on_press(on_press)
         .style(style)
-        .into()
+        .boxed()
     } else {
         button(
             container(
@@ -67,15 +67,15 @@ pub(crate) fn area_tab<'a>(
                     container(glyph.size(14).color(fg))
                         .center_x(Length::Fixed(TAB_ICON_SLOT))
                         .center_y(Length::Fixed(TAB_ICON_SLOT))
-                        .into(),
-                    Space::new().width(6).into(),
+                        .boxed(),
+                    Space::new().width(6).boxed(),
                     text(label)
                         .size(12)
                         .line_height(1.0)
                         .wrapping(iced::widget::text::Wrapping::None)
                         .font(SYSTEM_UI_SEMIBOLD)
                         .color(fg)
-                        .into(),
+                        .boxed(),
                 ])
                 .align_y(iced::Alignment::Center),
             )
@@ -84,7 +84,7 @@ pub(crate) fn area_tab<'a>(
         )
         .on_press(on_press)
         .style(style)
-        .into()
+        .boxed()
     };
     btn
 }
@@ -175,8 +175,8 @@ pub(crate) fn sftp_session_tab<'a>(
     // SFTP, not mistaken for a terminal), tinted with the mounted host's color
     // (custom or OS-brand) so it still "inherits" the host's hue.
     let badge_glyph: Element<'_, Message> = match number_in_badge(number) {
-        Some(n) => text(n.to_string()).size(10).font(SYSTEM_UI_SEMIBOLD).color(Color::WHITE).into(),
-        None => iced_fonts::lucide::folder_tree().size(12).color(Color::WHITE).into(),
+        Some(n) => text(n.to_string()).size(10).font(SYSTEM_UI_SEMIBOLD).color(Color::WHITE).boxed(),
+        None => iced_fonts::lucide::folder_tree().size(12).color(Color::WHITE).boxed(),
     };
     let badge = container(badge_glyph)
         .center_x(Length::Fixed(TAB_ICON_SLOT))
@@ -220,15 +220,15 @@ pub(crate) fn sftp_session_tab<'a>(
             }),
         )
         .on_press(Message::Sftp(SftpMessage::CloseSftpTab(idx)))
-        .into()
+        .boxed()
     } else {
-        Space::new().width(TAB_ICON_SLOT).height(TAB_ICON_SLOT).into()
+        Space::new().width(TAB_ICON_SLOT).height(TAB_ICON_SLOT).boxed()
     };
     let inner_row = crate::widgets::dir_row(vec![
-        badge.into(),
-        Space::new().width(5).into(),
-        label_text.into(),
-        Space::new().width(4).into(),
+        badge.boxed(),
+        Space::new().width(5).boxed(),
+        label_text.boxed(),
+        Space::new().width(4).boxed(),
         trailing,
     ])
     .align_y(iced::Alignment::Center);
@@ -263,20 +263,20 @@ pub(crate) fn sftp_session_tab<'a>(
             })
             .width(Length::Fixed(width))
             .height(Length::Fixed(TAB_ROW_HEIGHT));
-            iced::widget::Stack::new()
+            iced::widget::Stack::<iced::Element<'_, _>>::new()
                 .width(Length::Fixed(width))
                 .height(Length::Fixed(TAB_ROW_HEIGHT))
-                .push(tab_btn)
-                .push(bar)
-                .into()
+                .push(tab_btn.boxed())
+                .push(bar.boxed())
+                .boxed()
         }
-        _ => tab_btn.into(),
+        _ => tab_btn.boxed(),
     };
     MouseArea::new(tab_el)
         .on_enter(Message::Sftp(SftpMessage::SftpTabHovered(idx)))
         .on_exit(Message::Sftp(SftpMessage::SftpTabUnhovered(idx)))
         .on_right_press(Message::Sftp(SftpMessage::ShowSftpTabMenu(idx)))
-        .into()
+        .boxed()
 }
 
 /// The Settings tab (issue #120). Deliberately plainer than the session
@@ -322,8 +322,8 @@ pub(crate) fn panel_tab<'a>(
                 .size(10)
                 .font(SYSTEM_UI_SEMIBOLD)
                 .color(Color::WHITE)
-                .into(),
-            None => panel_icon(kind).size(12).color(Color::WHITE).into(),
+                .boxed(),
+            None => panel_icon(kind).size(12).color(Color::WHITE).boxed(),
         };
         container(glyph)
             .center_x(Length::Fixed(TAB_ICON_SLOT))
@@ -333,7 +333,7 @@ pub(crate) fn panel_tab<'a>(
                 border: Border { radius: Radius::from(4.0), ..Default::default() },
                 ..Default::default()
             })
-            .into()
+            .boxed()
     };
     // Same close affordance as every other tab: a button (so hover and
     // press tint toward the error colour), shown only when the tab is
@@ -368,7 +368,7 @@ pub(crate) fn panel_tab<'a>(
             }
         })
         .on_press(Message::Tabs(TabsMessage::ClosePanelTab(kind)))
-        .into()
+        .boxed()
     };
     let show_close = is_active || close_revealed;
     // `truncate_label` already reserves the badge + gaps; only the
@@ -388,16 +388,16 @@ pub(crate) fn panel_tab<'a>(
         // on hover unless close-on-right is set, in which case the badge
         // stays put and the X gets its own trailing slot.
         if close_on_right || !show_close { badge() } else { close_btn() },
-        Space::new().width(5).into(),
-        label_text.into(),
+        Space::new().width(5).boxed(),
+        label_text.boxed(),
     ];
     if close_on_right {
         // Reserved even when hidden, so the label doesn't jump on hover.
-        items.push(Space::new().width(4).into());
+        items.push(Space::new().width(4).boxed());
         items.push(if show_close {
             close_btn()
         } else {
-            Space::new().width(TAB_ICON_SLOT).height(TAB_ICON_SLOT).into()
+            Space::new().width(TAB_ICON_SLOT).height(TAB_ICON_SLOT).boxed()
         });
     }
     let inner_row = crate::widgets::dir_row(items).align_y(iced::Alignment::Center);
@@ -427,7 +427,7 @@ pub(crate) fn panel_tab<'a>(
     MouseArea::new(tab_btn)
         .on_enter(Message::Tabs(TabsMessage::PanelTabHovered(kind)))
         .on_exit(Message::Tabs(TabsMessage::PanelTabUnhovered(kind)))
-        .into()
+        .boxed()
 }
 
 /// Compact (Chrome-style) pinned SFTP tab: icon-only folder chip at a fixed
@@ -438,8 +438,8 @@ pub(crate) fn sftp_pinned_chip<'a>(idx: usize, is_active: bool, badge_accent: Co
     // the identity survives `tab_accent_color = "app"`. Icon-only, so a
     // number takes the glyph's place under either numbering style.
     let badge_glyph: Element<'_, Message> = match number {
-        Some(n) => text(n.value.to_string()).size(10).font(SYSTEM_UI_SEMIBOLD).color(Color::WHITE).into(),
-        None => iced_fonts::lucide::folder_tree().size(12).color(Color::WHITE).into(),
+        Some(n) => text(n.value.to_string()).size(10).font(SYSTEM_UI_SEMIBOLD).color(Color::WHITE).boxed(),
+        None => iced_fonts::lucide::folder_tree().size(12).color(Color::WHITE).boxed(),
     };
     let badge = container(badge_glyph)
         .center_x(Length::Fixed(TAB_ICON_SLOT))
@@ -487,7 +487,7 @@ pub(crate) fn sftp_pinned_chip<'a>(idx: usize, is_active: bool, badge_accent: Co
         .on_enter(Message::Sftp(SftpMessage::SftpTabHovered(idx)))
         .on_exit(Message::Sftp(SftpMessage::SftpTabUnhovered(idx)))
         .on_right_press(Message::Sftp(SftpMessage::ShowSftpTabMenu(idx)))
-        .into()
+        .boxed()
 }
 
 /// The `Underline` inactive-tab-style overlay (issue #87): a 2px
@@ -517,34 +517,34 @@ fn inactive_edge_line<'a>(width: f32, color: Color) -> Element<'a, Message> {
                 background: Some(Background::Color(color)),
                 ..Default::default()
             })
-            .into()
+            .boxed()
     };
     let frame = |el: Element<'a, Message>| -> Element<'a, Message> {
         container(el)
             .width(Length::Fixed(width))
             .height(Length::Fixed(TAB_ROW_HEIGHT))
-            .into()
+            .boxed()
     };
     match tab_bar_pos() {
         TabBarPos::Top => frame(
-            iced::widget::Column::new()
-                .push(Space::new().height(Length::Fill))
+            iced::widget::Column::<iced::Element<'_, _>>::new()
+                .push(Space::new().height(Length::Fill).boxed())
                 .push(rule(Length::Fill, Length::Fixed(T)))
-                .into(),
+                .boxed(),
         ),
         TabBarPos::Bottom => frame(
-            iced::widget::Column::new()
+            iced::widget::Column::<iced::Element<'_, _>>::new()
                 .push(rule(Length::Fill, Length::Fixed(T)))
-                .push(Space::new().height(Length::Fill))
-                .into(),
+                .push(Space::new().height(Length::Fill).boxed())
+                .boxed(),
         ),
         // Both vertical docks: same bottom rule as the top strip, acting
         // as the separator between stacked chips.
         TabBarPos::Left | TabBarPos::Right => frame(
-            iced::widget::Column::new()
-                .push(Space::new().height(Length::Fill))
+            iced::widget::Column::<iced::Element<'_, _>>::new()
+                .push(Space::new().height(Length::Fill).boxed())
                 .push(rule(Length::Fill, Length::Fixed(T)))
-                .into(),
+                .boxed(),
         ),
     }
 }
@@ -717,7 +717,7 @@ pub(crate) fn session_tab<'a>(
         // after the icon (built below), so it stays legible instead of
         // crowding the glyph.
         if status_dot.is_some() || attention_dot.is_some() {
-            let mut stack = iced::widget::Stack::new().push(base);
+            let mut stack = iced::widget::Stack::<iced::Element<'_, _>>::new().push(base.boxed());
             if let Some(c) = status_dot {
                 stack = stack.push(corner_dot(c, 7.0, 1.5, iced::alignment::Vertical::Bottom));
             }
@@ -727,9 +727,9 @@ pub(crate) fn session_tab<'a>(
             stack
                 .width(Length::Fixed(TAB_ICON_SLOT))
                 .height(Length::Fixed(TAB_ICON_SLOT))
-                .into()
+                .boxed()
         } else {
-            base.into()
+            base.boxed()
         }
     };
     // Split pane-count chip: a small rounded pill shown right after the
@@ -756,7 +756,7 @@ pub(crate) fn session_tab<'a>(
             },
             ..Default::default()
         })
-        .into()
+        .boxed()
     });
     let close_btn = || -> Element<'_, Message> {
         let icon_color = if is_active {
@@ -797,7 +797,7 @@ pub(crate) fn session_tab<'a>(
         // this click the next chip slides under a cursor that has not
         // moved, and it must arrive with its X already showing.
         .on_press(Message::Tabs(TabsMessage::CloseTabFromStrip(idx)))
-        .into()
+        .boxed()
     };
 
     // Leading slot follows the Termius behaviour by default (X replaces
@@ -831,7 +831,7 @@ pub(crate) fn session_tab<'a>(
             .font(SYSTEM_UI_SEMIBOLD)
             .color(Color { a: 0.60, ..fg })
             .width(Length::Fill)
-            .into()
+            .boxed()
     });
 
     // Hybrid mode glyph: shows the tab's current surface, clicking
@@ -842,32 +842,32 @@ pub(crate) fn session_tab<'a>(
         let mut items: Vec<Element<'_, Message>> = vec![leading_slot];
         // Pane-count chip sits just after the icon, offset by a small gap.
         if let Some(chip) = count_chip {
-            items.push(Space::new().width(4).into());
+            items.push(Space::new().width(4).boxed());
             items.push(chip);
         }
         // Hybrid mode glyph follows the badge/count cluster.
         if let Some(chip) = mode_chip {
-            items.push(Space::new().width(4).into());
+            items.push(Space::new().width(4).boxed());
             items.push(chip);
         }
-        items.push(Space::new().width(5).into());
+        items.push(Space::new().width(5).boxed());
         // With an address line the label becomes a two-row column. It
         // keeps the label's own `Length::Fill`, so the close X still
         // sits at the trailing edge and the single-line geometry (which
         // every tab uses when the setting is off) is untouched.
         let label_column: Element<'_, Message> = if let Some(addr) = address_row {
-            iced::widget::Column::with_children(vec![label_text.into(), addr])
+            iced::widget::Column::with_children(vec![label_text.boxed(), addr])
                 .spacing(1)
                 .width(Length::Fill)
-                .into()
+                .boxed()
         } else {
-            label_text.into()
+            label_text.boxed()
         };
         items.push(label_column);
         // Busy dots after the Fill label, so they sit at the trailing
         // edge (next to the close slot) and never shift the label.
         if let Some(frame) = busy_frame {
-            items.push(Space::new().width(4).into());
+            items.push(Space::new().width(4).boxed());
             items.push(busy_dots(frame, effective_accent));
         }
         if close_on_right {
@@ -876,14 +876,14 @@ pub(crate) fn session_tab<'a>(
             let trailing_slot: Element<'_, Message> = if show_close {
                 close_btn()
             } else {
-                Space::new().width(TAB_ICON_SLOT).height(TAB_ICON_SLOT).into()
+                Space::new().width(TAB_ICON_SLOT).height(TAB_ICON_SLOT).boxed()
             };
-            items.push(Space::new().width(4).into());
+            items.push(Space::new().width(4).boxed());
             items.push(trailing_slot);
         }
         crate::widgets::dir_row(items)
             .align_y(iced::Alignment::Center)
-            .into()
+            .boxed()
     };
 
     // Inactive-tab separation style (issue #87): applies only to the
@@ -948,14 +948,14 @@ pub(crate) fn session_tab<'a>(
             })
             .width(Length::Fixed(width))
             .height(Length::Fixed(TAB_ROW_HEIGHT));
-            iced::widget::Stack::new()
+            iced::widget::Stack::<iced::Element<'_, _>>::new()
                 .width(Length::Fixed(width))
                 .height(Length::Fixed(TAB_ROW_HEIGHT))
-                .push(tab_btn)
-                .push(bar)
-                .into()
+                .push(tab_btn.boxed())
+                .push(bar.boxed())
+                .boxed()
         }
-        _ => tab_btn.into(),
+        _ => tab_btn.boxed(),
     };
 
     // Underline style: a neutral hairline on the chip's edge, laid over
@@ -964,12 +964,12 @@ pub(crate) fn session_tab<'a>(
     // (see `inactive_edge_line`), where it separates stacked chips.
     let tab_el: Element<'_, Message> =
         if inactive_style == crate::views::tab_bar::InactiveTabStyle::Underline {
-            iced::widget::Stack::new()
+            iced::widget::Stack::<iced::Element<'_, _>>::new()
                 .width(Length::Fixed(width))
                 .height(Length::Fixed(TAB_ROW_HEIGHT))
                 .push(tab_el)
                 .push(inactive_edge_line(width, inactive_style.cue_color()))
-                .into()
+                .boxed()
         } else {
             tab_el
         };
@@ -978,7 +978,7 @@ pub(crate) fn session_tab<'a>(
         .on_enter(Message::Tabs(TabsMessage::TabHovered(idx)))
         .on_exit(Message::Tabs(TabsMessage::TabUnhovered(idx)))
         .on_right_press(Message::Tabs(TabsMessage::ShowTabMenu(idx)))
-        .into()
+        .boxed()
 }
 
 /// Canvas that draws a tab's OSC 9;4 progress as a border filling clockwise
@@ -1087,14 +1087,14 @@ pub(crate) fn tab_mode_chip<'a>(idx: usize, mode: TabModeChip, fg: Color) -> Ele
     const MODE_CHIP: f32 = 16.0;
     let (current, next) = mode;
     let glyph: Element<'a, Message> = match current {
-        TabSurface::Files => iced_fonts::lucide::folder_tree().size(10).color(fg).into(),
-        TabSurface::Console => iced_fonts::lucide::square_terminal().size(10).color(fg).into(),
+        TabSurface::Files => iced_fonts::lucide::folder_tree().size(10).color(fg).boxed(),
+        TabSurface::Console => iced_fonts::lucide::square_terminal().size(10).color(fg).boxed(),
         TabSurface::Terminal => text(">_")
             .size(9)
             .line_height(1.0)
             .font(iced::Font::MONOSPACE)
             .color(fg)
-            .into(),
+            .boxed(),
     };
     let chip = button(
         container(glyph)
@@ -1139,7 +1139,7 @@ pub(crate) fn tab_mode_chip<'a>(idx: usize, mode: TabModeChip, fg: Color) -> Ele
             }),
         iced::widget::tooltip::Position::Bottom,
     )
-    .into()
+    .boxed()
 }
 
 /// Width of a compact pinned chip: the base icon square, plus the mode
@@ -1164,7 +1164,7 @@ fn busy_dots<'a>(frame: u8, color: Color) -> Element<'a, Message> {
     let mut row: Vec<Element<'a, Message>> = Vec::with_capacity(5);
     for i in 0..3u8 {
         if i > 0 {
-            row.push(Space::new().width(2).into());
+            row.push(Space::new().width(2).boxed());
         }
         let alpha = if i == frame % 3 { 1.0 } else { 0.3 };
         row.push(
@@ -1174,7 +1174,7 @@ fn busy_dots<'a>(frame: u8, color: Color) -> Element<'a, Message> {
                     border: Border { radius: Radius::from(1.5), ..Default::default() },
                     ..Default::default()
                 })
-                .into(),
+                .boxed(),
         );
     }
     // NOT dir_row: the marching direction is an animation, not a
@@ -1182,7 +1182,7 @@ fn busy_dots<'a>(frame: u8, color: Color) -> Element<'a, Message> {
     // the loop appear to run backwards.
     iced::widget::Row::with_children(row)
         .align_y(iced::Alignment::Center)
-        .into()
+        .boxed()
 }
 
 fn corner_dot<'a>(
@@ -1220,7 +1220,7 @@ fn corner_dot_at<'a>(
         .height(Length::Fill)
         .align_x(x)
         .align_y(y)
-        .into()
+        .boxed()
 }
 
 /// Compact (Chrome-style) pinned tab: an icon-only chip at a fixed width,
@@ -1283,10 +1283,10 @@ pub(crate) fn pinned_tab_chip<'a>(
         || attention_dot.is_some()
         || busy_frame.is_some()
     {
-        let mut stack = iced::widget::Stack::new().push(
+        let mut stack = iced::widget::Stack::<iced::Element<'_, _>>::new().push(
             container(base)
                 .center_x(Length::Fixed(TAB_ICON_SLOT))
-                .center_y(Length::Fixed(TAB_ICON_SLOT)),
+                .center_y(Length::Fixed(TAB_ICON_SLOT)).boxed(),
         );
         if let Some(c) = status_dot {
             stack = stack.push(corner_dot(c, 6.0, 1.0, iced::alignment::Vertical::Bottom));
@@ -1309,7 +1309,7 @@ pub(crate) fn pinned_tab_chip<'a>(
         stack
             .width(Length::Fixed(TAB_ICON_SLOT))
             .height(Length::Fixed(TAB_ICON_SLOT))
-            .into()
+            .boxed()
     } else {
         base
     };
@@ -1325,11 +1325,11 @@ pub(crate) fn pinned_tab_chip<'a>(
             };
             crate::widgets::dir_row(vec![
                 badge,
-                Space::new().width(4).into(),
+                Space::new().width(4).boxed(),
                 tab_mode_chip(idx, m, fg),
             ])
             .align_y(iced::Alignment::Center)
-            .into()
+            .boxed()
         }
         None => badge,
     };
@@ -1358,5 +1358,5 @@ pub(crate) fn pinned_tab_chip<'a>(
         .on_enter(Message::Tabs(TabsMessage::TabHovered(idx)))
         .on_exit(Message::Tabs(TabsMessage::TabUnhovered(idx)))
         .on_right_press(Message::Tabs(TabsMessage::ShowTabMenu(idx)))
-        .into()
+        .boxed()
 }

@@ -10,6 +10,7 @@
 //! top, then a grouped list with host-icon badges and a "Personal / Group"
 //! breadcrumb on the right.
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::button::Status as BtnStatus;
 use iced::widget::{button, column, container, scrollable, text, text_input, Space};
@@ -54,8 +55,8 @@ impl Oryxis {
             .size(14)
             .style(crate::widgets::rounded_input_style).align_x(dir_align_x());
 
-        let mut search_block = iced::widget::Stack::new()
-            .push(search)
+        let mut search_block = iced::widget::Stack::<iced::Element<'_, _>>::new()
+            .push(search.boxed())
             .width(Length::Fill);
         // Right-anchored shortcut hint inside a styled chip so it reads
         // as a keyboard affordance rather than placeholder text. Lives
@@ -92,7 +93,7 @@ impl Oryxis {
                     bottom: 0.0,
                     left: 0.0,
                 });
-            search_block = search_block.push(ctrl_k_overlay);
+            search_block = search_block.push(ctrl_k_overlay.boxed());
         }
 
         // Split panes are SSH-only (ECS Exec / kubectl exec open full tabs),
@@ -152,7 +153,7 @@ impl Oryxis {
 
         // Bare card; `widgets::modal_overlay` (the caller) owns centering,
         // the absorbing scrim, and the click-trap.
-        body.into()
+        body.boxed()
     }
 
     /// Top-level rows: a "Groups" section (root groups as drillable
@@ -179,7 +180,7 @@ impl Oryxis {
                 false,
                 quick_connect_row(conn),
             ));
-            rows.push(Space::new().height(14).into());
+            rows.push(Space::new().height(14).boxed());
         }
 
         // Local shell, always first. Routes into the pending pane (split)
@@ -216,7 +217,7 @@ impl Oryxis {
             ));
         }
         if want_local || want_sftp {
-            rows.push(Space::new().height(14).into());
+            rows.push(Space::new().height(14).boxed());
         }
 
         // Root groups (parent_id == None). Sub-groups surface when the user
@@ -242,9 +243,9 @@ impl Oryxis {
         }
         if !group_rows.is_empty() {
             rows.push(section_header(t("groups_section")));
-            rows.push(Space::new().height(8).into());
+            rows.push(Space::new().height(8).boxed());
             rows.extend(group_rows);
-            rows.push(Space::new().height(14).into());
+            rows.push(Space::new().height(14).boxed());
         }
 
         // Recent connections: every saved host, most-recently-used first.
@@ -265,7 +266,7 @@ impl Oryxis {
         });
 
         rows.push(section_header(t("recent_connections")));
-        rows.push(Space::new().height(8).into());
+        rows.push(Space::new().height(8).boxed());
         if idxs.is_empty() {
             rows.push(info_row(if needle.is_empty() {
                 t("no_connections_yet")
@@ -296,7 +297,7 @@ impl Oryxis {
             false,
             back_header(&group.label),
         )];
-        rows.push(Space::new().height(8).into());
+        rows.push(Space::new().height(8).boxed());
 
         if group.cloud_query.is_some() {
             rows.extend(self.picker_cloud_resource_rows(group, needle));
@@ -376,7 +377,7 @@ impl Oryxis {
             Some(DynamicGroupState::Loading) => vec![info_row(t("cloud_discover_running"))],
             Some(DynamicGroupState::Failed(msg)) => vec![
                 info_row(&format!("{}: {msg}", t("cloud_test_failed"))),
-                Space::new().height(8).into(),
+                Space::new().height(8).boxed(),
                 self.modal_nav_slot(
                     crate::keynav::RowAction::activate(Message::Cloud(CloudMessage::DynamicGroupResolve(gid))),
                     6.0,
@@ -507,12 +508,12 @@ impl Oryxis {
             iced_fonts::lucide::cloud()
                 .size(15)
                 .color(OryxisColors::t().accent)
-                .into()
+                .boxed()
         } else {
             iced_fonts::lucide::folder()
                 .size(15)
                 .color(OryxisColors::t().accent)
-                .into()
+                .boxed()
         };
 
         let subtitle = match group.cloud_query.as_ref().map(|q| &q.kind) {
@@ -529,11 +530,11 @@ impl Oryxis {
         }
         .size(15)
         .color(OryxisColors::t().text_muted)
-        .into();
+        .boxed();
 
         let inner = dir_row(vec![
             glyph,
-            Space::new().width(12).into(),
+            Space::new().width(12).boxed(),
             text(group.label.clone())
                 .size(13)
                 .font(iced::Font {
@@ -541,10 +542,10 @@ impl Oryxis {
                     ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
                 })
                 .color(OryxisColors::t().text_primary)
-                .into(),
-            Space::new().width(Length::Fill).into(),
-            text(subtitle).size(12).color(OryxisColors::t().text_muted).into(),
-            Space::new().width(10).into(),
+                .boxed(),
+            Space::new().width(Length::Fill).boxed(),
+            text(subtitle).size(12).color(OryxisColors::t().text_muted).boxed(),
+            Space::new().width(10).boxed(),
             chevron,
         ])
         .align_y(iced::Alignment::Center);
@@ -557,7 +558,7 @@ impl Oryxis {
         .on_press(Message::Tabs(TabsMessage::NewTabPickerOpenGroup(group.id)))
         .width(Length::Fill)
         .style(hover_row_style)
-        .into();
+        .boxed();
         self.modal_nav_slot(
             crate::keynav::RowAction::activate(Message::Tabs(TabsMessage::NewTabPickerOpenGroup(group.id))),
             6.0,
@@ -621,8 +622,8 @@ impl Oryxis {
 fn row_shortcut_hint<'a>(shortcut: Option<String>) -> Vec<Element<'a, Message>> {
     match shortcut {
         Some(s) => vec![
-            Space::new().width(Length::Fill).into(),
-            text(s).size(11).color(OryxisColors::t().text_muted).into(),
+            Space::new().width(Length::Fill).boxed(),
+            text(s).size(11).color(OryxisColors::t().text_muted).boxed(),
         ],
         // No filler either: without a hint the row keeps its natural
         // width, exactly as it did before hints existed.
@@ -637,8 +638,8 @@ fn local_shell_row<'a>(shortcut: Option<String>) -> Element<'a, Message> {
         iced_fonts::lucide::terminal()
             .size(15)
             .color(OryxisColors::t().accent)
-            .into(),
-        Space::new().width(12).into(),
+            .boxed(),
+        Space::new().width(12).boxed(),
         text(t("local_shell"))
             .size(13)
             .font(iced::Font {
@@ -646,7 +647,7 @@ fn local_shell_row<'a>(shortcut: Option<String>) -> Element<'a, Message> {
                 ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
             })
             .color(OryxisColors::t().text_primary)
-            .into(),
+            .boxed(),
     ];
     items.extend(row_shortcut_hint(shortcut));
     let inner = dir_row(items).align_y(iced::Alignment::Center);
@@ -658,7 +659,7 @@ fn local_shell_row<'a>(shortcut: Option<String>) -> Element<'a, Message> {
     .on_press(Message::Tabs(TabsMessage::PickLocalShell))
     .width(Length::Fill)
     .style(hover_row_style)
-    .into()
+    .boxed()
 }
 
 /// "SFTP" entry, emitting `NewSftpTab` (opens a fresh SFTP browser tab).
@@ -668,8 +669,8 @@ fn sftp_row<'a>(shortcut: Option<String>) -> Element<'a, Message> {
         iced_fonts::lucide::folder_tree()
             .size(15)
             .color(OryxisColors::t().accent)
-            .into(),
-        Space::new().width(12).into(),
+            .boxed(),
+        Space::new().width(12).boxed(),
         text(t("sftp"))
             .size(13)
             .font(iced::Font {
@@ -677,7 +678,7 @@ fn sftp_row<'a>(shortcut: Option<String>) -> Element<'a, Message> {
                 ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
             })
             .color(OryxisColors::t().text_primary)
-            .into(),
+            .boxed(),
     ];
     items.extend(row_shortcut_hint(shortcut));
     let inner = dir_row(items).align_y(iced::Alignment::Center);
@@ -689,7 +690,7 @@ fn sftp_row<'a>(shortcut: Option<String>) -> Element<'a, Message> {
     .on_press(Message::Sftp(SftpMessage::NewSftpTab))
     .width(Length::Fill)
     .style(hover_row_style)
-    .into()
+    .boxed()
 }
 
 /// Bold section label ("Groups", "Recent connections").
@@ -702,11 +703,11 @@ fn section_header<'a>(label: &str) -> Element<'a, Message> {
                 ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
             })
             .color(OryxisColors::t().text_primary)
-            .into(),
-        Space::new().width(Length::Fill).into(),
+            .boxed(),
+        Space::new().width(Length::Fill).boxed(),
     ])
     .align_y(iced::Alignment::Center)
-    .into()
+    .boxed()
 }
 
 /// Back-navigation header shown when drilled into a group. The leading
@@ -715,10 +716,10 @@ fn back_header<'a>(label: &str) -> Element<'a, Message> {
     let arrow: Element<'a, Message> = iced_fonts::lucide::arrow_left()
         .size(16)
         .color(OryxisColors::t().text_primary)
-        .into();
+        .boxed();
     let inner = dir_row(vec![
         arrow,
-        Space::new().width(10).into(),
+        Space::new().width(10).boxed(),
         text(label.to_string())
             .size(14)
             .font(iced::Font {
@@ -726,7 +727,7 @@ fn back_header<'a>(label: &str) -> Element<'a, Message> {
                 ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
             })
             .color(OryxisColors::t().text_primary)
-            .into(),
+            .boxed(),
     ])
     .align_y(iced::Alignment::Center);
     button(
@@ -737,7 +738,7 @@ fn back_header<'a>(label: &str) -> Element<'a, Message> {
     .on_press(Message::Tabs(TabsMessage::NewTabPickerBack))
     .width(Length::Fill)
     .style(hover_row_style)
-    .into()
+    .boxed()
 }
 
 /// Muted, centered informational row (empty / loading / error states).
@@ -745,7 +746,7 @@ fn info_row<'a>(msg: &str) -> Element<'a, Message> {
     container(text(msg.to_string()).size(13).color(OryxisColors::t().text_muted))
         .padding(Padding { top: 18.0, right: 16.0, bottom: 18.0, left: 16.0 })
         .center_x(Length::Fill)
-        .into()
+        .boxed()
 }
 
 /// Retry button for a failed cloud resolve. Dispatches `DynamicGroupResolve`
@@ -755,12 +756,12 @@ fn retry_row<'a>(gid: uuid::Uuid) -> Element<'a, Message> {
         iced_fonts::lucide::refresh_cw()
             .size(13)
             .color(OryxisColors::t().text_primary)
-            .into(),
-        Space::new().width(8).into(),
+            .boxed(),
+        Space::new().width(8).boxed(),
         text(t("cloud_discover_refresh"))
             .size(13)
             .color(OryxisColors::t().text_primary)
-            .into(),
+            .boxed(),
     ])
     .align_y(iced::Alignment::Center);
     container(
@@ -769,7 +770,7 @@ fn retry_row<'a>(gid: uuid::Uuid) -> Element<'a, Message> {
             .style(hover_row_style),
     )
     .center_x(Length::Fill)
-    .into()
+    .boxed()
 }
 
 /// A live cloud-resource row (ECS task / K8s pod). `on_press` is omitted
@@ -791,25 +792,25 @@ fn quick_connect_row<'a>(conn: oryxis_core::models::Connection) -> Element<'a, M
             iced_fonts::lucide::zap()
                 .size(16)
                 .color(OryxisColors::t().accent)
-                .into(),
-            Space::new().width(10).into(),
-            iced::widget::Column::with_children(vec![
+                .boxed(),
+            Space::new().width(10).boxed(),
+            iced::widget::Column::<iced::Element<'_, _>>::with_children(vec![
                 text(primary)
                     .size(13)
                     .color(OryxisColors::t().text_primary)
                     .wrapping(iced::widget::text::Wrapping::None)
-                    .into(),
-                Space::new().height(2).into(),
+                    .boxed(),
+                Space::new().height(2).boxed(),
                 text(t("quick_connect_not_saved"))
                     .size(10)
                     .color(OryxisColors::t().text_muted)
                     .wrapping(iced::widget::text::Wrapping::None)
-                    .into(),
+                    .boxed(),
             ])
             .width(Length::Fill)
             .align_x(dir_align_x())
             .clip(true)
-            .into(),
+            .boxed(),
         ])
         .align_y(iced::Alignment::Center),
     )
@@ -834,7 +835,7 @@ fn quick_connect_row<'a>(conn: oryxis_core::models::Connection) -> Element<'a, M
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }
 
 fn resource_row<'a>(
@@ -853,15 +854,15 @@ fn resource_row<'a>(
         .size(13)
         .color(primary_color)
         .wrapping(iced::widget::text::Wrapping::None)
-        .into()];
+        .boxed()];
     if !secondary.is_empty() {
-        text_col.push(Space::new().height(2).into());
+        text_col.push(Space::new().height(2).boxed());
         text_col.push(
             text(secondary)
                 .size(10)
                 .color(OryxisColors::t().text_muted)
                 .wrapping(iced::widget::text::Wrapping::None)
-                .into(),
+                .boxed(),
         );
     }
 
@@ -874,7 +875,7 @@ fn resource_row<'a>(
             status_pill_widget(status_upper.unwrap(), OryxisColors::t().error)
         }
         Some(other) => status_pill_widget(other, OryxisColors::t().text_muted),
-        None => Space::new().into(),
+        None => Space::new().boxed(),
     };
 
     button(
@@ -882,14 +883,14 @@ fn resource_row<'a>(
             iced_fonts::lucide::container()
                 .size(16)
                 .color(OryxisColors::t().text_muted)
-                .into(),
-            Space::new().width(10).into(),
+                .boxed(),
+            Space::new().width(10).boxed(),
             iced::widget::Column::with_children(text_col)
                 .width(Length::Fill)
                 .align_x(dir_align_x())
                 .clip(true)
-                .into(),
-            Space::new().width(10).into(),
+                .boxed(),
+            Space::new().width(10).boxed(),
             status_pill,
         ])
         .align_y(iced::Alignment::Center),
@@ -910,7 +911,7 @@ fn resource_row<'a>(
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }
 
 /// Small colour-coded status chip (RUNNING / PENDING / ...).
@@ -922,7 +923,7 @@ fn status_pill_widget<'a>(label: &str, color: Color) -> Element<'a, Message> {
             border: Border { radius: Radius::from(4.0), color, width: 1.0 },
             ..Default::default()
         })
-        .into()
+        .boxed()
 }
 
 /// Shared button style: transparent until hover, used by group / back /
@@ -957,10 +958,10 @@ fn picker_row<'a>(
 
     let inner = dir_row(vec![
         badge,
-        Space::new().width(12).into(),
-        label_text.into(),
-        Space::new().width(Length::Fill).into(),
-        breadcrumb_text.into(),
+        Space::new().width(12).boxed(),
+        label_text.boxed(),
+        Space::new().width(Length::Fill).boxed(),
+        breadcrumb_text.boxed(),
     ])
     .align_y(iced::Alignment::Center);
 
@@ -982,5 +983,5 @@ fn picker_row<'a>(
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }

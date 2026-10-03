@@ -707,7 +707,7 @@ impl Oryxis {
                 } else {
                     0.0
                 };
-                return Ok(iced::widget::operation::snap_to(
+                return Ok(iced::widget::operation::scrollable::snap_to(
                     iced::widget::Id::from(scroll_id),
                     iced::widget::scrollable::RelativeOffset {
                         x: None,

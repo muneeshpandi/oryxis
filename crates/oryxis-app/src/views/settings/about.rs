@@ -25,15 +25,15 @@ impl Oryxis {
             iced::widget::svg(self.logo_handle.clone())
                 .width(Length::Fixed(48.0))
                 .height(Length::Fixed(48.0))
-                .into(),
-            Space::new().width(14).into(),
+                .boxed(),
+            Space::new().width(14).boxed(),
             column![
                 text(version_str).size(16).color(OryxisColors::t().text_primary),
                 Space::new().height(4),
                 text(t("app_tagline")).size(13).color(OryxisColors::t().text_secondary),
             ]
             .align_x(dir_align_x())
-            .into(),
+            .boxed(),
         ])
         .align_y(iced::Alignment::Center);
         let about_section = panel_section(column![
@@ -165,7 +165,7 @@ impl Oryxis {
         .id(iced::widget::Id::new("settings-about-scroll"))
         .on_scroll(|s| Message::Settings(SettingsMessage::SectionScrolled(s.viewport.relative_offset().y)))
         .height(Length::Fill)
-        .into()
+        .boxed()
     }
 
     /// Settings -> About: the self-update panel (auto-check toggle,
@@ -178,7 +178,7 @@ impl Oryxis {
     /// never stops on controls that aren't on screen.
     pub(crate) fn view_settings_update_panel(&self) -> Element<'_, Message> {
         if crate::packaged::is_packaged() {
-            return Space::new().into();
+            return Space::new().boxed();
         }
         let auto_update_enabled = self.prefs.auto_check_updates;
         let auto_update_toggle = self.nav_toggle_row(
@@ -212,7 +212,7 @@ impl Oryxis {
             .width(260)
             .padding(10)
             .style(crate::widgets::rounded_pick_list_style)
-            .into(),
+            .boxed(),
         );
         let check_now_btn = self.settings_nav_slot_labeled(
             t("check_for_updates_now"),
@@ -260,9 +260,9 @@ impl Oryxis {
                 // Failures get an inline Retry next to the cause so
                 // the user doesn't have to hunt for the check button.
                 let mut line_items: Vec<Element<'_, Message>> =
-                    vec![text(msg).size(11).color(color).into()];
+                    vec![text(msg).size(11).color(color).boxed()];
                 if matches!(status, UpdateStatus::Failed(_)) {
-                    line_items.push(Space::new().width(10).into());
+                    line_items.push(Space::new().width(10).boxed());
                     line_items.push(self.settings_nav_slot(
                         crate::keynav::RowAction::activate(Message::Update(UpdateMessage::CheckForUpdateManual)),
                         6.0,
@@ -277,9 +277,9 @@ impl Oryxis {
                     .align_y(iced::Alignment::Center);
                 container(line)
                     .padding(Padding { top: 8.0, right: 0.0, bottom: 0.0, left: 0.0 })
-                    .into()
+                    .boxed()
             }
-            None => Space::new().into(),
+            None => Space::new().boxed(),
         };
         // A downloaded update waiting for its restart (the ask was
         // declined while sessions were live): the restart stays one
@@ -290,8 +290,8 @@ impl Oryxis {
                     text(t("update_ready").replacen("{new}", &ready.info.version, 1))
                         .size(11)
                         .color(OryxisColors::t().success)
-                        .into(),
-                    Space::new().width(10).into(),
+                        .boxed(),
+                    Space::new().width(10).boxed(),
                     self.settings_nav_slot(
                         crate::keynav::RowAction::activate(Message::Update(UpdateMessage::UpdateInstallNow)),
                         6.0,
@@ -305,9 +305,9 @@ impl Oryxis {
                 .align_y(iced::Alignment::Center);
                 container(line)
                     .padding(Padding { top: 8.0, right: 0.0, bottom: 0.0, left: 0.0 })
-                    .into()
+                    .boxed()
             }
-            None => Space::new().into(),
+            None => Space::new().boxed(),
         };
         // Bleeding-edge warning, only while the nightly channel is
         // selected, so stable users don't see scary copy.
@@ -319,9 +319,9 @@ impl Oryxis {
                         .color(OryxisColors::t().text_muted),
                 )
                 .padding(Padding { top: 4.0, right: 0.0, bottom: 0.0, left: 0.0 })
-                .into()
+                .boxed()
             } else {
-                Space::new().into()
+                Space::new().boxed()
             };
         panel_section(column![
             auto_update_toggle,

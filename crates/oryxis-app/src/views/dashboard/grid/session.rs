@@ -40,11 +40,11 @@ impl Oryxis {
 
         let panes = count_leaves(&group.layout);
         let subtitle = format!("{} {}", panes, t("session_group_panes"));
-        let label_el = text(group.label.clone())
+        let label_el = text::<iced::Theme>(group.label.clone())
             .size(13)
             .color(OryxisColors::t().text_primary)
             .wrapping(iced::widget::text::Wrapping::None);
-        let subtitle_el = text(subtitle)
+        let subtitle_el = text::<iced::Theme>(subtitle)
             .size(10)
             .color(OryxisColors::t().text_muted)
             .wrapping(iced::widget::text::Wrapping::None);
@@ -61,16 +61,16 @@ impl Oryxis {
             container(
                 dir_row(vec![
                     icon_box,
-                    Space::new().width(8).into(),
-                    iced::widget::Column::with_children(vec![
-                        label_el.into(),
-                        Space::new().height(2).into(),
-                        subtitle_el.into(),
+                    Space::new().width(8).boxed(),
+                    iced::widget::Column::<iced::Element<'_, _>>::with_children(vec![
+                        label_el.boxed(),
+                        Space::new().height(2).boxed(),
+                        subtitle_el.boxed(),
                     ])
                     .width(Length::Fill)
                     .align_x(dir_align_x())
                     .clip(true)
-                    .into(),
+                    .boxed(),
                 ])
                 .align_y(iced::Alignment::Center),
             )
@@ -112,7 +112,7 @@ impl Oryxis {
         // session, the same "opens a container" affordance the host-group
         // folders use); hover / menu-open swaps it for the ⋮ kebab.
         let trailing: Element<'a, Message> = if show_dots {
-            dots_btn.into()
+            dots_btn.boxed()
         } else {
             let chevron = if rtl {
                 iced_fonts::lucide::chevron_left()
@@ -125,9 +125,9 @@ impl Oryxis {
             container(chevron.size(14).color(OryxisColors::t().text_muted))
                 .center_x(Length::Fixed(22.0))
                 .center_y(Length::Fixed(22.0))
-                .into()
+                .boxed()
         };
-        let card_element = crate::widgets::card_trailing_overlay(card_btn.into(), trailing);
+        let card_element = crate::widgets::card_trailing_overlay(card_btn.boxed(), trailing);
 
         let wrapped = MouseArea::new(card_element)
             .on_enter(Message::SessionGroup(SessionGroupMessage::SessionGroupCardHovered(idx)))
@@ -135,7 +135,7 @@ impl Oryxis {
             .on_right_press(Message::SessionGroup(SessionGroupMessage::ShowSessionGroupMenu(idx)));
 
         (
-            Element::from(container(wrapped).width(Length::Fill).clip(true)),
+            container(wrapped).width(Length::Fill).clip(true).boxed(),
             bg_color,
         )
     }

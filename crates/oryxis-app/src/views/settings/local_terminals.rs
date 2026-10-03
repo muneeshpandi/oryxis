@@ -25,7 +25,7 @@ impl Oryxis {
             ]
             .width(Length::Fill)
             .align_x(dir_align_x())
-            .into(),
+            .boxed(),
             dir_row(vec![
                 self.settings_nav_slot_labeled(
                     t("rescan_terminals"),
@@ -33,7 +33,7 @@ impl Oryxis {
                     6.0,
                     styled_button(t("rescan_terminals"), Message::Settings(SettingsMessage::RescanLocalTerminals), c.bg_selected),
                 ),
-                Space::new().width(8).into(),
+                Space::new().width(8).boxed(),
                 self.settings_nav_slot_labeled(
                     t("add_terminal"),
                     crate::keynav::RowAction::activate(Message::Settings(SettingsMessage::OpenLocalTerminalAddModal)),
@@ -42,7 +42,7 @@ impl Oryxis {
                 ),
             ])
             .align_y(iced::Alignment::Center)
-            .into(),
+            .boxed(),
         ])
         .align_y(iced::Alignment::Start);
 
@@ -81,16 +81,16 @@ impl Oryxis {
             t("default_terminal_behavior"),
             crate::keynav::RowAction::picker(def_prev, def_next),
             8.0,
-            default_picker.into(),
+            default_picker.boxed(),
         );
 
         // One card per curated terminal, with a hover-revealed remove
         // action in the corner (card-action-icon convention). Enter
         // opens the edit modal (the card's primary action); the remove
         // button stays hover-only.
-        let mut cards = column![].spacing(8);
+        let mut cards = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(8);
         if entries.is_empty() {
-            cards = cards.push(text(t("local_terminals_empty")).size(12).color(c.text_muted));
+            cards = cards.push(text(t("local_terminals_empty")).size(12).color(c.text_muted).boxed());
         }
         for (idx, entry) in entries.iter().enumerate() {
             cards = cards.push(self.settings_nav_slot(
@@ -139,9 +139,9 @@ impl Oryxis {
             });
 
         let mut title: Vec<Element<'a, Message>> =
-            vec![text(entry.label.clone()).size(13).color(c.text_primary).into()];
+            vec![text(entry.label.clone()).size(13).color(c.text_primary).boxed()];
         if entry.manual {
-            title.push(Space::new().width(8).into());
+            title.push(Space::new().width(8).boxed());
             title.push(
                 container(text(t("manual_badge")).size(10).color(c.text_secondary))
                     .padding(Padding { top: 1.0, right: 6.0, bottom: 1.0, left: 6.0 })
@@ -150,7 +150,7 @@ impl Oryxis {
                         border: Border { radius: Radius::from(4.0), ..Default::default() },
                         ..Default::default()
                     })
-                    .into(),
+                    .boxed(),
             );
         }
         let cmdline = if entry.args.is_empty() {
@@ -160,8 +160,8 @@ impl Oryxis {
         };
         let card = container(
             dir_row(vec![
-                chip.into(),
-                Space::new().width(12).into(),
+                chip.boxed(),
+                Space::new().width(12).boxed(),
                 column![
                     dir_row(title).align_y(iced::Alignment::Center),
                     Space::new().height(3),
@@ -169,13 +169,13 @@ impl Oryxis {
                 ]
                 .width(Length::Fill)
                 .align_x(dir_align_x())
-                .into(),
+                .boxed(),
             ])
             .align_y(iced::Alignment::Center),
         )
         .width(Length::Fill)
         .padding(12)
-        .style(|_| container::Style {
+        .style(|_: &iced::Theme| container::Style {
             background: Some(Background::Color(OryxisColors::t().bg_surface)),
             border: Border {
                 radius: Radius::from(8.0),
@@ -185,7 +185,7 @@ impl Oryxis {
             ..Default::default()
         });
 
-        let mut stack = iced::widget::Stack::new().push(card);
+        let mut stack = iced::widget::Stack::<iced::Element<'_, _>>::new().push(card.boxed());
         if self.hover.local_terminal_card == Some(idx) {
             let actions = dir_row(vec![
                 local_terminal_card_btn(
@@ -193,7 +193,7 @@ impl Oryxis {
                     c.text_secondary,
                     Message::Settings(SettingsMessage::OpenLocalTerminalEditModal(entry.id)),
                 ),
-                Space::new().width(4).into(),
+                Space::new().width(4).boxed(),
                 local_terminal_card_btn(
                     iced_fonts::lucide::trash(),
                     c.error,
@@ -207,13 +207,13 @@ impl Oryxis {
                     .height(Length::Fill)
                     .align_x(iced::alignment::Horizontal::Right)
                     .align_y(iced::alignment::Vertical::Top)
-                    .padding(8),
+                    .padding(8).boxed(),
             );
         }
         iced::widget::MouseArea::new(stack)
             .on_enter(Message::Settings(SettingsMessage::LocalTerminalCardHovered(idx)))
             .on_exit(Message::Settings(SettingsMessage::LocalTerminalCardUnhovered(idx)))
-            .into()
+            .boxed()
     }
 
     /// The "add local terminal" modal: label / program / arguments form
@@ -245,11 +245,11 @@ impl Oryxis {
                         border: Border { radius: Radius::from(8.0), ..Default::default() },
                         ..Default::default()
                     })
-                    .into(),
-                Space::new().width(12).into(),
-                text(t("terminal_icon_color")).size(13).color(c.text_secondary).into(),
-                Space::new().width(Length::Fill).into(),
-                iced_fonts::lucide::pencil().size(13).color(c.text_muted).into(),
+                    .boxed(),
+                Space::new().width(12).boxed(),
+                text(t("terminal_icon_color")).size(13).color(c.text_secondary).boxed(),
+                Space::new().width(Length::Fill).boxed(),
+                iced_fonts::lucide::pencil().size(13).color(c.text_muted).boxed(),
             ])
             .align_y(iced::Alignment::Center),
         )
@@ -289,7 +289,7 @@ impl Oryxis {
                     .padding(10)
                     .style(crate::widgets::rounded_input_style)
                     .align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
             ),
             Space::new().height(10),
             panel_field(
@@ -299,7 +299,7 @@ impl Oryxis {
                     .padding(10)
                     .style(crate::widgets::rounded_input_style)
                     .align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
             ),
             Space::new().height(10),
             panel_field(
@@ -309,7 +309,7 @@ impl Oryxis {
                     .padding(10)
                     .style(crate::widgets::rounded_input_style)
                     .align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
             ),
             Space::new().height(10),
             panel_field(
@@ -319,24 +319,24 @@ impl Oryxis {
                     .padding(10)
                     .style(crate::widgets::rounded_input_style)
                     .align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
             ),
             Space::new().height(12),
-            panel_field(t("terminal_icon_color"), appearance.into()),
+            panel_field(t("terminal_icon_color"), appearance.boxed()),
         ]
         .width(Length::Fill)
         .align_x(dir_align_x());
         if let Some(err) = self.local_terminal_form.error {
             body = body
-                .push(Space::new().height(8))
-                .push(text(t(err)).size(11).color(c.error));
+                .push(Space::new().height(8).boxed())
+                .push(text(t(err)).size(11).color(c.error).boxed());
         }
-        body = body.push(Space::new().height(18)).push(dir_row(vec![
-            Space::new().width(Length::Fill).into(),
+        body = body.push(Space::new().height(18).boxed()).push(dir_row(vec![
+            Space::new().width(Length::Fill).boxed(),
             styled_button(t("cancel"), Message::Settings(SettingsMessage::CloseLocalTerminalAddModal), c.bg_selected),
-            Space::new().width(8).into(),
+            Space::new().width(8).boxed(),
             styled_button(submit_label, Message::Settings(SettingsMessage::AddLocalTerminalSubmit), c.accent),
-        ]));
+        ]).boxed());
 
         let dialog = iced::widget::MouseArea::new(
             container(body)
@@ -358,7 +358,7 @@ impl Oryxis {
                 }),
         )
         .on_press(Message::NoOp);
-        dialog.into()
+        dialog.boxed()
     }
 }
 
@@ -393,5 +393,5 @@ fn local_terminal_card_btn<'a>(
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }

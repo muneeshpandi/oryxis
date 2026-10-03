@@ -214,18 +214,18 @@ impl Oryxis {
                     .size(13)
                     .color(label_color)
                     .wrapping(iced::widget::text::Wrapping::None)
-                    .into(),
-                Space::new().width(6).into(),
-                pill.into(),
+                    .boxed(),
+                Space::new().width(6).boxed(),
+                pill.boxed(),
             ])
             .align_y(iced::Alignment::Center)
-            .into()
+            .boxed()
         } else {
             text(display_label.clone())
                 .size(13)
                 .color(label_color)
                 .wrapping(iced::widget::text::Wrapping::None)
-                .into()
+                .boxed()
         };
 
         // Subtitle row carries the brand badge on its leading edge
@@ -236,21 +236,21 @@ impl Oryxis {
                 let glyph = crate::os_icon::custom_icon_glyph(brand_key);
                 dir_row(vec![
                     glyph.view(10.0, *color),
-                    Space::new().width(6).into(),
+                    Space::new().width(6).boxed(),
                     text(subtitle)
                         .size(10)
                         .color(OryxisColors::t().text_muted)
                         .wrapping(iced::widget::text::Wrapping::None)
-                        .into(),
+                        .boxed(),
                 ])
                 .align_y(iced::Alignment::Center)
-                .into()
+                .boxed()
             }
             None => text(subtitle)
                 .size(10)
                 .color(OryxisColors::t().text_muted)
                 .wrapping(iced::widget::text::Wrapping::None)
-                .into(),
+                .boxed(),
         };
 
         // The row's leading cells. The selection check lives IN the row,
@@ -263,25 +263,25 @@ impl Oryxis {
         // a press that landed on the check.
         let mut row_cells: Vec<Element<'_, Message>> = Vec::new();
         if checking {
-            row_cells.push(Space::new().width(6).into());
+            row_cells.push(Space::new().width(6).boxed());
             row_cells.push(crate::widgets::card_select_check(
                 selected,
                 Message::Tabs(TabsMessage::CardSelectToggle(conn.id)),
             ));
-            row_cells.push(Space::new().width(10).into());
+            row_cells.push(Space::new().width(10).boxed());
         }
         row_cells.push(icon_box);
-        row_cells.push(Space::new().width(8).into());
+        row_cells.push(Space::new().width(8).boxed());
         row_cells.push(
             iced::widget::Column::with_children(vec![
                 label_el,
-                Space::new().height(2).into(),
+                Space::new().height(2).boxed(),
                 subtitle_el,
             ])
             .width(Length::Fill)
             .align_x(crate::widgets::dir_align_x())
             .clip(true)
-            .into(),
+            .boxed(),
         );
 
         // A card in an active drag loses its press: the fork's `button`
@@ -334,7 +334,7 @@ impl Oryxis {
             Message::Tabs(TabsMessage::ShowCardMenu(idx)),
         );
         let card_element =
-            crate::widgets::card_trailing_overlay(card_btn.into(), dots_btn.into());
+            crate::widgets::card_trailing_overlay(card_btn.boxed(), dots_btn.boxed());
         // Which card a press lands on, for the global press handler to
         // arm a drag from: the button captures the press, and a
         // scrolled grid makes draw-time rects wrong by the scroll
@@ -350,7 +350,7 @@ impl Oryxis {
             .on_right_press(Message::Tabs(TabsMessage::ShowCardMenu(idx)));
 
         (
-            Element::from(container(wrapped).width(Length::Fill).clip(true)),
+            container(wrapped).width(Length::Fill).clip(true).boxed(),
             badge_color,
         )
     }

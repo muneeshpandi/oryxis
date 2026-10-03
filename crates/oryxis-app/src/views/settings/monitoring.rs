@@ -62,7 +62,7 @@ impl Oryxis {
                     .width(240)
                     .style(crate::widgets::rounded_input_style)
                     .align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
             ),
         ]);
 
@@ -99,6 +99,6 @@ impl Oryxis {
         .id(iced::widget::Id::new("settings-monitoring-scroll"))
         .on_scroll(|s| Message::Settings(SettingsMessage::SectionScrolled(s.viewport.relative_offset().y)))
         .height(Length::Fill)
-        .into()
+        .boxed()
     }
 }

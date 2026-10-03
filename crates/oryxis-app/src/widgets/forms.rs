@@ -1,10 +1,11 @@
 //! UI helper widgets: forms. Split out of widgets/mod.rs.
 
+use iced::Widget as _;
 use super::*;
 /// A section card with slightly lighter background. Children are aligned to
 /// the leading edge so labels, descriptions, and inline widgets hug the
 /// right side under RTL instead of pinning to physical left.
-pub(crate) fn panel_section<'a>(content: iced::widget::Column<'a, Message>) -> Element<'a, Message> {
+pub(crate) fn panel_section<'a>(content: iced::widget::Column<iced::Element<'a, Message>>) -> Element<'a, Message> {
     container(content.width(Length::Fill).align_x(dir_align_x()))
         .padding(16)
         .width(Length::Fill)
@@ -13,7 +14,7 @@ pub(crate) fn panel_section<'a>(content: iced::widget::Column<'a, Message>) -> E
             border: Border { radius: Radius::from(8.0), color: OryxisColors::t().border, width: 1.0 },
             ..Default::default()
         })
-        .into()
+        .boxed()
 }
 
 /// A labeled form field inside a section. Column aligned to the leading
@@ -26,7 +27,7 @@ pub(crate) fn panel_field<'a>(label: &'a str, input: Element<'a, Message>) -> El
     ]
     .width(Length::Fill)
     .align_x(dir_align_x())
-    .into()
+    .boxed()
 }
 
 /// `panel_field` plus a line saying where an unset field's value comes
@@ -56,25 +57,25 @@ pub(crate) fn panel_field_inherited<'a>(
 ) -> Element<'a, Message> {
     // An empty label means the caller already has its own row header
     // (or needs none), so no blank line goes above the input.
-    let mut col = iced::widget::column![];
+    let mut col = iced::widget::Column::<iced::Element<'_, _>>::new();
     if !label.is_empty() {
         col = col
-            .push(text(label).size(12).color(OryxisColors::t().text_muted))
-            .push(Space::new().height(4));
+            .push(text(label).size(12).color(OryxisColors::t().text_muted).boxed())
+            .push(Space::new().height(4).boxed());
     }
     col = col.push(input);
     if let Some((value, group)) = inherited {
-        col = col.push(Space::new().height(3)).push(
+        col = col.push(Space::new().height(3).boxed()).push(
             text(
                 crate::i18n::t("inherited_from")
                     .replace("{value}", &value)
                     .replace("{group}", &group),
             )
             .size(10)
-            .color(OryxisColors::t().accent),
+            .color(OryxisColors::t().accent).boxed(),
         );
     }
-    col.width(Length::Fill).align_x(dir_align_x()).into()
+    col.width(Length::Fill).align_x(dir_align_x()).boxed()
 }
 
 /// `panel_field` for a credential input: standardizes the tri-state
@@ -116,11 +117,11 @@ pub(crate) fn form_footer<'a>(
     save: Element<'a, Message>,
 ) -> Element<'a, Message> {
     container(
-        dir_row(vec![cancel, Space::new().width(8).into(), save])
+        dir_row(vec![cancel, Space::new().width(8).boxed(), save])
             .align_y(iced::Alignment::Center),
     )
     .padding(Padding { top: 8.0, right: 16.0, bottom: 16.0, left: 16.0 })
-    .into()
+    .boxed()
 }
 
 /// The standard inline-error slot: renders nothing (zero height) when
@@ -136,8 +137,8 @@ pub(crate) fn form_error<'a>(error: Option<&'a str>) -> Element<'a, Message> {
                 .align_x(crate::widgets::dir_align_x()),
         )
         .padding(Padding { top: 0.0, right: 16.0, bottom: 8.0, left: 16.0 })
-        .into(),
-        None => Space::new().into(),
+        .boxed(),
+        None => Space::new().boxed(),
     }
 }
 
@@ -158,7 +159,7 @@ pub(crate) fn toggle_switch<'a>(value: bool, msg: Message) -> Element<'a, Messag
             border: Border { radius: Radius::from(10.0), ..Default::default() },
             ..Default::default()
         })
-        .into()
+        .boxed()
 }
 
 /// Inline label + [`toggle_switch`], for compact placements (e.g.
@@ -170,23 +171,23 @@ pub(crate) fn toggle_switch_labeled<'a>(
     msg: Message,
 ) -> Element<'a, Message> {
     dir_row(vec![
-        text(label).size(11).color(OryxisColors::t().text_secondary).into(),
-        Space::new().width(8).into(),
+        text(label).size(11).color(OryxisColors::t().text_secondary).boxed(),
+        Space::new().width(8).boxed(),
         toggle_switch(value, msg),
     ])
     .align_y(iced::Alignment::Center)
-    .into()
+    .boxed()
 }
 
 /// A full-width settings row: label on the leading edge, [`toggle_switch`]
 /// on the trailing edge.
 pub(crate) fn toggle_row<'a>(label: &'a str, value: bool, msg: Message) -> Element<'a, Message> {
     dir_row(vec![
-        text(label).size(13).color(OryxisColors::t().text_primary).into(),
-        Space::new().width(Length::Fill).into(),
+        text(label).size(13).color(OryxisColors::t().text_primary).boxed(),
+        Space::new().width(Length::Fill).boxed(),
         toggle_switch(value, msg),
     ]).align_y(iced::Alignment::Center)
-    .into()
+    .boxed()
 }
 
 /// Like [`toggle_row`] but with a muted description line under the
@@ -206,11 +207,11 @@ pub(crate) fn toggle_row_desc<'a>(
         ]
         .width(Length::Fill)
         .align_x(dir_align_x())
-        .into(),
-        Space::new().width(12).into(),
+        .boxed(),
+        Space::new().width(12).boxed(),
         toggle_switch(value, msg),
     ]).align_y(iced::Alignment::Center)
-    .into()
+    .boxed()
 }
 
 /// Small semibold "h2" header used to segregate a settings section
@@ -224,7 +225,7 @@ pub(crate) fn settings_group_header<'a>(label: &'a str) -> Element<'a, Message> 
             ..iced::Font::DEFAULT
         })
         .color(OryxisColors::t().text_secondary)
-        .into()
+        .boxed()
 }
 
 pub(crate) fn panel_divider<'a>() -> Element<'a, Message> {
@@ -234,7 +235,7 @@ pub(crate) fn panel_divider<'a>() -> Element<'a, Message> {
             background: Some(Background::Color(OryxisColors::t().border)),
             ..Default::default()
         })
-        .into()
+        .boxed()
 }
 
 /// An option row shell: icon + label on the leading edge, a caller
@@ -248,16 +249,16 @@ pub(crate) fn panel_option_row<'a>(
 ) -> Element<'a, Message> {
     container(
         dir_row(vec![
-            icon_widget.size(13).color(OryxisColors::t().text_muted).into(),
-            Space::new().width(10).into(),
-            text(label).size(13).color(OryxisColors::t().text_secondary).into(),
-            Space::new().width(Length::Fill).into(),
+            icon_widget.size(13).color(OryxisColors::t().text_muted).boxed(),
+            Space::new().width(10).boxed(),
+            text(label).size(13).color(OryxisColors::t().text_secondary).boxed(),
+            Space::new().width(Length::Fill).boxed(),
             control,
         ])
         .align_y(iced::Alignment::Center),
     )
     .padding(Padding { top: 4.0, right: 0.0, bottom: 4.0, left: 0.0 })
-    .into()
+    .boxed()
 }
 
 pub(crate) fn settings_row<'a>(label: &'static str, value: String) -> Element<'a, Message> {
@@ -268,14 +269,14 @@ pub(crate) fn settings_row<'a>(label: &'static str, value: String) -> Element<'a
     // where panel children sit directly on the panel background.
     container(
         dir_row(vec![
-            text(label).size(13).color(OryxisColors::t().text_secondary).into(),
-            Space::new().width(Length::Fill).into(),
-            text(value).size(13).color(OryxisColors::t().text_primary).into(),
+            text(label).size(13).color(OryxisColors::t().text_secondary).boxed(),
+            Space::new().width(Length::Fill).boxed(),
+            text(value).size(13).color(OryxisColors::t().text_primary).boxed(),
         ]),
     )
     .padding(Padding { top: 6.0, right: 4.0, bottom: 6.0, left: 4.0 })
     .width(Length::Fill)
-    .into()
+    .boxed()
 }
 
 /// Same shape as `settings_row`, but the value text renders in the
@@ -292,9 +293,9 @@ pub(crate) fn settings_row_link<'a>(
             text(label.to_owned())
                 .size(13)
                 .color(OryxisColors::t().text_secondary)
-                .into(),
-            Space::new().width(Length::Fill).into(),
-            text(display).size(13).color(OryxisColors::t().accent).into(),
+                .boxed(),
+            Space::new().width(Length::Fill).boxed(),
+            text(display).size(13).color(OryxisColors::t().accent).boxed(),
         ]),
     )
     .padding(Padding { top: 6.0, right: 4.0, bottom: 6.0, left: 4.0 })
@@ -302,7 +303,7 @@ pub(crate) fn settings_row_link<'a>(
     iced::widget::MouseArea::new(body)
         .on_press(Message::OpenUrl(url))
         .interaction(iced::mouse::Interaction::Pointer)
-        .into()
+        .boxed()
 }
 
 /// Same shape as `settings_row`, but the whole row is clickable and
@@ -318,9 +319,9 @@ pub(crate) fn settings_row_nav<'a>(
             text(label.to_owned())
                 .size(13)
                 .color(OryxisColors::t().text_secondary)
-                .into(),
-            Space::new().width(Length::Fill).into(),
-            text(value).size(13).color(OryxisColors::t().text_primary).into(),
+                .boxed(),
+            Space::new().width(Length::Fill).boxed(),
+            text(value).size(13).color(OryxisColors::t().text_primary).boxed(),
         ]),
     )
     .padding(Padding { top: 6.0, right: 4.0, bottom: 6.0, left: 4.0 })
@@ -328,7 +329,7 @@ pub(crate) fn settings_row_nav<'a>(
     iced::widget::MouseArea::new(body)
         .on_press(msg)
         .interaction(iced::mouse::Interaction::Pointer)
-        .into()
+        .boxed()
 }
 
 
@@ -372,7 +373,7 @@ pub(crate) fn side_panel_frame(
             background: Some(Background::Color(background)),
             ..Default::default()
         });
-    dir_row(vec![handle.into(), body.into()])
+    dir_row(vec![handle.boxed(), body.boxed()])
         .height(Length::Fill)
-        .into()
+        .boxed()
 }

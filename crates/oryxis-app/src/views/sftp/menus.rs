@@ -8,7 +8,7 @@ pub(crate) fn pane_actions_btn<'a>(toggle_msg: Message) -> Element<'a, Message> 
         true,
         toggle_msg,
     )
-    .into()
+    .boxed()
 }
 
 /// The collapsed-filter input card. Positioned + scrimmed by the caller at
@@ -44,7 +44,7 @@ pub(crate) fn filter_card<'a>(side: SftpPaneSide, filter: &'a str) -> Element<'a
             },
             ..Default::default()
         });
-    card.into()
+    card.boxed()
 }
 
 /// Floating Actions menu for a pane, anchored to the top-right via a
@@ -62,7 +62,7 @@ pub(crate) fn actions_menu_card<'a>(
     use crate::state::SftpColumn;
     // Same directory-level actions as the cursor-anchored background menu,
     // shared via `dir_action_items` so the two never drift apart.
-    let mut menu_col = column![].spacing(2).padding(4);
+    let mut menu_col = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(2).padding(4);
     // `pane_dir` must be SIDE-RESOLVED (the background menu already does
     // this in main_layout.rs): on a Local pane `remote_path` is empty or
     // stale, and Copy path would copy that instead of the local dir.
@@ -88,7 +88,7 @@ pub(crate) fn actions_menu_card<'a>(
                 .size(10)
                 .color(OryxisColors::t().text_muted),
         )
-        .padding(Padding { top: 4.0, right: 10.0, bottom: 2.0, left: 10.0 }),
+        .padding(Padding { top: 4.0, right: 10.0, bottom: 2.0, left: 10.0 }).boxed(),
     );
     for (label, col, on) in [
         (t("col_modified"), SftpColumn::Modified, cols.modified),
@@ -119,7 +119,7 @@ pub(crate) fn actions_menu_card<'a>(
         },
         ..Default::default()
     });
-    menu.into()
+    menu.boxed()
 }
 
 pub(crate) fn menu_separator<'a>() -> Element<'a, Message> {
@@ -129,7 +129,7 @@ pub(crate) fn menu_separator<'a>() -> Element<'a, Message> {
             background: Some(Background::Color(OryxisColors::t().border)),
             ..Default::default()
         })
-        .into()
+        .boxed()
 }
 
 /// One row of the Columns section in the actions menu: a check glyph
@@ -168,7 +168,7 @@ pub(crate) fn column_toggle_item<'a>(
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }
 
 /// Right-click row context menu, items vary by pane side and entry
@@ -763,7 +763,7 @@ fn menu_sub_item<'a>(
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }
 
 pub(crate) fn dir_action_items<'a>(
@@ -832,7 +832,7 @@ pub(crate) fn dir_action_items<'a>(
 /// background): fixed width so the `Length::Fill` separators don't
 /// stretch the popover, plus the surface/border/shadow styling.
 pub(crate) fn context_menu_shell<'a>(
-    items: iced::widget::Column<'a, Message>,
+    items: iced::widget::Column<iced::Element<'a, Message>>,
 ) -> Element<'a, Message> {
     container(items)
         .width(Length::Fixed(ROW_CONTEXT_MENU_WIDTH))
@@ -850,7 +850,7 @@ pub(crate) fn context_menu_shell<'a>(
             },
             ..Default::default()
         })
-        .into()
+        .boxed()
 }
 
 /// Compute the approximate height of the row context menu given the
@@ -976,7 +976,7 @@ pub(crate) fn menu_item_owned_tinted<'a>(
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }
 
 pub(crate) fn menu_item<'a>(
@@ -1017,7 +1017,7 @@ pub(crate) fn menu_item_tinted<'a>(
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }
 
 /// Combo-box arrow on the trailing edge of the path bar: opens this
@@ -1051,7 +1051,7 @@ pub(crate) fn path_history_button<'a>(
             ..Default::default()
         }
     });
-    crate::views::terminal::icon_tooltip(btn.into(), t("sftp_path_history"))
+    crate::views::terminal::icon_tooltip(btn.boxed(), t("sftp_path_history"))
 }
 
 /// Visited-directory dropdown for the path bar: most recent first,
@@ -1060,7 +1060,7 @@ pub(crate) fn path_history_overlay<'a>(
     side: SftpPaneSide,
     history: &'a [String],
 ) -> Element<'a, Message> {
-    let mut col = column![].spacing(2).padding(4);
+    let mut col = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(2).padding(4);
     for path in history {
         col = col.push(
             button(
@@ -1091,16 +1091,16 @@ pub(crate) fn path_history_overlay<'a>(
                     border: Border { radius: Radius::from(4.0), ..Default::default() },
                     ..Default::default()
                 }
-            }),
+            }).boxed(),
         );
     }
     // A long history scrolls instead of running off the pane.
     let menu = container(
-        iced::widget::scrollable(col).height(Length::Fixed(
+        iced::widget::scrollable::<_, _, iced::Theme>(col).height(Length::Fixed(
             (history.len() as f32 * 30.0 + 8.0).min(320.0),
         )),
     )
-    .style(|_| container::Style {
+    .style(|_: &iced::Theme| container::Style {
         background: Some(Background::Color(OryxisColors::t().bg_surface)),
         border: Border {
             radius: Radius::from(8.0),
@@ -1118,7 +1118,7 @@ pub(crate) fn path_history_overlay<'a>(
         container(Space::new()).width(Length::Fill).height(Length::Fill),
     )
     .on_press(Message::Sftp(SftpMessage::SftpPathHistoryClose))
-    .into();
+    .boxed();
     // Anchored under the path bar, hugging the pane's trailing edge
     // (where the arrow that opened it sits). The path bar is a
     // `dir_row`, so under RTL the arrow sits on the physical LEFT and
@@ -1135,24 +1135,24 @@ pub(crate) fn path_history_overlay<'a>(
             Padding { top: 70.0, right: 14.0, bottom: 0.0, left: 0.0 },
         )
     };
-    let positioned = container(menu)
+    let positioned = container::<_, iced::Theme>(menu)
         .width(Length::Fill)
         .height(Length::Fill)
         .align_x(align)
         .align_y(iced::alignment::Vertical::Top)
         .padding(pad);
-    iced::widget::Stack::new().push(scrim).push(positioned).into()
+    iced::widget::Stack::<iced::Element<'_, _>>::new().push(scrim).push(positioned.boxed()).boxed()
 }
 
 /// Drive picker dropdown for Windows local pane. Lists `C:`, `D:`, etc.
 /// based on what's actually mounted. Closed via the scrim.
 pub(crate) fn drives_menu_overlay<'a>(side: SftpPaneSide) -> Element<'a, Message> {
     let drives = list_windows_drives_cached();
-    let mut col = column![].spacing(2).padding(4);
+    let mut col = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(2).padding(4);
     if drives.is_empty() {
         col = col.push(
             container(text(t("no_drives_detected")).size(11).color(OryxisColors::t().text_muted))
-                .padding(8),
+                .padding(8).boxed(),
         );
     } else {
         for drive in drives {
@@ -1181,11 +1181,11 @@ pub(crate) fn drives_menu_overlay<'a>(side: SftpPaneSide) -> Element<'a, Message
                         border: Border { radius: Radius::from(4.0), ..Default::default() },
                         ..Default::default()
                     }
-                }),
+                }).boxed(),
             );
         }
     }
-    let menu = container(col).style(|_| container::Style {
+    let menu = container(col).style(|_: &iced::Theme| container::Style {
         background: Some(Background::Color(OryxisColors::t().bg_surface)),
         border: Border {
             radius: Radius::from(8.0),
@@ -1203,14 +1203,14 @@ pub(crate) fn drives_menu_overlay<'a>(side: SftpPaneSide) -> Element<'a, Message
         container(Space::new()).width(Length::Fill).height(Length::Fill),
     )
     .on_press(Message::Sftp(SftpMessage::SftpCloseMenus))
-    .into();
-    let positioned = container(menu)
+    .boxed();
+    let positioned = container::<_, iced::Theme>(menu)
         .width(Length::Fill)
         .height(Length::Fill)
         .align_x(iced::alignment::Horizontal::Left)
         .align_y(iced::alignment::Vertical::Top)
         .padding(Padding { top: 70.0, right: 0.0, bottom: 0.0, left: 14.0 });
-    iced::widget::Stack::new().push(scrim).push(positioned).into()
+    iced::widget::Stack::<iced::Element<'_, _>>::new().push(scrim).push(positioned.boxed()).boxed()
 }
 
 /// True when the path's first component is a real Windows volume

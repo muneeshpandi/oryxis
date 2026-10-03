@@ -239,7 +239,7 @@ impl Oryxis {
         } else {
             0.0
         };
-        iced::widget::operation::snap_to(
+        iced::widget::operation::scrollable::snap_to(
             iced::widget::Id::from(self.sftp_list_scroll_id(side)),
             iced::widget::scrollable::RelativeOffset {
                 x: None,
@@ -287,7 +287,7 @@ impl Oryxis {
         // Optimistically record the offset so a burst of key presses before
         // the next `on_scroll` arrives still computes against fresh state.
         self.sftp.pane_mut(side).list_scroll_y = new_offset;
-        iced::widget::operation::snap_to(
+        iced::widget::operation::scrollable::snap_to(
             iced::widget::Id::from(self.sftp_list_scroll_id(side)),
             iced::widget::scrollable::RelativeOffset {
                 x: None,

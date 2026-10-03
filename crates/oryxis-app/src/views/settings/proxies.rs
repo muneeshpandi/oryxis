@@ -16,7 +16,7 @@ impl Oryxis {
         // Theme parameter for an unread binding.
         // ── List rows ──
         let needle = self.proxy_search.trim().to_lowercase();
-        let mut list = column![].spacing(8);
+        let mut list = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(8);
         // Keyboard-navigation order (one row each), collected as the
         // rows render so it always matches the filtered set on screen.
         let mut proxy_nav: Vec<Vec<crate::keynav::NavItem>> = Vec::new();
@@ -95,7 +95,7 @@ impl Oryxis {
                 .size(16)
                 .line_height(1.0)
                 .color(Color::WHITE)
-                .into();
+                .boxed();
             let badge = crate::widgets::host_icon(
                 proxy_style,
                 OryxisColors::t().accent,
@@ -106,7 +106,7 @@ impl Oryxis {
             let row_el = container(
                 dir_row(vec![
                     badge,
-                    Space::new().width(8).into(),
+                    Space::new().width(8).boxed(),
                     column![
                         text(&pi.label)
                             .size(13)
@@ -120,10 +120,10 @@ impl Oryxis {
                     ]
                     .width(Length::Fill)
                     .align_x(dir_align_x())
-                    .into(),
-                    edit_btn.into(),
-                    Space::new().width(8).into(),
-                    delete_btn.into(),
+                    .boxed(),
+                    edit_btn.boxed(),
+                    Space::new().width(8).boxed(),
+                    delete_btn.boxed(),
                 ])
                 .align_y(iced::Alignment::Center),
             )
@@ -143,7 +143,7 @@ impl Oryxis {
                 ..Default::default()
             })
             .width(Length::Fill);
-            let row_el = self.card_wash(row_el.into(), OryxisColors::t().accent);
+            let row_el = self.card_wash(row_el.boxed(), OryxisColors::t().accent);
             list = list.push(crate::widgets::select_ring_opt(
                 row_el,
                 10.0,
@@ -164,8 +164,8 @@ impl Oryxis {
                         text("+").size(13).font(iced::Font {
                             weight: iced::font::Weight::Bold,
                             ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
-                        }).color(fg).into(),
-                        Space::new().width(4).into(),
+                        }).color(fg).boxed(),
+                        Space::new().width(4).boxed(),
                         text(crate::i18n::t("new_proxy_identity"))
                             .size(11)
                             .font(iced::Font {
@@ -173,7 +173,7 @@ impl Oryxis {
                                 ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
                             })
                             .color(fg)
-                            .into(),
+                            .boxed(),
                     ])
                     .align_y(iced::Alignment::Center),
                 )
@@ -192,7 +192,7 @@ impl Oryxis {
                     ..Default::default()
                 }
             })
-            .into()
+            .boxed()
         };
 
         // Empty + no form open → polished centered empty state (matches
@@ -203,7 +203,7 @@ impl Oryxis {
                 iced_fonts::lucide::router()
                     .size(32)
                     .color(OryxisColors::t().text_muted)
-                    .into(),
+                    .boxed(),
                 crate::i18n::t("proxy_identities_empty_title").to_string(),
                 crate::i18n::t("proxy_identities_empty").to_string(),
                 Some((
@@ -218,7 +218,7 @@ impl Oryxis {
             return column![empty]
                 .width(Length::Fill)
                 .height(Length::Fill)
-                .into();
+                .boxed();
         }
 
         // Toolbar: search on the leading edge (Fill), action button
@@ -238,7 +238,7 @@ impl Oryxis {
             search_slot
         };
         let trailing: Element<'_, Message> = if self.proxy_identity_form.visible {
-            Space::new().height(Length::Fixed(32.0)).into()
+            Space::new().height(Length::Fixed(32.0)).boxed()
         } else if buttons_overflow {
             self.keynav_toolbar_slot(
                 crate::keynav::ToolbarItem::Overflow,
@@ -256,7 +256,7 @@ impl Oryxis {
         let toolbar = container(
             dir_row(vec![
                 search_slot,
-                Space::new().width(10).into(),
+                Space::new().width(10).boxed(),
                 trailing,
             ]).align_y(iced::Alignment::Center),
         )
@@ -279,7 +279,7 @@ impl Oryxis {
         column![toolbar, scroll]
             .width(Length::Fill)
             .height(Length::Fill)
-            .into()
+            .boxed()
     }
 
     /// The inline create / edit form for a proxy identity. Used inside
@@ -347,7 +347,7 @@ impl Oryxis {
                         .on_input(|v| Message::ProxyIdentity(ProxyIdentityMessage::ProxyIdentityFormLabelChanged(v)))
                         .padding(10)
                         .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
-                        .into(),
+                        .boxed(),
                 ),
             ),
             Space::new().height(12),
@@ -358,7 +358,7 @@ impl Oryxis {
                         "panel-proxy-identity-kind",
                     )),
                     10.0,
-                    kind_picker.into(),
+                    kind_picker.boxed(),
                 ),
             ),
             Space::new().height(12),
@@ -377,7 +377,7 @@ impl Oryxis {
                     .on_input(|v| Message::ProxyIdentity(ProxyIdentityMessage::ProxyIdentityFormHostChanged(v)))
                     .padding(10)
                     .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
                 ),
             ),
             Space::new().height(12),
@@ -394,7 +394,7 @@ impl Oryxis {
                         .padding(6)
                         .width(70)
                         .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
-                        .into(),
+                        .boxed(),
                 ),
             ),
             Space::new().height(12),
@@ -413,7 +413,7 @@ impl Oryxis {
                     .on_input(|v| Message::ProxyIdentity(ProxyIdentityMessage::ProxyIdentityFormUsernameChanged(v)))
                     .padding(10)
                     .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
                 ),
             ),
             Space::new().height(12),
@@ -459,8 +459,8 @@ impl Oryxis {
                 text(title)
                     .size(16)
                     .color(OryxisColors::t().text_primary)
-                    .into(),
-                Space::new().width(Length::Fill).into(),
+                    .boxed(),
+                Space::new().width(Length::Fill).boxed(),
                 button(text("\u{00D7}").size(14).color(OryxisColors::t().text_muted))
                     .on_press(Message::ProxyIdentity(ProxyIdentityMessage::HideProxyIdentityForm))
                     .padding(Padding { top: 4.0, right: 8.0, bottom: 4.0, left: 8.0 })
@@ -469,7 +469,7 @@ impl Oryxis {
                         border: Border::default(),
                         ..Default::default()
                     })
-                    .into(),
+                    .boxed(),
             ])
             .align_y(iced::Alignment::Center),
         )
@@ -520,6 +520,6 @@ impl Oryxis {
                 },
                 ..Default::default()
             })
-            .into()
+            .boxed()
     }
 }

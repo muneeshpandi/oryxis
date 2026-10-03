@@ -3,6 +3,7 @@
 //! here too. The wizard form panel is mounted on the right when
 //! `cloud_form.visible` is on.
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::button::Status as BtnStatus;
 use iced::widget::{button, column, container, scrollable, text, text_input, MouseArea, Space};
@@ -30,8 +31,8 @@ impl Oryxis {
                                 ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
                             })
                             .color(fg)
-                            .into(),
-                        Space::new().width(4).into(),
+                            .boxed(),
+                        Space::new().width(4).boxed(),
                         text(t("cloud_new_account_btn"))
                             .size(11)
                             .font(iced::Font {
@@ -39,7 +40,7 @@ impl Oryxis {
                                 ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
                             })
                             .color(fg)
-                            .into(),
+                            .boxed(),
                     ])
                     .align_y(iced::Alignment::Center),
                 )
@@ -66,7 +67,7 @@ impl Oryxis {
                     ..Default::default()
                 }
             })
-            .into()
+            .boxed()
         };
         // Responsive collapse: search yields first, then folds to an icon;
         // at the narrowest the action moves into the `…` overflow menu.
@@ -99,7 +100,7 @@ impl Oryxis {
                 // Search fills the leading space (hidden + Fill spacer when
                 // there are no accounts, so the action stays trailing).
                 search_slot,
-                Space::new().width(10).into(),
+                Space::new().width(10).boxed(),
                 trailing,
             ])
             .align_y(iced::Alignment::Center),
@@ -179,7 +180,7 @@ impl Oryxis {
                 iced_fonts::lucide::cloud()
                     .size(32)
                     .color(OryxisColors::t().text_muted)
-                    .into(),
+                    .boxed(),
                 t("cloud_empty_title").to_string(),
                 t("cloud_empty_desc").to_string(),
                 Some((
@@ -268,7 +269,7 @@ impl Oryxis {
                 let card_body = container(
                     dir_row(vec![
                         icon_box,
-                        Space::new().width(12).into(),
+                        Space::new().width(12).boxed(),
                         column![
                             text(&cp.label)
                                 .size(13)
@@ -283,13 +284,13 @@ impl Oryxis {
                         .width(Length::Fill)
                         .align_x(crate::widgets::dir_align_x())
                         .clip(true)
-                        .into(),
+                        .boxed(),
                     ])
                     .align_y(iced::Alignment::Center),
                 )
                 .padding(card_padding)
                 .width(Length::Fill)
-                .style(move |_| container::Style {
+                .style(move |_: &iced::Theme| container::Style {
                     background: Some(Background::Color(OryxisColors::t().bg_surface)),
                     border: Border {
                         radius: Radius::from(10.0),
@@ -324,16 +325,16 @@ impl Oryxis {
                 } else {
                     Padding { top: 0.0, right: 8.0, bottom: 0.0, left: 0.0 }
                 };
-                let dots_overlay = container(dots_btn)
+                let dots_overlay = container::<_, iced::Theme>(dots_btn)
                     .width(Length::Fill)
                     .height(Length::Fill)
                     .align_x(dots_align)
                     .align_y(iced::alignment::Vertical::Center)
                     .padding(dots_pad);
-                let card_element: Element<'_, Message> = iced::widget::Stack::new()
-                    .push(card_body)
-                    .push(dots_overlay)
-                    .into();
+                let card_element: Element<'_, Message> = iced::widget::Stack::<iced::Element<'_, _>>::new()
+                    .push(card_body.boxed())
+                    .push(dots_overlay.boxed())
+                    .boxed();
 
                 let wrapped = MouseArea::new(card_element)
                     .on_enter(Message::Cloud(CloudMessage::CloudCardHovered(cp_id)))
@@ -341,7 +342,7 @@ impl Oryxis {
                     .on_right_press(Message::Cloud(CloudMessage::ShowCloudCardMenu(cp_id)));
 
                 let card_el: Element<'_, Message> =
-                    container(wrapped).width(Length::Fill).clip(true).into();
+                    container(wrapped).width(Length::Fill).clip(true).boxed();
                 let card_el = self.card_wash(card_el, brand_color);
                 cards.push(self.keynav_ring_content(kb_selected, card_el));
             }
@@ -386,7 +387,7 @@ impl Oryxis {
 
         // The account form panel is hoisted to `view_main`
         // (active_side_panel) so it rises over the sub-nav band.
-        main_content.into()
+        main_content.boxed()
     }
 
     /// Cloud Sync preferences (auto-refresh interval, orphan
@@ -433,15 +434,15 @@ impl Oryxis {
                 text(t("settings_cloud_auto_refresh_interval"))
                     .size(12)
                     .color(OryxisColors::t().text_muted)
-                    .into(),
-                Space::new().width(Length::Fill).into(),
+                    .boxed(),
+                Space::new().width(Length::Fill).boxed(),
                 self.settings_nav_slot_labeled(
                     t("settings_cloud_auto_refresh_interval"),
                     crate::keynav::RowAction::input(iced::widget::Id::new(
                         "set-cloud-refresh-interval",
                     )),
                     10.0,
-                    refresh_interval_input.into(),
+                    refresh_interval_input.boxed(),
                 ),
             ])
             .align_y(iced::Alignment::Center),
@@ -456,15 +457,15 @@ impl Oryxis {
                 text(t("settings_cloud_orphan_archive_days"))
                     .size(12)
                     .color(OryxisColors::t().text_muted)
-                    .into(),
-                Space::new().width(Length::Fill).into(),
+                    .boxed(),
+                Space::new().width(Length::Fill).boxed(),
                 self.settings_nav_slot_labeled(
                     t("settings_cloud_orphan_archive_days"),
                     crate::keynav::RowAction::input(iced::widget::Id::new(
                         "set-cloud-orphan-days",
                     )),
                     10.0,
-                    orphan_days_input.into(),
+                    orphan_days_input.boxed(),
                 ),
             ])
             .align_y(iced::Alignment::Center),
@@ -479,6 +480,6 @@ impl Oryxis {
         // in view.
         .id(iced::widget::Id::new("settings-cloud-scroll"))
         .height(Length::Fill)
-        .into()
+        .boxed()
     }
 }

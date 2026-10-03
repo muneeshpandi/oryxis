@@ -1,5 +1,6 @@
 //! Known SSH hosts list screen.
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::button::Status as BtnStatus;
 use iced::widget::{button, column, container, scrollable, text, Space};
@@ -47,9 +48,9 @@ impl Oryxis {
                     ..Default::default()
                 }
             })
-            .into()
+            .boxed()
         } else {
-            Space::new().into()
+            Space::new().boxed()
         };
 
         // Privacy reveal toggle, shown only when the global Privacy Mode is on
@@ -60,8 +61,8 @@ impl Oryxis {
         self.keynav_toolbar_reset();
         let mut toolbar_items: Vec<Element<'_, Message>> = vec![
             // Title dropped (the nav shows the active section).
-            Space::new().into(),
-            Space::new().width(Length::Fill).into(),
+            Space::new().boxed(),
+            Space::new().width(Length::Fill).boxed(),
         ];
         if self.privacy_global_active() {
             // Rendered on the empty path too (the toolbar survives the
@@ -70,7 +71,7 @@ impl Oryxis {
                 crate::keynav::ToolbarItem::PrivacyReveal,
                 crate::widgets::privacy_reveal_btn(self.privacy.revealed),
             ));
-            toolbar_items.push(Space::new().width(8).into());
+            toolbar_items.push(Space::new().width(8).boxed());
         }
         toolbar_items.push(if has_entries {
             self.keynav_toolbar_slot(crate::keynav::ToolbarItem::Primary, clear_all_btn)
@@ -90,7 +91,7 @@ impl Oryxis {
                 iced_fonts::lucide::shield_check()
                     .size(32)
                     .color(OryxisColors::t().text_muted)
-                    .into(),
+                    .boxed(),
                 t("no_known_hosts_yet").to_string(),
                 t("known_hosts_empty_desc").to_string(),
                 None,
@@ -98,7 +99,7 @@ impl Oryxis {
             return column![toolbar, empty]
                 .width(Length::Fill)
                 .height(Length::Fill)
-                .into();
+                .boxed();
         }
 
         let mut rows: Vec<Element<'_, Message>> = Vec::new();
@@ -165,8 +166,8 @@ impl Oryxis {
 
             let entry = container(
                 dir_row(vec![
-                    iced_fonts::lucide::shield_check().size(14).color(OryxisColors::t().success).into(),
-                    Space::new().width(12).into(),
+                    iced_fonts::lucide::shield_check().size(14).color(OryxisColors::t().success).boxed(),
+                    Space::new().width(12).boxed(),
                     column![
                         text(host_title).size(13).color(OryxisColors::t().text_primary),
                         Space::new().height(2),
@@ -176,9 +177,9 @@ impl Oryxis {
                     ]
                     .width(Length::Fill)
                     .align_x(crate::widgets::dir_align_x())
-                    .into(),
-                    Space::new().width(12).into(),
-                    del_btn.into(),
+                    .boxed(),
+                    Space::new().width(12).boxed(),
+                    del_btn.boxed(),
                 ]).align_y(iced::Alignment::Center),
             )
             .padding(Padding { top: 10.0, right: 16.0, bottom: 10.0, left: 16.0 })
@@ -190,11 +191,11 @@ impl Oryxis {
             });
 
             rows.push(crate::widgets::select_ring_opt(
-                entry.into(),
+                entry.boxed(),
                 8.0,
                 kb_selected.then(|| OryxisColors::t().accent),
             ));
-            rows.push(Space::new().height(6).into());
+            rows.push(Space::new().height(6).boxed());
         }
 
         let list = scrollable(
@@ -208,6 +209,6 @@ impl Oryxis {
         column![toolbar, list]
             .width(Length::Fill)
             .height(Length::Fill)
-            .into()
+            .boxed()
     }
 }

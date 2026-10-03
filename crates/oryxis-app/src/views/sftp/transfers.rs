@@ -17,16 +17,16 @@ pub(crate) fn transfer_file_panel<'a>(
         label_color: Color,
     ) -> Element<'b, Message> {
         crate::widgets::dir_row(vec![
-            text(glyph.to_string()).size(12).color(glyph_color).into(),
-            Space::new().width(8).into(),
-            text(label).size(12).color(label_color).into(),
+            text(glyph.to_string()).size(12).color(glyph_color).boxed(),
+            Space::new().width(8).boxed(),
+            text(label).size(12).color(label_color).boxed(),
         ])
         .align_y(iced::Alignment::Center)
-        .into()
+        .boxed()
     }
 
     let theme = OryxisColors::t();
-    let mut list = column![].spacing(3);
+    let mut list = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(3);
     for label in done_log {
         list = list.push(marker_row("\u{2713}", theme.success, label.clone(), theme.text_secondary));
     }
@@ -49,7 +49,7 @@ pub(crate) fn transfer_file_panel<'a>(
             },
             ..Default::default()
         })
-        .into()
+        .boxed()
 }
 
 /// Bottom-of-view strip that surfaces an in-progress folder transfer:
@@ -160,11 +160,11 @@ pub(crate) fn transfer_progress_strip<'a>(
             container(cancel_btn).width(Length::Fill).align_x(crate::widgets::dir_align_x()),
         ]
         .width(Length::Fill)
-        .into()
+        .boxed()
     } else {
-        crate::widgets::dir_row(vec![info.into(), Space::new().width(12).into(), cancel_btn.into()])
+        crate::widgets::dir_row(vec![info.boxed(), Space::new().width(12).boxed(), cancel_btn.boxed()])
             .align_y(iced::Alignment::Center)
-            .into()
+            .boxed()
     };
     container(body)
     .padding(Padding { top: 8.0, right: 14.0, bottom: 8.0, left: 14.0 })
@@ -178,7 +178,7 @@ pub(crate) fn transfer_progress_strip<'a>(
         },
         ..Default::default()
     })
-    .into()
+    .boxed()
 }
 
 /// The always-visible footer bar carrying the message-log toggle. Shows
@@ -238,7 +238,7 @@ pub(crate) fn sftp_log_bar<'a>(open: bool, count: usize) -> Element<'a, Message>
         },
         ..Default::default()
     })
-    .into()
+    .boxed()
 }
 
 /// Draggable horizontal divider sitting above the message-log panel. Pressing
@@ -256,7 +256,7 @@ pub(crate) fn sftp_log_divider<'a>() -> Element<'a, Message> {
     )
     .on_press(Message::Sftp(SftpMessage::SftpLogResizeStart))
     .interaction(iced::mouse::Interaction::ResizingVertically)
-    .into()
+    .boxed()
 }
 
 /// FileZilla-style message-log panel: a scrollable list of timestamped events,
@@ -264,7 +264,7 @@ pub(crate) fn sftp_log_divider<'a>() -> Element<'a, Message> {
 /// at the bottom. Strings are cloned so the element doesn't borrow the log.
 pub(crate) fn sftp_log_panel<'a>(log: &[crate::state::SftpLogEntry], height: f32) -> Element<'a, Message> {
     use crate::state::SftpLogLevel;
-    let mut col = column![]
+    let mut col = iced::widget::Column::<iced::Element<'_, _>>::new()
         .spacing(1)
         .padding(Padding { top: 6.0, right: 10.0, bottom: 6.0, left: 10.0 })
         .width(Length::Fill);
@@ -272,7 +272,7 @@ pub(crate) fn sftp_log_panel<'a>(log: &[crate::state::SftpLogEntry], height: f32
         col = col.push(
             text(t("sftp_log_empty"))
                 .size(11)
-                .color(OryxisColors::t().text_muted),
+                .color(OryxisColors::t().text_muted).boxed(),
         );
     } else {
         for e in log {
@@ -290,7 +290,7 @@ pub(crate) fn sftp_log_panel<'a>(log: &[crate::state::SftpLogEntry], height: f32
                         .width(Length::Fixed(64.0)),
                     text(e.text.clone()).size(11).color(color).width(Length::Fill),
                 ]
-                .spacing(8),
+                .spacing(8).boxed(),
             );
         }
     }
@@ -306,5 +306,5 @@ pub(crate) fn sftp_log_panel<'a>(log: &[crate::state::SftpLogEntry], height: f32
             },
             ..Default::default()
         })
-        .into()
+        .boxed()
 }

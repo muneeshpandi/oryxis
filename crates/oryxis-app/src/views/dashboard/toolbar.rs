@@ -2,6 +2,7 @@
 //! action button (`+ host` for manual folders, `⬇ Discover` for
 //! cloud-linked ones, nothing for dynamic groups).
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::button::Status as BtnStatus;
 use iced::widget::{button, container, text, MouseArea, Space};
@@ -78,22 +79,22 @@ impl Oryxis {
                 .on_enter(Message::Tabs(TabsMessage::FolderBackHovered))
                 .on_exit(Message::Tabs(TabsMessage::FolderBackUnhovered));
             dir_row(vec![
-                crate::views::terminal::icon_tooltip(back_btn.into(), t("back")),
-                Space::new().width(8).into(),
-                iced_fonts::lucide::folder().size(18).color(OryxisColors::t().accent).into(),
-                Space::new().width(6).into(),
+                crate::views::terminal::icon_tooltip(back_btn.boxed(), t("back")),
+                Space::new().width(8).boxed(),
+                iced_fonts::lucide::folder().size(18).color(OryxisColors::t().accent).boxed(),
+                Space::new().width(6).boxed(),
                 text(label)
                     .size(20)
                     .wrapping(iced::widget::text::Wrapping::None)
                     .color(OryxisColors::t().text_primary)
-                    .into(),
+                    .boxed(),
             ])
             .align_y(iced::Alignment::Center)
-            .into()
+            .boxed()
         } else {
             // Title dropped (redundant with the section nav); the search
             // field fills this slot in the toolbar instead.
-            Space::new().into()
+            Space::new().boxed()
         };
 
         // "+ Host [▾]" split button, primary half opens the manual
@@ -126,12 +127,12 @@ impl Oryxis {
                     text("+").size(13).font(iced::Font {
                         weight: iced::font::Weight::Bold,
                         ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
-                    }).color(OryxisColors::t().button_text).into(),
-                    Space::new().width(4).into(),
+                    }).color(OryxisColors::t().button_text).boxed(),
+                    Space::new().width(4).boxed(),
                     text(t("host_btn")).size(11).font(iced::Font {
                         weight: iced::font::Weight::Bold,
                         ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
-                    }).color(OryxisColors::t().button_text).into(),
+                    }).color(OryxisColors::t().button_text).boxed(),
                 ]).align_y(iced::Alignment::Center),
             )
             .center_y(Length::Fixed(24.0))
@@ -181,17 +182,17 @@ impl Oryxis {
         // Keyboard-navigation focus rings on each split half; the
         // recording (visual order) happens at row assembly below.
         let primary_el = self
-            .keynav_toolbar_ring(crate::keynav::ToolbarItem::Primary, primary_btn.into());
+            .keynav_toolbar_ring(crate::keynav::ToolbarItem::Primary, primary_btn.boxed());
         let chevron_el = self.keynav_toolbar_ring(
             crate::keynav::ToolbarItem::PrimaryChevron,
-            chevron_btn.into(),
+            chevron_btn.boxed(),
         );
         // Report the split group's on-screen rect so the chevron's
         // dropdown anchors to the real button (2 px below, trailing
         // edges aligned) in every layout, vertical rail included.
         let action_group: Element<'_, Message> = crate::widgets::bounds_reporter(
-            dir_row(vec![primary_el, separator.into(), chevron_el])
-                .align_y(iced::Alignment::Center),
+            dir_row(vec![primary_el, separator.boxed(), chevron_el])
+                .align_y(iced::Alignment::Center).boxed(),
             self.toolbar_split_btn_bounds.clone(),
         );
 
@@ -231,7 +232,7 @@ impl Oryxis {
                     Space::new()
                         .width(Length::Fixed(1.0))
                         .height(Length::Fixed(34.0))
-                        .into(),
+                        .boxed(),
                     Vec::new(),
                 )
             } else {
@@ -258,8 +259,8 @@ impl Oryxis {
                                     iced_fonts::lucide::download()
                                         .size(13)
                                         .color(fg)
-                                        .into(),
-                                    Space::new().width(4).into(),
+                                        .boxed(),
+                                    Space::new().width(4).boxed(),
                                     text(t("cloud_discover"))
                                         .size(11)
                                         .font(iced::Font {
@@ -267,7 +268,7 @@ impl Oryxis {
                                             ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
                                         })
                                         .color(fg)
-                                        .into(),
+                                        .boxed(),
                                 ])
                                 .align_y(iced::Alignment::Center),
                             )
@@ -291,7 +292,7 @@ impl Oryxis {
                                 ..Default::default()
                             }
                         })
-                        .into();
+                        .boxed();
                         let item = crate::keynav::ToolbarItem::CloudDiscover(pid);
                         (self.keynav_toolbar_ring(item, discover), vec![item])
                     }
@@ -347,12 +348,12 @@ impl Oryxis {
                         self.host_tag_filter_btn_bounds.clone(),
                     ),
                 ),
-                Space::new().width(6).into(),
+                Space::new().width(6).boxed(),
             ])
             .align_y(iced::Alignment::Center)
-            .into()
+            .boxed()
         } else {
-            Space::new().into()
+            Space::new().boxed()
         };
 
         // Grid/List toggle, hidden once the window is so narrow that the
@@ -380,12 +381,12 @@ impl Oryxis {
                     crate::keynav::ToolbarItem::ViewToggle,
                     crate::widgets::host_view_toggle_button(self.prefs.host_view_mode),
                 ),
-                Space::new().width(6).into(),
+                Space::new().width(6).boxed(),
             ])
             .align_y(iced::Alignment::Center)
-            .into()
+            .boxed()
         } else {
-            Space::new().into()
+            Space::new().boxed()
         };
 
         // Multi-select mode (issue #230): an icon square like the view
@@ -400,16 +401,16 @@ impl Oryxis {
         let show_multi_select = !self.active_group_is_dynamic();
         let multi_select_toggle: Element<'_, Message> = if show_multi_select {
             dir_row(vec![
-                Space::new().width(6).into(),
+                Space::new().width(6).boxed(),
                 self.keynav_toolbar_ring(
                     crate::keynav::ToolbarItem::MultiSelect,
                     crate::widgets::host_multi_select_toggle_button(self.dash_multi_select),
                 ),
             ])
             .align_y(iced::Alignment::Center)
-            .into()
+            .boxed()
         } else {
-            Space::new().into()
+            Space::new().boxed()
         };
 
         // ── Responsive collapse ──
@@ -454,9 +455,9 @@ impl Oryxis {
                 container(toolbar_left)
                     .width(Length::Fixed(cap))
                     .clip(true)
-                    .into()
+                    .boxed()
             } else {
-                container(toolbar_left).clip(true).into()
+                container(toolbar_left).clip(true).boxed()
             }
         } else {
             toolbar_left
@@ -489,7 +490,7 @@ impl Oryxis {
 
         let mut row_items: Vec<Element<'_, Message>> = vec![left_el];
         if in_group {
-            row_items.push(Space::new().width(12).into());
+            row_items.push(Space::new().width(12).boxed());
         }
         let search_slot = self.vault_search_slot(search_collapsed);
         row_items.push(if search_collapsed {
@@ -497,7 +498,7 @@ impl Oryxis {
         } else {
             search_slot
         });
-        row_items.push(Space::new().width(10).into());
+        row_items.push(Space::new().width(10).boxed());
         if buttons_overflow {
             // Every action folds into the one `…` menu; the split/sort
             // triggers are off screen, so blank their anchor cells.
@@ -517,7 +518,7 @@ impl Oryxis {
             // the sort trigger; `sort_btn` has none of its own, and the
             // 8px Space below is what stands before the primary action.
             row_items.push(multi_select_toggle);
-            row_items.push(Space::new().width(8).into());
+            row_items.push(Space::new().width(8).boxed());
             row_items.push(resolved_action);
         }
 
@@ -528,6 +529,6 @@ impl Oryxis {
             // spacing is uniform on the X and Y axes.
             .padding(Padding { top: 16.0, right: 24.0, bottom: 16.0, left: 24.0 })
             .width(Length::Fill);
-        toolbar.into()
+        toolbar.boxed()
     }
 }

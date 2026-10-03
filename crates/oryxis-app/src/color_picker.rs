@@ -4,6 +4,7 @@
 //! this is a small custom widget. It edits one `ThemeColorSlot` of the
 //! custom-theme editor, emitting `ThemeEditorColorChanged` with the new hex.
 
+use iced::Widget as _;
 use iced::widget::canvas::gradient::Linear;
 use iced::widget::canvas::{Action, Frame, Geometry, Gradient, Path, Program, Stroke};
 use iced::{mouse, Color, Element, Event, Length, Point, Rectangle, Size};
@@ -33,8 +34,8 @@ pub(crate) fn color_picker<'a>(
     let hue = iced::widget::canvas(HueBar { h, s, v, on_change })
         .width(Length::Fixed(BAR_W))
         .height(Length::Fixed(SQUARE));
-    dir_row(vec![sv.into(), iced::widget::Space::new().width(12).into(), hue.into()])
-        .into()
+    dir_row(vec![sv.boxed(), iced::widget::Space::new().width(12).boxed(), hue.boxed()])
+        .boxed()
 }
 
 fn to_hex(c: Color) -> String {

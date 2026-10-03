@@ -368,7 +368,7 @@ impl Oryxis {
         // Optimistic, because a burst of arrow presses lands before the
         // scrollable's own `on_scroll` reports back.
         *scroll = next;
-        iced::widget::operation::scroll_to(
+        iced::widget::operation::scrollable::scroll_to(
             iced::widget::Id::new(PASSWORD_SUGGEST_SCROLL_ID),
             iced::widget::scrollable::AbsoluteOffset { x: 0.0, y: next },
             iced::widget::operation::Animation::Instant,

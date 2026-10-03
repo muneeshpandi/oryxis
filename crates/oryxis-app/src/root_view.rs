@@ -2,6 +2,7 @@
 //! unlock / main, layers the auto-update modal, and wraps the whole
 //! thing in a 1px frame. Pulled out of `app.rs` so it's easier to find.
 
+use iced::Widget as _;
 use iced::Element;
 
 use crate::app::{SettingsMessage, KeysMessage, PluginMessage, Message, Oryxis};
@@ -159,11 +160,11 @@ impl Oryxis {
         let composed = if matches!(self.vault_ui.state, VaultState::Unlocked) {
             let overlay = self
                 .toast_overlay()
-                .unwrap_or_else(|| iced::widget::Space::new().into());
-            iced::widget::Stack::new()
+                .unwrap_or_else(|| iced::widget::Space::new().boxed());
+            iced::widget::Stack::<iced::Element<'_, _>>::new()
                 .push(composed)
                 .push(overlay)
-                .into()
+                .boxed()
         } else {
             composed
         };
@@ -203,6 +204,6 @@ impl Oryxis {
                 },
                 ..Default::default()
             })
-            .into()
+            .boxed()
     }
 }

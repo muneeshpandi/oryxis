@@ -3,6 +3,7 @@
 //! plus a "Test credentials" button and the save / delete actions at
 //! the bottom.
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::{button, column, container, pick_list, row, scrollable, text, text_input, Row, Space};
 use iced::{Background, Border, Color, Element, Length, Padding};
@@ -32,8 +33,8 @@ impl Oryxis {
                 text(title)
                     .size(18)
                     .color(OryxisColors::t().text_primary)
-                    .into(),
-                Space::new().width(Length::Fill).into(),
+                    .boxed(),
+                Space::new().width(Length::Fill).boxed(),
                 button(text("\u{00D7}").size(20).color(OryxisColors::t().text_muted))
                     .on_press(Message::Cloud(CloudMessage::HideCloudForm))
                     .padding(Padding {
@@ -50,7 +51,7 @@ impl Oryxis {
                         },
                         ..Default::default()
                     })
-                    .into(),
+                    .boxed(),
             ])
             .align_y(iced::Alignment::Center),
         )
@@ -125,7 +126,7 @@ impl Oryxis {
                     provider_id_str.to_string(),
                 ))),
                 6.0,
-                install_btn.into(),
+                install_btn.boxed(),
             );
             let banner: Element<'_, Message> = container(
                 column![
@@ -133,12 +134,12 @@ impl Oryxis {
                         iced_fonts::lucide::circle_alert()
                             .size(14)
                             .color(OryxisColors::t().warning)
-                            .into(),
-                        Space::new().width(8).into(),
+                            .boxed(),
+                        Space::new().width(8).boxed(),
                         text(banner_title)
                             .size(13)
                             .color(OryxisColors::t().text_primary)
-                            .into(),
+                            .boxed(),
                     ])
                     .align_y(iced::Alignment::Center),
                     Space::new().height(4),
@@ -166,10 +167,10 @@ impl Oryxis {
                 },
                 ..Default::default()
             })
-            .into();
-            column![banner, Space::new().height(14)].into()
+            .boxed();
+            column![banner, Space::new().height(14)].boxed()
         } else {
-            Space::new().into()
+            Space::new().boxed()
         };
 
         // Name field, built before the pickers so its keyboard row
@@ -182,7 +183,7 @@ impl Oryxis {
                 .on_input(|v| Message::Cloud(CloudMessage::CloudFormLabelChanged(v)))
                 .padding(10)
                 .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
-                .into(),
+                .boxed(),
         );
 
         // ── Provider picker ── every provider the app knows. Keyboard row:
@@ -217,7 +218,7 @@ impl Oryxis {
             .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
             .padding(10)
             .style(crate::widgets::rounded_pick_list_style)
-            .into(),
+            .boxed(),
         );
 
         // ── Auth picker ── (only Profile is implemented today.)
@@ -256,7 +257,7 @@ impl Oryxis {
             .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
             .padding(10)
             .style(crate::widgets::rounded_pick_list_style)
-            .into(),
+            .boxed(),
         );
 
         // Workload regions, chip list shared across all AWS auth kinds.
@@ -283,7 +284,7 @@ impl Oryxis {
                 })
                 .collect();
             let chips_block: Element<'_, Message> = if chips.is_empty() {
-                Space::new().into()
+                Space::new().boxed()
             } else {
                 // Plain Row, not dir_row, the chips are content-flow not
                 // structural layout and don't need to mirror under RTL.
@@ -294,7 +295,7 @@ impl Oryxis {
                         bottom: 6.0,
                         left: 0.0,
                     })
-                    .into()
+                    .boxed()
             };
             column![
                 text(t("cloud_aws_regions"))
@@ -314,7 +315,7 @@ impl Oryxis {
                         .padding(10)
                         .style(crate::widgets::rounded_input_style)
                         .align_x(dir_align_x())
-                        .into(),
+                        .boxed(),
                 ),
                 Space::new().height(4),
                 text(t("cloud_aws_regions_hint"))
@@ -342,12 +343,11 @@ impl Oryxis {
                         .on_input(|v| Message::Cloud(CloudMessage::CloudFormAwsProfileNameChanged(v)))
                         .padding(10)
                         .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
-                        .into(),
+                        .boxed(),
                 ),
                 Space::new().height(14),
                 region_field(),
-            ]
-            .into(),
+            ].boxed(),
             CloudAuthChoice::AccessKey => {
                 let secret_placeholder = if self.cloud_form.aws_has_existing_secret {
                     t("cloud_aws_access_key_secret_kept")
@@ -369,7 +369,7 @@ impl Oryxis {
                             .on_input(|v| Message::Cloud(CloudMessage::CloudFormAwsAccessKeyIdChanged(v)))
                             .padding(10)
                             .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
-                            .into(),
+                            .boxed(),
                     ),
                     Space::new().height(14),
                     text(t("cloud_aws_access_key_secret"))
@@ -416,12 +416,11 @@ impl Oryxis {
                             .on_input(|v| Message::Cloud(CloudMessage::CloudFormAwsAccessKeySessionTokenChanged(v.into())))
                             .padding(10)
                             .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
-                            .into(),
+                            .boxed(),
                     ),
                     Space::new().height(14),
                     region_field(),
-                ]
-                .into()
+                ].boxed()
             }
             CloudAuthChoice::Sso => column![
                 text(t("cloud_aws_sso_start_url"))
@@ -438,7 +437,7 @@ impl Oryxis {
                         .on_input(|v| Message::Cloud(CloudMessage::CloudFormAwsSsoStartUrlChanged(v)))
                         .padding(10)
                         .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
-                        .into(),
+                        .boxed(),
                 ),
                 Space::new().height(14),
                 text(t("cloud_aws_sso_region"))
@@ -455,7 +454,7 @@ impl Oryxis {
                         .on_input(|v| Message::Cloud(CloudMessage::CloudFormAwsSsoRegionChanged(v)))
                         .padding(10)
                         .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
-                        .into(),
+                        .boxed(),
                 ),
                 Space::new().height(14),
                 text(t("cloud_aws_sso_account_id"))
@@ -472,7 +471,7 @@ impl Oryxis {
                         .on_input(|v| Message::Cloud(CloudMessage::CloudFormAwsSsoAccountIdChanged(v)))
                         .padding(10)
                         .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
-                        .into(),
+                        .boxed(),
                 ),
                 Space::new().height(14),
                 text(t("cloud_aws_sso_role_name"))
@@ -489,7 +488,7 @@ impl Oryxis {
                         .on_input(|v| Message::Cloud(CloudMessage::CloudFormAwsSsoRoleNameChanged(v)))
                         .padding(10)
                         .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
-                        .into(),
+                        .boxed(),
                 ),
                 Space::new().height(14),
                 region_field(),
@@ -497,8 +496,7 @@ impl Oryxis {
                 text(t("cloud_aws_sso_hint"))
                     .size(11)
                     .color(OryxisColors::t().text_muted),
-            ]
-            .into(),
+            ].boxed(),
             CloudAuthChoice::Kubeconfig => column![
                 text(t("cloud_k8s_kubeconfig_path"))
                     .size(12)
@@ -515,7 +513,7 @@ impl Oryxis {
                         .padding(10)
                         .style(crate::widgets::rounded_input_style)
                         .align_x(dir_align_x())
-                        .into(),
+                        .boxed(),
                 ),
                 Space::new().height(4),
                 text(t("cloud_k8s_kubeconfig_hint"))
@@ -537,14 +535,13 @@ impl Oryxis {
                         .padding(10)
                         .style(crate::widgets::rounded_input_style)
                         .align_x(dir_align_x())
-                        .into(),
+                        .boxed(),
                 ),
                 Space::new().height(4),
                 text(t("cloud_k8s_context_hint"))
                     .size(10)
                     .color(OryxisColors::t().text_muted),
-            ]
-            .into(),
+            ].boxed(),
             CloudAuthChoice::GcloudCli => column![
                 // GCP uses the ambient gcloud login; no secret here, just
                 // an optional project scope.
@@ -567,14 +564,13 @@ impl Oryxis {
                         .padding(10)
                         .style(crate::widgets::rounded_input_style)
                         .align_x(dir_align_x())
-                        .into(),
+                        .boxed(),
                 ),
                 Space::new().height(4),
                 text(t("cloud_gcp_project_hint"))
                     .size(10)
                     .color(OryxisColors::t().text_muted),
-            ]
-            .into(),
+            ].boxed(),
             CloudAuthChoice::AzCli => column![
                 // Azure uses the ambient az login; no secret here, just an
                 // optional subscription scope.
@@ -600,14 +596,13 @@ impl Oryxis {
                     .padding(10)
                     .style(crate::widgets::rounded_input_style)
                     .align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
                 ),
                 Space::new().height(4),
                 text(t("cloud_azure_subscription_hint"))
                     .size(10)
                     .color(OryxisColors::t().text_muted),
-            ]
-            .into(),
+            ].boxed(),
             CloudAuthChoice::AliyunCli => column![
                 // Alibaba Cloud uses the CLI's own configured profiles; no secret
                 // here, just an optional profile + region scope.
@@ -630,7 +625,7 @@ impl Oryxis {
                         .padding(10)
                         .style(crate::widgets::rounded_input_style)
                         .align_x(dir_align_x())
-                        .into(),
+                        .boxed(),
                 ),
                 Space::new().height(4),
                 text(t("cloud_cli_profile_hint"))
@@ -652,14 +647,13 @@ impl Oryxis {
                         .padding(10)
                         .style(crate::widgets::rounded_input_style)
                         .align_x(dir_align_x())
-                        .into(),
+                        .boxed(),
                 ),
                 Space::new().height(4),
                 text(t("cloud_cli_region_hint"))
                     .size(10)
                     .color(OryxisColors::t().text_muted),
-            ]
-            .into(),
+            ].boxed(),
             CloudAuthChoice::TccliCli => column![
                 // Tencent Cloud uses the CLI's own configured profiles; no secret
                 // here, just an optional profile + region scope.
@@ -682,7 +676,7 @@ impl Oryxis {
                         .padding(10)
                         .style(crate::widgets::rounded_input_style)
                         .align_x(dir_align_x())
-                        .into(),
+                        .boxed(),
                 ),
                 Space::new().height(4),
                 text(t("cloud_cli_profile_hint"))
@@ -704,32 +698,31 @@ impl Oryxis {
                         .padding(10)
                         .style(crate::widgets::rounded_input_style)
                         .align_x(dir_align_x())
-                        .into(),
+                        .boxed(),
                 ),
                 Space::new().height(4),
                 text(t("cloud_cli_region_hint"))
                     .size(10)
                     .color(OryxisColors::t().text_muted),
-            ]
-            .into(),
+            ].boxed(),
         };
 
         // ── Test credentials button + result line ──
         let test_status: Element<'_, Message> = match &self.cloud_form.test_state {
-            CloudTestState::Idle => Space::new().into(),
+            CloudTestState::Idle => Space::new().boxed(),
             CloudTestState::Running => text(t("cloud_test_running"))
                 .size(11)
                 .color(OryxisColors::t().text_muted)
-                .into(),
+                .boxed(),
             CloudTestState::Ok => text(t("cloud_test_ok"))
                 .size(11)
                 .color(OryxisColors::t().success)
-                .into(),
+                .boxed(),
             CloudTestState::Failed(msg) => {
                 text(format!("{}: {msg}", t("cloud_test_failed")))
                     .size(11)
                     .color(OryxisColors::t().error)
-                    .into()
+                    .boxed()
             }
         };
 
@@ -768,12 +761,12 @@ impl Oryxis {
         // plugin is missing) the button has no on_press, so there is
         // nothing for Enter to fire.
         let test_btn: Element<'_, Message> = if test_button_disabled {
-            test_btn.into()
+            test_btn.boxed()
         } else {
             self.panel_nav_slot(
                 crate::keynav::RowAction::activate(Message::Cloud(CloudMessage::CloudFormTestCredentials)),
                 8.0,
-                test_btn.into(),
+                test_btn.boxed(),
             )
         };
 
@@ -822,7 +815,7 @@ impl Oryxis {
             ),
         );
 
-        let mut bottom = column![];
+        let mut bottom = iced::widget::Column::<iced::Element<'_, _>>::new();
         if let Some(edit_id) = self.cloud_form.editing_id {
             let del_btn = self.panel_nav_slot(
                 crate::keynav::RowAction::activate(Message::Cloud(CloudMessage::DeleteCloudProfile(edit_id))),
@@ -853,9 +846,9 @@ impl Oryxis {
                     },
                     ..Default::default()
                 })
-                .into(),
+                .boxed(),
             );
-            bottom = bottom.push(Space::new().height(8));
+            bottom = bottom.push(Space::new().height(8).boxed());
             bottom = bottom.push(del_btn);
         }
 
@@ -893,7 +886,7 @@ impl Oryxis {
         // Standardised side-panel chrome (matches host editor,
         // discovery, dynamic-group editor) so every right-panel
         // editor shares the same background surface.
-        crate::widgets::side_panel_frame(panel_content.into(), OryxisColors::t().bg_surface, self.panel_width)
+        crate::widgets::side_panel_frame(panel_content.boxed(), OryxisColors::t().bg_surface, self.panel_width)
     }
 }
 
@@ -942,5 +935,5 @@ fn region_chip(label: &str, idx: usize) -> Element<'_, Message> {
         },
         ..Default::default()
     })
-    .into()
+    .boxed()
 }

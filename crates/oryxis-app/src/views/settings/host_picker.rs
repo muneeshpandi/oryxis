@@ -76,7 +76,7 @@ impl HostPickerTarget {
 pub(super) fn sync_host_picker_modal(app: &Oryxis, target: HostPickerTarget) -> Element<'_, Message> {
     app.modal_nav_reset();
     let q = target.search(app).to_lowercase();
-    let mut list = column![].spacing(2);
+    let mut list = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(2);
     for conn in app.connections.iter().filter(|c| {
         q.is_empty()
             || c.label.to_lowercase().contains(&q)
@@ -86,7 +86,7 @@ pub(super) fn sync_host_picker_modal(app: &Oryxis, target: HostPickerTarget) -> 
         let row_btn = button(
             dir_row(vec![
                 badge,
-                Space::new().width(10).into(),
+                Space::new().width(10).boxed(),
                 column![
                     text(conn.label.clone())
                         .size(13)
@@ -97,7 +97,7 @@ pub(super) fn sync_host_picker_modal(app: &Oryxis, target: HostPickerTarget) -> 
                 ]
                 .width(Length::Fill)
                 .align_x(dir_align_x())
-                .into(),
+                .boxed(),
             ])
             .align_y(iced::Alignment::Center),
         )
@@ -122,7 +122,7 @@ pub(super) fn sync_host_picker_modal(app: &Oryxis, target: HostPickerTarget) -> 
             crate::keynav::RowAction::activate(target.pick(conn.id)),
             6.0,
             false,
-            row_btn.into(),
+            row_btn.boxed(),
         ));
     }
 
@@ -132,8 +132,8 @@ pub(super) fn sync_host_picker_modal(app: &Oryxis, target: HostPickerTarget) -> 
                 text(t("select_a_host"))
                     .size(15)
                     .color(OryxisColors::t().text_primary)
-                    .into(),
-                Space::new().width(Length::Fill).into(),
+                    .boxed(),
+                Space::new().width(Length::Fill).boxed(),
                 button(text("\u{2715}").size(13).color(OryxisColors::t().text_muted))
                     .on_press(target.close())
                     .padding(Padding { top: 4.0, right: 8.0, bottom: 4.0, left: 8.0 })
@@ -151,7 +151,7 @@ pub(super) fn sync_host_picker_modal(app: &Oryxis, target: HostPickerTarget) -> 
                             ..Default::default()
                         }
                     })
-                    .into(),
+                    .boxed(),
             ])
             .align_y(iced::Alignment::Center)
             .width(Length::Fill),
@@ -168,7 +168,7 @@ pub(super) fn sync_host_picker_modal(app: &Oryxis, target: HostPickerTarget) -> 
         .width(Length::Fixed(440.0))
         .align_x(dir_align_x()),
     )
-    .style(|_| container::Style {
+    .style(|_: &iced::Theme| container::Style {
         background: Some(Background::Color(OryxisColors::t().bg_surface)),
         border: Border {
             radius: Radius::from(12.0),
@@ -189,18 +189,18 @@ pub(super) fn sync_host_picker_modal(app: &Oryxis, target: HostPickerTarget) -> 
                 }),
         )
         .on_press(target.close()),
-    );
+    ).boxed();
 
-    let centered = container(iced::widget::MouseArea::new(dialog).on_press(Message::NoOp))
+    let centered = container::<_, iced::Theme>(iced::widget::MouseArea::new(dialog).on_press(Message::NoOp))
         .width(Length::Fill)
         .height(Length::Fill)
         .center_x(Length::Fill)
         .center_y(Length::Fill);
 
-    iced::widget::Stack::new()
+    iced::widget::Stack::<iced::Element<'_, _>>::new()
         .push(scrim)
-        .push(centered)
+        .push(centered.boxed())
         .width(Length::Fill)
         .height(Length::Fill)
-        .into()
+        .boxed()
 }

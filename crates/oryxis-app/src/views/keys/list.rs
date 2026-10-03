@@ -1,5 +1,6 @@
 //! Keys screen: toolbar, key + identity card grids. Split out of views/keys.rs.
 
+use iced::Widget as _;
 use super::*;
 use crate::widgets::empty_state_icon;
 use iced::widget::column;
@@ -38,12 +39,12 @@ impl Oryxis {
                     text("+").size(13).font(iced::Font {
                         weight: iced::font::Weight::Bold,
                         ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
-                    }).color(OryxisColors::t().button_text).into(),
-                    Space::new().width(4).into(),
+                    }).color(OryxisColors::t().button_text).boxed(),
+                    Space::new().width(4).boxed(),
                     text(t("add_btn")).size(11).font(iced::Font {
                         weight: iced::font::Weight::Bold,
                         ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
-                    }).color(OryxisColors::t().button_text).into(),
+                    }).color(OryxisColors::t().button_text).boxed(),
                 ])
                 .align_y(iced::Alignment::Center),
             )
@@ -104,11 +105,11 @@ impl Oryxis {
         // layout, vertical rail included.
         let add_btn: Element<'_, Message> = crate::widgets::bounds_reporter(
             dir_row(vec![
-                add_label.into(),
-                separator.into(),
-                add_chevron.into(),
+                add_label.boxed(),
+                separator.boxed(),
+                add_chevron.boxed(),
             ])
-            .align_y(iced::Alignment::Center),
+            .align_y(iced::Alignment::Center).boxed(),
             self.toolbar_split_btn_bounds.clone(),
         );
 
@@ -133,7 +134,7 @@ impl Oryxis {
             } else {
                 search_slot
             },
-            Space::new().width(10).into(),
+            Space::new().width(10).boxed(),
         ];
         if buttons_overflow {
             // The split/sort triggers are off screen: blank their
@@ -151,7 +152,7 @@ impl Oryxis {
             ));
         } else {
             row_items.push(self.keynav_toolbar_slot(crate::keynav::ToolbarItem::Sort, sort_btn));
-            row_items.push(Space::new().width(8).into());
+            row_items.push(Space::new().width(8).boxed());
             // Both split halves open the same add menu; one keynav stop.
             row_items
                 .push(self.keynav_toolbar_slot(crate::keynav::ToolbarItem::Primary, add_btn));
@@ -166,7 +167,7 @@ impl Oryxis {
         // matching the host-grid / snippets / history treatment.
         // Search now lives in the toolbar (`vault_search_field`); the
         // legacy below-toolbar search bar collapses to nothing.
-        let search_bar: Element<'_, Message> = Space::new().into();
+        let search_bar: Element<'_, Message> = Space::new().boxed();
 
         // ── Status message ──
         // While the import / identity sidebars are open, the panel surfaces
@@ -175,17 +176,17 @@ impl Oryxis {
         let panel_open =
             self.panels.key_panel || self.panels.identity_panel || self.panels.key_generate_panel;
         let status: Element<'_, Message> = if panel_open {
-            Space::new().into()
+            Space::new().boxed()
         } else if let Some(err) = &self.keys_ui.error {
-            container(Element::from(text(err.clone()).size(12).color(OryxisColors::t().error)))
+            container(text(err.clone()).size(12).color(OryxisColors::t().error).boxed())
                 .padding(Padding { top: 0.0, right: 24.0, bottom: 8.0, left: 24.0 })
-                .into()
+                .boxed()
         } else if let Some(ok) = &self.keys_ui.success {
-            container(Element::from(text(ok.clone()).size(12).color(OryxisColors::t().success)))
+            container(text(ok.clone()).size(12).color(OryxisColors::t().success).boxed())
                 .padding(Padding { top: 0.0, right: 24.0, bottom: 8.0, left: 24.0 })
-                .into()
+                .boxed()
         } else {
-            Space::new().into()
+            Space::new().boxed()
         };
 
         // ── Keys grid ──
@@ -248,28 +249,28 @@ impl Oryxis {
                     iced_fonts::lucide::key_round()
                         .size(32)
                         .color(OryxisColors::t().text_muted)
-                        .into(),
+                        .boxed(),
                 ),
-                Space::new().height(20).into(),
+                Space::new().height(20).boxed(),
                 text(crate::i18n::t("add_key_title"))
                     .size(20)
                     .color(OryxisColors::t().text_primary)
-                    .into(),
-                Space::new().height(8).into(),
+                    .boxed(),
+                Space::new().height(8).boxed(),
                 text(crate::i18n::t("add_key_desc"))
                     .size(13)
                     .color(OryxisColors::t().text_muted)
                     .align_x(iced::alignment::Horizontal::Center)
-                    .into(),
-                Space::new().height(24).into(),
+                    .boxed(),
+                Space::new().height(24).boxed(),
                 self.content_action_slot(
                     crate::keynav::RowAction::activate(primary.msg.clone()),
                     8.0,
                     crate::widgets::cta_button(primary.label.to_string(), primary.msg),
                 ),
-                Space::new().height(24).into(),
+                Space::new().height(24).boxed(),
                 crate::views::add_actions::or_divider(EMPTY_BLOCK_WIDTH),
-                Space::new().height(16).into(),
+                Space::new().height(16).boxed(),
             ];
             for action in actions {
                 items.push(self.content_action_slot(
@@ -277,7 +278,7 @@ impl Oryxis {
                     8.0,
                     crate::views::add_actions::secondary_action_button(action, EMPTY_BLOCK_WIDTH),
                 ));
-                items.push(Space::new().height(8).into());
+                items.push(Space::new().height(8).boxed());
             }
             let empty_state = container(
                 iced::widget::Column::with_children(items).align_x(iced::Alignment::Center),
@@ -286,14 +287,14 @@ impl Oryxis {
             let main_content = column![search_bar, status, empty_state]
                 .width(Length::Fill)
                 .height(Length::Fill);
-            return main_content.into();
+            return main_content.boxed();
         } else if filtered_keys.is_empty() && !self.keys.is_empty() {
             let no_results = container(
                 text(t("no_keys_match")).size(13).color(OryxisColors::t().text_muted),
             )
             .padding(24)
             .width(CARD_WIDTH);
-            cards.push(no_results.into());
+            cards.push(no_results.boxed());
         }
 
         for &(idx, key) in &filtered_keys {
@@ -306,7 +307,7 @@ impl Oryxis {
                 .size(16)
                 .line_height(1.0)
                 .color(Color::WHITE)
-                .into();
+                .boxed();
             let icon_box = crate::widgets::host_icon(
                 key_style,
                 OryxisColors::t().accent,
@@ -351,7 +352,7 @@ impl Oryxis {
                 .size(11)
                 .color(OryxisColors::t().text_muted)
                 .wrapping(iced::widget::text::Wrapping::None)
-                .into();
+                .boxed();
             let flag = if key.algorithm.is_security_key() {
                 Some(t("key_badge_security_key"))
             } else if key.certificate.is_some() {
@@ -362,15 +363,15 @@ impl Oryxis {
             let key_subtitle: Element<'_, Message> = if let Some(flag) = flag {
                 dir_row(vec![
                     algo_text,
-                    text(" · ").size(11).color(OryxisColors::t().text_muted).into(),
+                    text(" · ").size(11).color(OryxisColors::t().text_muted).boxed(),
                     text(flag)
                         .size(11)
                         .color(OryxisColors::t().accent)
                         .wrapping(iced::widget::text::Wrapping::None)
-                        .into(),
+                        .boxed(),
                 ])
                 .align_y(iced::Alignment::Center)
-                .into()
+                .boxed()
             } else {
                 algo_text
             };
@@ -378,7 +379,7 @@ impl Oryxis {
             let card = button(
                 dir_row(vec![
                     icon_box,
-                    Space::new().width(8).into(),
+                    Space::new().width(8).boxed(),
                     column![
                         text(&key.label)
                             .size(13)
@@ -390,13 +391,13 @@ impl Oryxis {
                     .width(Length::Fill)
                     .align_x(crate::widgets::dir_align_x())
                     .clip(true)
-                    .into(),
+                    .boxed(),
                 ]).align_y(iced::Alignment::Center),
             )
             .on_press(Message::Keys(KeysMessage::EditKey(idx)))
             .padding(card_padding)
             .width(Length::Fill)
-            .style(|_, status| {
+            .style(|_: &iced::Theme, status| {
                 let (bg, border_color, border_width) = match status {
                     BtnStatus::Hovered => (OryxisColors::t().bg_hover, OryxisColors::t().accent, 1.5),
                     BtnStatus::Pressed => (OryxisColors::t().bg_selected, OryxisColors::t().accent, 2.0),
@@ -429,16 +430,16 @@ impl Oryxis {
             } else {
                 Padding { top: 0.0, right: 8.0, bottom: 0.0, left: 0.0 }
             };
-            let dots_overlay = container(dots_btn)
+            let dots_overlay = container::<_, iced::Theme>(dots_btn)
                 .width(Length::Fill)
                 .height(Length::Fill)
                 .align_x(key_dots_align)
                 .align_y(iced::alignment::Vertical::Center)
                 .padding(key_dots_pad);
-            let card_element: Element<'_, Message> = iced::widget::Stack::new()
-                .push(card)
-                .push(dots_overlay)
-                .into();
+            let card_element: Element<'_, Message> = iced::widget::Stack::<iced::Element<'_, _>>::new()
+                .push(card.boxed())
+                .push(dots_overlay.boxed())
+                .boxed();
 
             // Wrap in MouseArea for right-click + hover events that
             // drive the dots-button visibility.
@@ -448,7 +449,7 @@ impl Oryxis {
                 .on_right_press(Message::Keys(KeysMessage::ShowKeyMenu(idx)));
 
             let card_el: Element<'_, Message> =
-                container(wrapped).width(Length::Fill).clip(true).into();
+                container(wrapped).width(Length::Fill).clip(true).boxed();
             let card_el = self.card_wash(card_el, OryxisColors::t().accent);
             cards.push(self.keynav_ring_content(key_kb_selected, card_el));
         }
@@ -515,7 +516,7 @@ impl Oryxis {
             )
             .padding(24)
             .width(CARD_WIDTH);
-            identity_cards.push(no_results.into());
+            identity_cards.push(no_results.boxed());
         }
 
         for (idx, identity) in &filtered_identities {
@@ -543,7 +544,7 @@ impl Oryxis {
                 .size(16)
                 .line_height(1.0)
                 .color(Color::WHITE)
-                .into();
+                .boxed();
             let icon_box = crate::widgets::host_icon(
                 id_style,
                 OryxisColors::t().accent,
@@ -576,7 +577,7 @@ impl Oryxis {
             let card = button(
                 dir_row(vec![
                     icon_box,
-                    Space::new().width(8).into(),
+                    Space::new().width(8).boxed(),
                     column![
                         text(&identity.label)
                             .size(13)
@@ -591,13 +592,13 @@ impl Oryxis {
                     .width(Length::Fill)
                     .align_x(crate::widgets::dir_align_x())
                     .clip(true)
-                    .into(),
+                    .boxed(),
                 ]).align_y(iced::Alignment::Center),
             )
             .on_press(Message::Keys(KeysMessage::EditIdentity(idx)))
             .padding(id_card_padding)
             .width(Length::Fill)
-            .style(|_, status| {
+            .style(|_: &iced::Theme, status| {
                 let (bg, border_color, border_width) = match status {
                     BtnStatus::Hovered => (OryxisColors::t().bg_hover, OryxisColors::t().accent, 1.5),
                     BtnStatus::Pressed => (OryxisColors::t().bg_selected, OryxisColors::t().accent, 2.0),
@@ -630,16 +631,16 @@ impl Oryxis {
             } else {
                 Padding { top: 0.0, right: 8.0, bottom: 0.0, left: 0.0 }
             };
-            let dots_overlay = container(dots_btn)
+            let dots_overlay = container::<_, iced::Theme>(dots_btn)
                 .width(Length::Fill)
                 .height(Length::Fill)
                 .align_x(id_dots_align)
                 .align_y(iced::alignment::Vertical::Center)
                 .padding(id_dots_pad);
-            let card_element: Element<'_, Message> = iced::widget::Stack::new()
-                .push(card)
-                .push(dots_overlay)
-                .into();
+            let card_element: Element<'_, Message> = iced::widget::Stack::<iced::Element<'_, _>>::new()
+                .push(card.boxed())
+                .push(dots_overlay.boxed())
+                .boxed();
 
             let wrapped = MouseArea::new(card_element)
                 .on_enter(Message::Tabs(TabsMessage::IdentityCardHovered(idx)))
@@ -647,7 +648,7 @@ impl Oryxis {
                 .on_right_press(Message::Keys(KeysMessage::ShowIdentityMenu(idx)));
 
             let id_card_el: Element<'_, Message> =
-                container(wrapped).width(Length::Fill).clip(true).into();
+                container(wrapped).width(Length::Fill).clip(true).boxed();
             let id_card_el = self.card_wash(id_card_el, OryxisColors::t().accent);
             identity_cards.push(self.keynav_ring_content(id_kb_selected, id_card_el));
         }
@@ -678,11 +679,11 @@ impl Oryxis {
         // case never reaches here, it takes the empty-state return above).
         let mut all_rows: Vec<Element<'_, Message>> = Vec::new();
         if !self.keys.is_empty() {
-            all_rows.push(section_title.into());
+            all_rows.push(section_title.boxed());
             all_rows.push(keys_grid_elem);
         }
         if !self.identities.is_empty() {
-            all_rows.push(identity_section_title.into());
+            all_rows.push(identity_section_title.boxed());
             all_rows.push(identity_grid_elem);
         }
 
@@ -709,6 +710,6 @@ impl Oryxis {
         column![toolbar, search_bar, status, grid]
             .width(Length::Fill)
             .height(Length::Fill)
-            .into()
+            .boxed()
     }
 }

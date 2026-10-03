@@ -37,16 +37,16 @@ impl Oryxis {
             container(
                 button(
                     dir_row(vec![
-                        iced_fonts::lucide::link().size(14).color(OryxisColors::t().text_muted).into(),
-                        Space::new().width(10).into(),
-                        text(t("host_chaining")).size(13).color(OryxisColors::t().text_secondary).into(),
-                        Space::new().width(Length::Fill).into(),
+                        iced_fonts::lucide::link().size(14).color(OryxisColors::t().text_muted).boxed(),
+                        Space::new().width(10).boxed(),
+                        text(t("host_chaining")).size(13).color(OryxisColors::t().text_secondary).boxed(),
+                        Space::new().width(Length::Fill).boxed(),
                         text(chain_summary)
                             .size(13)
                             .color(OryxisColors::t().text_primary)
-                            .into(),
-                        Space::new().width(8).into(),
-                        iced_fonts::lucide::chevron_right().size(12).color(OryxisColors::t().text_muted).into(),
+                            .boxed(),
+                        Space::new().width(8).boxed(),
+                        iced_fonts::lucide::chevron_right().size(12).color(OryxisColors::t().text_muted).boxed(),
                     ])
                     .align_y(iced::Alignment::Center),
                 )
@@ -63,7 +63,7 @@ impl Oryxis {
                         ..Default::default()
                     }
                 })
-            ).into(),
+            ).boxed(),
             )
         } else {
             empty()
@@ -76,10 +76,10 @@ impl Oryxis {
         let pf_items: Element<'_, Message> = if is_ssh {
         let mut pf_items = column![
             dir_row(vec![
-                iced_fonts::lucide::arrow_right_left().size(14).color(OryxisColors::t().text_muted).into(),
-                Space::new().width(10).into(),
-                text(t("port_forwarding")).size(13).color(OryxisColors::t().text_secondary).into(),
-                Space::new().width(Length::Fill).into(),
+                iced_fonts::lucide::arrow_right_left().size(14).color(OryxisColors::t().text_muted).boxed(),
+                Space::new().width(10).boxed(),
+                text(t("port_forwarding")).size(13).color(OryxisColors::t().text_secondary).boxed(),
+                Space::new().width(Length::Fill).boxed(),
                 self.panel_nav_slot(
                     crate::keynav::RowAction::activate(Message::Editor(EditorMessage::EditorAddPortForward)),
                     4.0,
@@ -92,7 +92,7 @@ impl Oryxis {
                             ..Default::default()
                         })
                         .padding(Padding { top: 2.0, right: 8.0, bottom: 2.0, left: 8.0 })
-                        .into(),
+                        .boxed(),
                 ),
             ]).align_y(iced::Alignment::Center),
         ];
@@ -103,16 +103,16 @@ impl Oryxis {
         // (-L) only. The standalone rules on the Port Forwarding screen
         // are the ones with -R / -D, a bind address and auto-start, and
         // they open a session of their own.
-        pf_items = pf_items.push(Space::new().height(4));
+        pf_items = pf_items.push(Space::new().height(4).boxed());
         pf_items = pf_items.push(
             text(t("host_port_forward_desc"))
                 .size(11)
-                .color(OryxisColors::t().text_muted),
+                .color(OryxisColors::t().text_muted).boxed(),
         );
 
         for (i, pf) in self.editor_form.port_forwards.iter().enumerate() {
             let idx = i;
-            pf_items = pf_items.push(Space::new().height(8));
+            pf_items = pf_items.push(Space::new().height(8).boxed());
             // The three per-rule inputs stay mouse-only: the fork's
             // Id::new takes &'static str, so dynamic rows cannot carry
             // unique focus ids. The remove button is the keyboard row.
@@ -123,21 +123,21 @@ impl Oryxis {
                         .padding(6)
                         .width(70)
                         .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
-                        .into(),
-                    text(" -> ").size(12).color(OryxisColors::t().text_muted).into(),
+                        .boxed(),
+                    text(" -> ").size(12).color(OryxisColors::t().text_muted).boxed(),
                     text_input("localhost", &pf.remote_host)
                         .on_input(move |v| Message::Editor(EditorMessage::EditorPortFwdRemoteHostChanged(idx, v)))
                         .padding(6)
                         .width(Length::Fill)
                         .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
-                        .into(),
-                    text(":").size(12).color(OryxisColors::t().text_muted).into(),
+                        .boxed(),
+                    text(":").size(12).color(OryxisColors::t().text_muted).boxed(),
                     text_input("3306", &pf.remote_port)
                         .on_input(move |v| Message::Editor(EditorMessage::EditorPortFwdRemotePortChanged(idx, v)))
                         .padding(6)
                         .width(70)
                         .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
-                        .into(),
+                        .boxed(),
                     self.panel_nav_slot(
                         crate::keynav::RowAction::activate(Message::Editor(EditorMessage::EditorRemovePortForward(idx))),
                         4.0,
@@ -150,9 +150,9 @@ impl Oryxis {
                                 ..Default::default()
                             })
                             .padding(Padding { top: 2.0, right: 4.0, bottom: 2.0, left: 4.0 })
-                            .into(),
+                            .boxed(),
                     ),
-                ]).align_y(iced::Alignment::Center).spacing(4),
+                ]).align_y(iced::Alignment::Center).spacing(4).boxed(),
             );
         }
         // Standalone rules that travel through THIS host, listed
@@ -167,15 +167,15 @@ impl Oryxis {
                 .filter(|r| r.host_id == id)
                 .collect();
             if !mine.is_empty() {
-                pf_items = pf_items.push(Space::new().height(12));
+                pf_items = pf_items.push(Space::new().height(12).boxed());
                 pf_items = pf_items.push(
                     text(t("host_standalone_forwards"))
                         .size(12)
-                        .color(OryxisColors::t().text_secondary),
+                        .color(OryxisColors::t().text_secondary).boxed(),
                 );
                 for rule in mine {
                     let live = self.active_forwards.contains_key(&rule.id);
-                    pf_items = pf_items.push(Space::new().height(4));
+                    pf_items = pf_items.push(Space::new().height(4).boxed());
                     pf_items = pf_items.push(
                         dir_row(vec![
                             text(if live { "\u{25CF}" } else { "\u{25CB}" })
@@ -185,23 +185,23 @@ impl Oryxis {
                                 } else {
                                     OryxisColors::t().text_muted
                                 })
-                                .into(),
-                            Space::new().width(6).into(),
+                                .boxed(),
+                            Space::new().width(6).boxed(),
                             text(rule.label.clone())
                                 .size(11)
                                 .color(OryxisColors::t().text_secondary)
-                                .into(),
-                            Space::new().width(8).into(),
+                                .boxed(),
+                            Space::new().width(8).boxed(),
                             text(crate::views::port_forwards::forward_summary(rule))
                                 .size(10)
                                 .font(iced::Font::MONOSPACE)
                                 .color(OryxisColors::t().text_muted)
-                                .into(),
+                                .boxed(),
                         ])
-                        .align_y(iced::Alignment::Center),
+                        .align_y(iced::Alignment::Center).boxed(),
                     );
                 }
-                pf_items = pf_items.push(Space::new().height(6));
+                pf_items = pf_items.push(Space::new().height(6).boxed());
                 pf_items = pf_items.push(self.panel_nav_slot(
                     crate::keynav::RowAction::activate(Message::Navigation(
                         crate::app::NavigationMessage::ChangeView(
@@ -221,7 +221,7 @@ impl Oryxis {
                 ));
             }
         }
-        pf_items.into()
+        pf_items.boxed()
         } else {
             empty()
         };
@@ -235,14 +235,14 @@ impl Oryxis {
         let row_keepalive: Element<'_, Message> = if is_ssh {
             container(
             dir_row(vec![
-                iced_fonts::lucide::activity().size(14).color(OryxisColors::t().text_muted).into(),
-                Space::new().width(10).into(),
+                iced_fonts::lucide::activity().size(14).color(OryxisColors::t().text_muted).boxed(),
+                Space::new().width(10).boxed(),
                 column![
                     text(t("host_keepalive")).size(13).color(OryxisColors::t().text_secondary),
                     Space::new().height(2),
                     text(t("host_keepalive_desc")).size(11).color(OryxisColors::t().text_muted),
-                ].width(Length::Fill).into(),
-                Space::new().width(12).into(),
+                ].width(Length::Fill).boxed(),
+                Space::new().width(12).boxed(),
                 self.panel_nav_slot(
                     crate::keynav::RowAction::input(iced::widget::Id::new("editor-keepalive")),
                     10.0,
@@ -256,11 +256,11 @@ impl Oryxis {
                         .padding(6)
                         .width(100)
                         .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
-                        .into(),
+                        .boxed(),
                 ),
             ]).align_y(iced::Alignment::Center)
             )
-            .padding(Padding { top: 8.0, right: 0.0, bottom: 8.0, left: 0.0 }).into()
+            .padding(Padding { top: 8.0, right: 0.0, bottom: 8.0, left: 0.0 }).boxed()
         } else {
             empty()
         };
@@ -275,14 +275,14 @@ impl Oryxis {
         let row_mac: Element<'_, Message> = if show {
             container(
             dir_row(vec![
-                iced_fonts::lucide::zap().size(14).color(OryxisColors::t().text_muted).into(),
-                Space::new().width(10).into(),
+                iced_fonts::lucide::zap().size(14).color(OryxisColors::t().text_muted).boxed(),
+                Space::new().width(10).boxed(),
                 column![
                     text(t("host_mac_address")).size(13).color(OryxisColors::t().text_secondary),
                     Space::new().height(2),
                     text(t("host_mac_address_desc")).size(11).color(OryxisColors::t().text_muted),
-                ].width(Length::Fill).into(),
-                Space::new().width(12).into(),
+                ].width(Length::Fill).boxed(),
+                Space::new().width(12).boxed(),
                 self.panel_nav_slot(
                     crate::keynav::RowAction::input(iced::widget::Id::new("editor-mac-address")),
                     10.0,
@@ -296,11 +296,11 @@ impl Oryxis {
                         .padding(6)
                         .width(160)
                         .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
-                        .into(),
+                        .boxed(),
                 ),
             ]).align_y(iced::Alignment::Center)
             )
-            .padding(Padding { top: 8.0, right: 0.0, bottom: 8.0, left: 0.0 }).into()
+            .padding(Padding { top: 8.0, right: 0.0, bottom: 8.0, left: 0.0 }).boxed()
         } else {
             empty()
         };
@@ -334,7 +334,7 @@ impl Oryxis {
                     .width(120)
                     .padding(10)
                     .style(crate::widgets::rounded_pick_list_style)
-                    .into(),
+                    .boxed(),
                 ),
             )
         } else {
@@ -374,7 +374,7 @@ impl Oryxis {
                     .width(120)
                     .padding(10)
                     .style(crate::widgets::rounded_pick_list_style)
-                    .into(),
+                    .boxed(),
             ),
             )
         } else {
@@ -399,7 +399,7 @@ impl Oryxis {
         ];
         for cat in AlgoCategory::ALL {
             let is_auto = self.editor_form.algo_list(cat).is_none();
-            col = col.push(Space::new().height(10));
+            col = col.push(Space::new().height(10).boxed());
             // Explicit "Auto / Custom" picker per category; choosing Custom
             // reveals the algorithm checklist below. Left/Right cycle the
             // two modes from the keyboard.
@@ -429,13 +429,13 @@ impl Oryxis {
                         .width(120)
                         .padding(10)
                         .style(crate::widgets::rounded_pick_list_style)
-                        .into(),
+                        .boxed(),
                 ),
             ));
             if !is_auto {
                 let selected: Vec<String> =
                     self.editor_form.algo_list(cat).clone().unwrap_or_default();
-                let mut checks = column![].spacing(4);
+                let mut checks = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(4);
                 for algo in cat.supported() {
                     let name = algo.to_string();
                     let checked = selected.iter().any(|n| n == algo);
@@ -452,7 +452,7 @@ impl Oryxis {
                             .on_toggle(move |_| Message::Editor(EditorMessage::EditorAlgoToggle(cat, name.clone())))
                             .size(15)
                             .text_size(12)
-                            .into(),
+                            .boxed(),
                     ));
                 }
                 col = col.push(container(checks).padding(Padding {
@@ -460,10 +460,10 @@ impl Oryxis {
                     right: 0.0,
                     bottom: 4.0,
                     left: 16.0,
-                }));
+                }).boxed());
             }
         }
-        col.into()
+        col.boxed()
     }
 
     /// Build the Proxy rows (no card wrapper, the caller nests them in
@@ -471,7 +471,7 @@ impl Oryxis {
     /// types (None / SOCKS5 / SOCKS4 / HTTP / Command) with the user's
     /// saved `ProxyIdentity` entries, selecting an identity hides the
     /// inline fields and shows a readonly summary instead.
-    pub(super) fn build_proxy_rows(&self) -> iced::widget::Column<'_, Message> {
+    pub(super) fn build_proxy_rows(&self) -> iced::widget::Column<iced::Element<'_, Message>> {
         let kind = self.editor_form.proxy_kind;
 
         // Compose the picker option list. Identity entries come from
@@ -513,7 +513,7 @@ impl Oryxis {
                 .width(140)
                 .padding(10)
                 .style(crate::widgets::rounded_pick_list_style)
-                .into(),
+                .boxed(),
             ),
         );
 
@@ -541,8 +541,8 @@ impl Oryxis {
                     format!("{kind_label}, {}:{}{}", pi.host, pi.port, user_part)
                 })
                 .unwrap_or_else(|| crate::i18n::t("proxy_type_identity_deleted").into());
-            col = col.push(Space::new().height(8)).push(
-                text(summary).size(12).color(OryxisColors::t().text_muted),
+            col = col.push(Space::new().height(8).boxed()).push(
+                text(summary).size(12).color(OryxisColors::t().text_muted).boxed(),
             );
             return col;
         }
@@ -553,7 +553,7 @@ impl Oryxis {
 
         if kind == ProxyKind::Command {
             col = col
-                .push(Space::new().height(8))
+                .push(Space::new().height(8).boxed())
                 .push(panel_field(
                     crate::i18n::t("proxy_command"),
                     self.panel_nav_slot(
@@ -568,7 +568,7 @@ impl Oryxis {
                         .on_submit_maybe(self.hp_submit())
                         .padding(10)
                         .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
-                        .into(),
+                        .boxed(),
                     ),
                 ));
             return col;
@@ -576,7 +576,7 @@ impl Oryxis {
 
         if kind.needs_endpoint() {
             col = col
-                .push(Space::new().height(8))
+                .push(Space::new().height(8).boxed())
                 .push(panel_field(
                     crate::i18n::t("proxy_host"),
                     self.panel_nav_slot(
@@ -591,10 +591,10 @@ impl Oryxis {
                         .on_submit_maybe(self.hp_submit())
                         .padding(10)
                         .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
-                        .into(),
+                        .boxed(),
                     ),
                 ))
-                .push(Space::new().height(8))
+                .push(Space::new().height(8).boxed())
                 .push(panel_field(
                     crate::i18n::t("proxy_port"),
                     self.panel_nav_slot(
@@ -607,10 +607,10 @@ impl Oryxis {
                             .padding(6)
                             .width(70)
                             .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
-                            .into(),
+                            .boxed(),
                     ),
                 ))
-                .push(Space::new().height(8))
+                .push(Space::new().height(8).boxed())
                 .push(panel_field(
                     crate::i18n::t("proxy_username"),
                     self.panel_nav_slot(
@@ -625,7 +625,7 @@ impl Oryxis {
                         .on_submit_maybe(self.hp_submit())
                         .padding(10)
                         .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
-                        .into(),
+                        .boxed(),
                     ),
                 ));
         }
@@ -646,7 +646,7 @@ impl Oryxis {
                 iced::widget::Id::new("editor-proxy-password"),
             ));
             col = col
-                .push(Space::new().height(8))
+                .push(Space::new().height(8).boxed())
                 .push(panel_field(
                     crate::i18n::t("proxy_password"),
                     crate::widgets::password_input_with_eye_nav(

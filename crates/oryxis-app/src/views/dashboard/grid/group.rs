@@ -263,7 +263,7 @@ impl Oryxis {
                         true,
                         Message::Cloud(CloudMessage::ShowDynamicGroupCardMenu(gid)),
                     )
-                    .into()
+                    .boxed()
                 } else {
                     // Same trailing chevron affordance as manual folder
                     // cards (group cards read as "openable" at a glance).
@@ -275,14 +275,14 @@ impl Oryxis {
                     container(chevron.size(14).color(OryxisColors::t().text_muted))
                         .center_x(Length::Fixed(DG_DOTS_SLOT_W))
                         .center_y(Length::Fixed(DG_DOTS_SLOT_W))
-                        .into()
+                        .boxed()
                 };
 
                 let folder_card = button(
                     container(
                         dir_row(vec![
                             icon_box,
-                            Space::new().width(8).into(),
+                            Space::new().width(8).boxed(),
                             column![
                                 text(group.label.clone())
                                     .size(13)
@@ -297,7 +297,7 @@ impl Oryxis {
                             .width(Length::Fill)
                             .align_x(crate::widgets::dir_align_x())
                             .clip(true)
-                            .into(),
+                            .boxed(),
                             dyn_actions_btn,
                         ])
                         .align_y(iced::Alignment::Center),
@@ -332,7 +332,7 @@ impl Oryxis {
                     .on_enter(Message::Cloud(CloudMessage::DynamicGroupCardHovered(gid)))
                     .on_exit(Message::Cloud(CloudMessage::DynamicGroupCardUnhovered(gid)))
                     .on_right_press(Message::Cloud(CloudMessage::ShowDynamicGroupCardMenu(gid)));
-                group_cards.push((Element::from(container(wrapped).width(Length::Fill).clip(true)), folder_bg, DashNavItem::Group(gid)));
+                group_cards.push((container(wrapped).width(Length::Fill).clip(true).boxed(), folder_bg, DashNavItem::Group(gid)));
             }
         } else if let Some(active_gid) = self.active_group {
             // Inside a folder: manual subgroups render first as folder
@@ -467,7 +467,7 @@ impl Oryxis {
                         true,
                         Message::Cloud(CloudMessage::ShowDynamicGroupCardMenu(gid)),
                     )
-                    .into()
+                    .boxed()
                 } else {
                     // Same trailing chevron affordance as manual folder
                     // cards (group cards read as "openable" at a glance).
@@ -479,14 +479,14 @@ impl Oryxis {
                     container(chevron.size(14).color(OryxisColors::t().text_muted))
                         .center_x(Length::Fixed(DG_DOTS_SLOT_W))
                         .center_y(Length::Fixed(DG_DOTS_SLOT_W))
-                        .into()
+                        .boxed()
                 };
 
                 let folder_card = button(
                     container(
                         dir_row(vec![
                             icon_box,
-                            Space::new().width(8).into(),
+                            Space::new().width(8).boxed(),
                             column![
                                 text(group.label.clone())
                                     .size(13)
@@ -501,7 +501,7 @@ impl Oryxis {
                             .width(Length::Fill)
                             .align_x(crate::widgets::dir_align_x())
                             .clip(true)
-                            .into(),
+                            .boxed(),
                             dyn_actions_btn,
                         ])
                         .align_y(iced::Alignment::Center),
@@ -529,7 +529,7 @@ impl Oryxis {
                     .on_enter(Message::Cloud(CloudMessage::DynamicGroupCardHovered(gid)))
                     .on_exit(Message::Cloud(CloudMessage::DynamicGroupCardUnhovered(gid)))
                     .on_right_press(Message::Cloud(CloudMessage::ShowDynamicGroupCardMenu(gid)));
-                group_cards.push((Element::from(container(wrapped).width(Length::Fill).clip(true)), folder_bg, DashNavItem::Group(gid)));
+                group_cards.push((container(wrapped).width(Length::Fill).clip(true).boxed(), folder_bg, DashNavItem::Group(gid)));
             }
         }
         group_cards
@@ -642,7 +642,7 @@ impl Oryxis {
             container(
                 dir_row(vec![
                     icon_box,
-                    Space::new().width(8).into(),
+                    Space::new().width(8).boxed(),
                     column![
                         text(group.label.clone())
                             .size(13)
@@ -657,7 +657,7 @@ impl Oryxis {
                     .width(Length::Fill)
                     .align_x(crate::widgets::dir_align_x())
                     .clip(true)
-                    .into(),
+                    .boxed(),
                 ]).align_y(iced::Alignment::Center),
             )
             .padding(folder_padding),
@@ -686,7 +686,7 @@ impl Oryxis {
                 true,
                 Message::Tabs(TabsMessage::ShowFolderActions(gid)),
             )
-            .into()
+            .boxed()
         } else {
             let chevron = if folder_rtl {
                 iced_fonts::lucide::chevron_left()
@@ -703,10 +703,10 @@ impl Oryxis {
             )
             .center_x(Length::Fixed(22.0))
             .center_y(Length::Fixed(22.0))
-            .into()
+            .boxed()
         };
         let folder_element =
-            crate::widgets::card_trailing_overlay(folder_card.into(), folder_trailing);
+            crate::widgets::card_trailing_overlay(folder_card.boxed(), folder_trailing);
 
         // Wrap in MouseArea so hover events drive the dots-button
         // visibility, and right-click opens the kebab menu (app-wide
@@ -716,7 +716,7 @@ impl Oryxis {
             .on_exit(Message::Tabs(TabsMessage::FolderCardUnhovered(gid)))
             .on_right_press(Message::Tabs(TabsMessage::ShowFolderActions(gid)));
         (
-            Element::from(container(wrapped).width(Length::Fill).clip(true)),
+            container(wrapped).width(Length::Fill).clip(true).boxed(),
             folder_bg,
         )
     }

@@ -8,6 +8,7 @@
 //! the direct action (folders navigate, files copy their path): the
 //! ring has no double-press gesture, so Enter must not need one.
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::{column, container, text, MouseArea, Space};
 use iced::{Background, Border, Color, Element, Length, Padding};
@@ -64,7 +65,7 @@ impl Oryxis {
                     .font(iced::Font::MONOSPACE)
                     .style(crate::widgets::rounded_input_style)
                     .width(Length::Fill)
-                    .into(),
+                    .boxed(),
             )
         } else {
             let path_label = if files.path.is_empty() {
@@ -91,7 +92,7 @@ impl Oryxis {
                 crate::keynav::SidebarRow::button(Message::SidebarFiles(SidebarFilesMessage::SidebarFilesStartEditPath)),
                 stab,
                 6.0,
-                label.into(),
+                label.boxed(),
             )
         };
         // Combo-box arrow (issue #85, the SFTP path bar's sibling):
@@ -126,7 +127,7 @@ impl Oryxis {
         let header_cells: Vec<Element<'_, Message>> = if files.path_editing.is_some() {
             let mut cells = vec![path_el];
             if let Some(arrow) = history_arrow {
-                cells.push(Space::new().width(4).into());
+                cells.push(Space::new().width(4).boxed());
                 cells.push(arrow);
             }
             cells
@@ -187,7 +188,7 @@ impl Oryxis {
                     ),
                 )
             });
-            let mut cells = vec![path_el, Space::new().width(4).into()];
+            let mut cells = vec![path_el, Space::new().width(4).boxed()];
             if let Some(arrow) = history_arrow {
                 cells.push(arrow);
             }
@@ -221,8 +222,7 @@ impl Oryxis {
                 )
                 .center_x(Length::Fill)
                 .padding(Padding { top: 8.0, right: 0.0, bottom: 0.0, left: 0.0 }),
-            ]
-            .into()
+            ].boxed()
         } else if files.client.is_none() {
             sidebar_placeholder(t("files_mounting"))
         } else if files.loading && files.entries.is_empty() {
@@ -230,7 +230,7 @@ impl Oryxis {
             // rows): a generic Loading, not the mount copy.
             sidebar_placeholder(t("loading"))
         } else {
-            let mut list = column![]
+            let mut list = iced::widget::Column::<iced::Element<'_, _>>::new()
                 .spacing(4)
                 .padding(Padding { top: 0.0, right: 12.0, bottom: 12.0, left: 12.0 });
             let mut pos = 0usize;
@@ -249,9 +249,9 @@ impl Oryxis {
                     .size(12)
                     .style(crate::widgets::rounded_input_style);
                 let row = dir_row(vec![
-                    icon.size(13).color(OryxisColors::t().accent).into(),
-                    Space::new().width(8).into(),
-                    field.into(),
+                    icon.size(13).color(OryxisColors::t().accent).boxed(),
+                    Space::new().width(8).boxed(),
+                    field.boxed(),
                 ])
                 .align_y(iced::Alignment::Center);
                 list = list.push(self.sidebar_nav_slot(
@@ -262,7 +262,7 @@ impl Oryxis {
                     crate::widgets::INPUT_RADIUS,
                     container(row)
                         .padding(Padding { top: 2.0, right: 0.0, bottom: 2.0, left: 2.0 })
-                        .into(),
+                        .boxed(),
                 ));
                 pos += 1;
             }
@@ -310,9 +310,9 @@ impl Oryxis {
                             entry.is_dir,
                             entry.is_symlink,
                         )
-                        .into(),
-                        Space::new().width(8).into(),
-                        field.into(),
+                        .boxed(),
+                        Space::new().width(8).boxed(),
+                        field.boxed(),
                     ])
                     .align_y(iced::Alignment::Center);
                     list = list.push(self.sidebar_nav_slot(
@@ -328,7 +328,7 @@ impl Oryxis {
                                 bottom: 2.0,
                                 left: 2.0,
                             })
-                            .into(),
+                            .boxed(),
                     ));
                     pos += 1;
                     continue;
@@ -374,7 +374,7 @@ impl Oryxis {
                 .height(Length::Fill);
             MouseArea::new(scroll)
                 .on_right_press(Message::SidebarFiles(SidebarFilesMessage::ShowSidebarFilesBackgroundMenu))
-                .into()
+                .boxed()
         };
 
         // Drop-to-upload hint (issue #167): shown while the OS drags
@@ -391,9 +391,9 @@ impl Oryxis {
             let accent = OryxisColors::t().accent;
             container(
                 dir_row(vec![
-                    iced_fonts::lucide::upload().size(12).color(accent).into(),
-                    Space::new().width(6).into(),
-                    text(t("files_drop_hint")).size(11).color(accent).into(),
+                    iced_fonts::lucide::upload().size(12).color(accent).boxed(),
+                    Space::new().width(6).boxed(),
+                    text(t("files_drop_hint")).size(11).color(accent).boxed(),
                 ])
                 .align_y(iced::Alignment::Center),
             )
@@ -455,23 +455,23 @@ impl Oryxis {
             );
             col = col.push(strip);
         }
-        let stack: Element<'_, Message> = col.into();
+        let stack: Element<'_, Message> = col.boxed();
         // Clicks on dead space blur the inline edits (owner ask: "blur
         // should exit the path input"). MouseArea only fires when no
         // child captured the press, so the inputs, rows and buttons all
         // keep their clicks and only true empty space lands here.
         let content: Element<'_, Message> = MouseArea::new(stack)
         .on_press(Message::SidebarFiles(SidebarFilesMessage::SidebarFilesEditBlur))
-        .into();
+        .boxed();
         // Visited-directory dropdown (issue #85): stacked over the tab
         // body, anchored under the header, scrim-closed like the SFTP
         // pane's. Guarded on history so a stale open flag can't paint
         // an empty menu.
         if files.path_history_open && !files.path_history.is_empty() {
-            iced::widget::Stack::new()
+            iced::widget::Stack::<iced::Element<'_, _>>::new()
                 .push(content)
                 .push(path_history_overlay(&files.path_history))
-                .into()
+                .boxed()
         } else {
             content
         }
@@ -510,18 +510,18 @@ impl Oryxis {
         // folder `key_activate` IS the navigate message, which is what
         // makes this one clone instead of a new parameter.
         let icon: Element<'a, Message> =
-            crate::views::sftp::file_icon(name, is_dir, is_symlink).into();
+            crate::views::sftp::file_icon(name, is_dir, is_symlink).boxed();
         let icon_cell: Element<'a, Message> = if is_dir {
             MouseArea::new(icon)
                 .on_press(key_activate.clone())
                 .interaction(iced::mouse::Interaction::Pointer)
-                .into()
+                .boxed()
         } else {
             icon
         };
         let mut cells: Vec<Element<'a, Message>> = vec![
             icon_cell,
-            Space::new().width(8).into(),
+            Space::new().width(8).boxed(),
             // Long names truncate with an ellipsis at the row edge
             // instead of bleeding over the size cell and past the card
             // (the SFTP pane's data-cell rule).
@@ -531,15 +531,15 @@ impl Oryxis {
                 .wrapping(iced::widget::text::Wrapping::None)
                 .ellipsis(iced::widget::text::Ellipsis::End)
                 .width(Length::Fill)
-                .into(),
+                .boxed(),
         ];
         if !is_dir {
-            cells.push(Space::new().width(6).into());
+            cells.push(Space::new().width(6).boxed());
             cells.push(
                 text(crate::views::sftp::format_size(size))
                     .size(11)
                     .color(c.text_muted)
-                    .into(),
+                    .boxed(),
             );
         }
         let card = container(dir_row(cells).align_y(iced::Alignment::Center))
@@ -569,20 +569,20 @@ impl Oryxis {
                     t("copy_path"),
                 ))
                 .padding(Padding { top: 2.0, right: 4.0, bottom: 2.0, left: 4.0 })
-                .style(|_| container::Style {
+                .style(|_: &iced::Theme| container::Style {
                     background: Some(Background::Color(OryxisColors::t().bg_selected)),
                     border: Border { radius: Radius::from(6.0), ..Default::default() },
                     ..Default::default()
                 });
-                let overlay = container(actions)
+                let overlay = container::<_, iced::Theme>(actions)
                     .width(Length::Fill)
                     .height(Length::Fill)
                     .align_x(iced::alignment::Horizontal::Right)
                     .align_y(iced::alignment::Vertical::Center)
                     .padding(Padding { top: 0.0, right: 4.0, bottom: 0.0, left: 0.0 });
-                iced::widget::Stack::new().push(card).push(overlay).into()
+                iced::widget::Stack::<iced::Element<'_, _>>::new().push(card.boxed()).push(overlay.boxed()).boxed()
             }
-            _ => card.into(),
+            _ => card.boxed(),
         };
 
         let mut area = MouseArea::new(row_el)
@@ -617,7 +617,7 @@ impl Oryxis {
             row,
             TerminalSidebarTab::Files,
             6.0,
-            area.into(),
+            area.boxed(),
         )
     }
 }
@@ -628,7 +628,7 @@ impl Oryxis {
 /// not fit here); long paths ellipsize on the LEADING side so the
 /// directory name stays readable.
 fn path_history_overlay<'a>(history: &'a [String]) -> Element<'a, Message> {
-    let mut col = column![].spacing(2).padding(4);
+    let mut col = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(2).padding(4);
     for path in history {
         col = col.push(
             iced::widget::button(
@@ -636,15 +636,15 @@ fn path_history_overlay<'a>(history: &'a [String]) -> Element<'a, Message> {
                     iced_fonts::lucide::history()
                         .size(12)
                         .color(OryxisColors::t().text_muted)
-                        .into(),
-                    Space::new().width(8).into(),
+                        .boxed(),
+                    Space::new().width(8).boxed(),
                     text(path.clone())
                         .size(12)
                         .color(OryxisColors::t().text_primary)
                         .wrapping(iced::widget::text::Wrapping::None)
                         .ellipsis(iced::widget::text::Ellipsis::Start)
                         .width(Length::Fill)
-                        .into(),
+                        .boxed(),
                 ])
                 .align_y(iced::Alignment::Center),
             )
@@ -664,15 +664,15 @@ fn path_history_overlay<'a>(history: &'a [String]) -> Element<'a, Message> {
                     border: Border { radius: Radius::from(4.0), ..Default::default() },
                     ..Default::default()
                 }
-            }),
+            }).boxed(),
         );
     }
     // A long history scrolls instead of running off the sidebar.
     let menu = container(
-        iced::widget::scrollable(col)
+        iced::widget::scrollable::<_, _, iced::Theme>(col)
             .height(Length::Fixed((history.len() as f32 * 30.0 + 8.0).min(320.0))),
     )
-    .style(|_| container::Style {
+    .style(|_: &iced::Theme| container::Style {
         background: Some(Background::Color(OryxisColors::t().bg_surface)),
         border: Border {
             radius: Radius::from(8.0),
@@ -690,15 +690,15 @@ fn path_history_overlay<'a>(history: &'a [String]) -> Element<'a, Message> {
         container(Space::new()).width(Length::Fill).height(Length::Fill),
     )
     .on_press(Message::SidebarFiles(SidebarFilesMessage::SidebarFilesPathHistoryClose))
-    .into();
+    .boxed();
     // Anchored right under the header band, full width bar the header's
     // side padding.
-    let positioned = container(menu)
+    let positioned = container::<_, iced::Theme>(menu)
         .width(Length::Fill)
         .height(Length::Fill)
         .align_y(iced::alignment::Vertical::Top)
         .padding(Padding { top: 42.0, right: 10.0, bottom: 0.0, left: 12.0 });
-    iced::widget::Stack::new().push(scrim).push(positioned).into()
+    iced::widget::Stack::<iced::Element<'_, _>>::new().push(scrim).push(positioned.boxed()).boxed()
 }
 
 /// Centered muted text for the empty / mounting / error states.
@@ -707,7 +707,7 @@ fn sidebar_placeholder(label: &str) -> Element<'_, Message> {
         .center_x(Length::Fill)
         .padding(Padding { top: 40.0, right: 12.0, bottom: 0.0, left: 12.0 })
         .width(Length::Fill)
-        .into()
+        .boxed()
 }
 
 /// A toggle icon action: fills with an accent wash + accent glyph when
@@ -759,7 +759,7 @@ fn toggle_action_btn<'a>(
             }),
         iced::widget::tooltip::Position::Top,
     )
-    .into()
+    .boxed()
 }
 
 /// An icon action with a tooltip (same chrome as the History-row actions).
@@ -783,5 +783,5 @@ fn action_btn<'a>(
             }),
         iced::widget::tooltip::Position::Top,
     )
-    .into()
+    .boxed()
 }

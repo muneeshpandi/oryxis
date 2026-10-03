@@ -56,7 +56,7 @@ impl Oryxis {
             )),
             10.0,
             false,
-            group_input.into(),
+            group_input.boxed(),
         );
         let chevron_btn = iced::widget::button(
             container(
@@ -124,7 +124,7 @@ impl Oryxis {
                 crate::keynav::RowAction::picker(t_prev, t_next),
                 10.0,
                 false,
-                transport_pick.into(),
+                transport_pick.boxed(),
             );
             column![
                 text(crate::i18n::t("cloud_dynamic_form_transport"))
@@ -137,8 +137,7 @@ impl Oryxis {
                     .size(11)
                     .color(OryxisColors::t().text_muted),
                 Space::new().height(16),
-            ]
-            .into()
+            ].boxed()
         };
         // Silence the now-unused n_ec2 binding; kept by name so
         // the summary text above can read it without re-querying.
@@ -175,14 +174,14 @@ impl Oryxis {
                         container(group_input)
                             .width(Length::Fill)
                             .height(Length::Fixed(COMBO_HEIGHT))
-                            .into(),
-                        Space::new().width(6).into(),
+                            .boxed(),
+                        Space::new().width(6).boxed(),
                         container(chevron_btn)
                             .height(Length::Fixed(COMBO_HEIGHT))
-                            .into(),
+                            .boxed(),
                     ])
                     .width(Length::Fixed(308.0))
-                    .align_y(iced::Alignment::Center),
+                    .align_y(iced::Alignment::Center).boxed(),
                     self.cloud_discover.default_group_combo_bounds.clone(),
                 ),
                 Space::new().height(16),
@@ -200,7 +199,7 @@ impl Oryxis {
                             OryxisColors::t().accent,
                         ),
                     ),
-                    Space::new().width(8).into(),
+                    Space::new().width(8).boxed(),
                     self.modal_nav_slot(
                         crate::keynav::RowAction::activate(
                             Message::Cloud(CloudMessage::CloudDiscoverImportCancelled),
@@ -217,7 +216,7 @@ impl Oryxis {
             ]
             .padding(24),
         )
-        .style(|_| container::Style {
+        .style(|_: &iced::Theme| container::Style {
             background: Some(Background::Color(OryxisColors::t().bg_surface)),
             border: Border {
                 radius: Radius::from(12.0),
@@ -227,7 +226,7 @@ impl Oryxis {
             ..Default::default()
         });
 
-        let centered = container(
+        let centered = container::<_, iced::Theme>(
             MouseArea::new(dialog_content).on_press(Message::NoOp),
         )
         .width(Length::Fill)
@@ -267,7 +266,7 @@ impl Oryxis {
                     }),
             )
             .on_press(on_scrim_click),
-        );
+        ).boxed();
 
         // Group-picker context menu: same pattern as the
         // existing kebab menus. Built via the global
@@ -278,7 +277,7 @@ impl Oryxis {
         // modal short-circuits the global overlay path further
         // down in `view_main`.
         let mut modal_stack =
-            Stack::new().push(base).push(scrim).push(centered);
+            Stack::<iced::Element<'_, _>>::new().push(base).push(scrim).push(centered.boxed());
         if let Some(ref ovl) = self.overlay
             && matches!(ovl.content, OverlayContent::CloudDiscoverGroupPicker)
         {
@@ -304,15 +303,14 @@ impl Oryxis {
                     .height(Length::Fill),
             )
             .on_press(Message::Cloud(CloudMessage::ToggleCloudDiscoverGroupPicker))
-            .into();
+            .boxed();
             let positioned: Element<'_, Message> = column![
                 Space::new().height(y),
                 row![
                     Space::new().width(x),
                     container(menu).width(Length::Fixed(menu_width)),
                 ],
-            ]
-            .into();
+            ].boxed();
             modal_stack = modal_stack.push(backdrop).push(positioned);
         }
 
@@ -320,7 +318,7 @@ impl Oryxis {
             modal_stack
                 .width(Length::Fill)
                 .height(Length::Fill)
-                .into(),
+                .boxed(),
             resize_overlay,
         )
     }
@@ -378,10 +376,9 @@ impl Oryxis {
                 Space::new().width(x),
                 menu,
             ],
-        ]
-        .into();
+        ].boxed();
 
-        let mut stack = Stack::new().push(base);
+        let mut stack = Stack::<iced::Element<'_, _>>::new().push(base);
         if !is_hover_popover {
             // Transparent backdrop that dismisses the menu on click.
             let backdrop: Element<'_, Message> = MouseArea::new(
@@ -390,7 +387,7 @@ impl Oryxis {
                     .height(Length::Fill),
             )
             .on_press(Message::Tabs(TabsMessage::HideOverlayMenu))
-            .into();
+            .boxed();
             stack = stack.push(backdrop);
         }
         wrap_with_resize(
@@ -398,7 +395,7 @@ impl Oryxis {
                 .push(positioned_menu)
                 .width(Length::Fill)
                 .height(Length::Fill)
-                .into(),
+                .boxed(),
             resize_overlay,
         )
     }
@@ -511,7 +508,7 @@ impl Oryxis {
                 .height(Length::Fill),
         )
         .on_press(Message::Sftp(SftpMessage::SftpRowMenuClose))
-        .into();
+        .boxed();
         // Nudge the menu a few px down/right so it doesn't sit
         // directly under the cursor, feels like the OS-native menu
         // anchoring.
@@ -543,16 +540,15 @@ impl Oryxis {
         let positioned_menu: Element<'_, Message> = column![
             Space::new().height(y),
             row![Space::new().width(x), menu],
-        ]
-        .into();
+        ].boxed();
         wrap_with_resize(
-            Stack::new()
+            Stack::<iced::Element<'_, _>>::new()
                 .push(base)
                 .push(backdrop)
                 .push(positioned_menu)
                 .width(Length::Fill)
                 .height(Length::Fill)
-                .into(),
+                .boxed(),
             resize_overlay,
         )
     }
@@ -572,7 +568,7 @@ impl Oryxis {
         base: Element<'a, Message>,
         resize_overlay: Option<Element<'a, Message>>,
     ) -> Element<'a, Message> {
-        let mut stack = Stack::new().push(base);
+        let mut stack = Stack::<iced::Element<'_, _>>::new().push(base);
         let accent = OryxisColors::t().accent;
         if let Some((_, proposal)) = self.tab_drop_proposal() {
             let rect = proposal.highlight;
@@ -591,12 +587,11 @@ impl Oryxis {
                     },
                     ..Default::default()
                 })
-                .into();
+                .boxed();
             let positioned: Element<'_, Message> = column![
                 Space::new().height(rect.y + 2.0),
                 row![Space::new().width(rect.x + 2.0), fill],
-            ]
-            .into();
+            ].boxed();
             stack = stack.push(positioned);
         }
         // The chip itself. Centered on the cursor horizontally like the
@@ -614,10 +609,10 @@ impl Oryxis {
                 .min(self.cur_window_size().height - crate::views::tab_bar::TAB_HEIGHT)
                 .max(0.0);
             let positioned: Element<'_, Message> =
-                column![Space::new().height(y), row![Space::new().width(x), ghost]].into();
+                column![Space::new().height(y), row![Space::new().width(x), ghost]].boxed();
             stack = stack.push(positioned);
         }
-        wrap_with_resize(stack.width(Length::Fill).height(Length::Fill).into(), resize_overlay)
+        wrap_with_resize(stack.width(Length::Fill).height(Length::Fill).boxed(), resize_overlay)
     }
 
     /// Floating drag ghost for an in-flight file drag, tracking the
@@ -662,15 +657,14 @@ impl Oryxis {
         let positioned: Element<'_, Message> = column![
             Space::new().height(y),
             row![Space::new().width(x), ghost],
-        ]
-        .into();
+        ].boxed();
         wrap_with_resize(
-            Stack::new()
+            Stack::<iced::Element<'_, _>>::new()
                 .push(base)
                 .push(positioned)
                 .width(Length::Fill)
                 .height(Length::Fill)
-                .into(),
+                .boxed(),
             resize_overlay,
         )
     }

@@ -3,6 +3,7 @@
 //! view. Split out of `views/terminal.rs` so that file stays focused on
 //! the terminal pane + the sidebar shell.
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::button::Status as BtnStatus;
 use iced::widget::{button, column, container, scrollable, text, Space};
@@ -95,16 +96,16 @@ impl Oryxis {
             stab,
             4.0,
             dir_row(vec![
-                text(t("terminal_font_size")).size(12).color(c.text_secondary).into(),
-                Space::new().width(Length::Fill).into(),
+                text(t("terminal_font_size")).size(12).color(c.text_secondary).boxed(),
+                Space::new().width(Length::Fill).boxed(),
                 step_btn("\u{2212}", Message::Settings(SettingsMessage::TerminalFontSizeDecrease)),
-                Space::new().width(8).into(),
-                text(format!("{:.0}", self.terminal_font_size)).size(13).color(c.text_primary).into(),
-                Space::new().width(8).into(),
+                Space::new().width(8).boxed(),
+                text(format!("{:.0}", self.terminal_font_size)).size(13).color(c.text_primary).boxed(),
+                Space::new().width(8).boxed(),
                 step_btn("+", Message::Settings(SettingsMessage::TerminalFontSizeIncrease)),
             ])
             .align_y(iced::Alignment::Center)
-            .into(),
+            .boxed(),
         );
 
         let fonts = crate::app::enumerate_terminal_fonts();
@@ -124,7 +125,7 @@ impl Oryxis {
             .width(Length::Fill)
             .padding(8)
             .style(crate::widgets::rounded_pick_list_style)
-            .into(),
+            .boxed(),
         );
 
         // Font weight (issue #155): a picker row, so Left/Right cycle
@@ -150,7 +151,7 @@ impl Oryxis {
             .width(Length::Fill)
             .padding(8)
             .style(crate::widgets::rounded_pick_list_style)
-            .into(),
+            .boxed(),
         );
 
         let thicknesses = crate::fonts::TextThickness::ALL;
@@ -174,7 +175,7 @@ impl Oryxis {
             .width(Length::Fill)
             .padding(8)
             .style(crate::widgets::rounded_pick_list_style)
-            .into(),
+            .boxed(),
         );
 
         let toggle = |label: &'static str, value: bool, msg: Message| {
@@ -212,7 +213,7 @@ impl Oryxis {
             toggle("smart_contrast", self.prefs.smart_contrast, Message::Settings(SettingsMessage::ToggleSmartContrast)),
         ]
         .width(Length::Fill)
-        .into()
+        .boxed()
     }
 
     /// Host config sidebar tab: per-host appearance/behavior for the
@@ -260,7 +261,7 @@ impl Oryxis {
                 .width(Length::Fill)
                 .padding(8)
                 .style(pl_style)
-                .into(),
+                .boxed(),
         );
 
         // Ambiguous width, next to encoding because `Auto` reads it. The
@@ -283,7 +284,7 @@ impl Oryxis {
             .width(Length::Fill)
             .padding(8)
             .style(pl_style)
-            .into(),
+            .boxed(),
         );
 
         let term_opts: Vec<String> = [
@@ -309,7 +310,7 @@ impl Oryxis {
                 .width(Length::Fill)
                 .padding(8)
                 .style(pl_style)
-                .into(),
+                .boxed(),
         );
 
         let title_opts = vec![
@@ -335,7 +336,7 @@ impl Oryxis {
                 .width(Length::Fill)
                 .padding(8)
                 .style(pl_style)
-                .into(),
+                .boxed(),
         );
 
         let label = |key: &str| text(t(key)).size(12).color(OryxisColors::t().text_secondary);
@@ -346,7 +347,7 @@ impl Oryxis {
 
         // Theme: swatch-preview cards (live repaint on pick). The
         // "follow app theme" card is the None sentinel.
-        let mut theme_col = column![].spacing(8).width(Length::Fill);
+        let mut theme_col = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(8).width(Length::Fill);
         for card in self.sidebar_theme_cards(conn.terminal_theme.as_deref(), |v| Message::Editor(EditorMessage::HostConfigThemeChanged(v))) {
             theme_col = theme_col.push(card);
         }
@@ -392,7 +393,7 @@ impl Oryxis {
         scrollable(body)
             .id(crate::keynav::sidebar_scroll_id(crate::state::TerminalSidebarTab::HostConfig))
             .height(Length::Fill)
-            .into()
+            .boxed()
     }
 
     /// Host config tab body for local/ephemeral panes: a session-only
@@ -406,7 +407,7 @@ impl Oryxis {
         let appearance = self.terminal_appearance_controls();
 
         // Theme: swatch cards (applied to the open local panes on pick).
-        let mut theme_col = column![].spacing(8).width(Length::Fill);
+        let mut theme_col = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(8).width(Length::Fill);
         for card in
             self.sidebar_theme_cards(self.local_terminal_theme.as_deref(), |v| Message::Settings(SettingsMessage::LocalConfigThemeChanged(v)))
         {
@@ -454,7 +455,7 @@ impl Oryxis {
         scrollable(body)
             .id(crate::keynav::sidebar_scroll_id(crate::state::TerminalSidebarTab::HostConfig))
             .height(Length::Fill)
-            .into()
+            .boxed()
     }
 
 }
@@ -478,5 +479,5 @@ fn step_btn<'a>(glyph: &'a str, msg: Message) -> Element<'a, Message> {
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }

@@ -8,6 +8,7 @@
 //! earns exactly the same tags as a built-in. This module only puts
 //! words on them.
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::{button, container, text};
 use iced::{Background, Border, Color, Element, Length, Padding};
@@ -123,7 +124,7 @@ pub(crate) fn tone_chip<'a>(label: &'a str, active: bool, msg: Message) -> Eleme
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }
 
 #[cfg(test)]

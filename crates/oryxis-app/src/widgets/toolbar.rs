@@ -1,5 +1,6 @@
 //! UI helper widgets: toolbar. Split out of widgets/mod.rs.
 
+use iced::Widget as _;
 use super::*;
 /// Toolbar trigger button that opens the Sort dropdown. The glyph
 /// reflects the active sort so the user can read the current mode
@@ -38,7 +39,7 @@ pub(crate) fn sort_toolbar_button(
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }
 
 /// Grid / List / Tree view cycler for the host dashboard toolbar.
@@ -74,7 +75,7 @@ pub(crate) fn host_view_toggle_button(
             ..Default::default()
         }
     });
-    crate::views::terminal::icon_tooltip(btn.into(), crate::i18n::t("toggle_view"))
+    crate::views::terminal::icon_tooltip(btn.boxed(), crate::i18n::t("toggle_view"))
 }
 
 /// Stateful 24×24 icon button for a view's toolbar: the same square as
@@ -112,7 +113,7 @@ pub(crate) fn toolbar_toggle_icon(
             ..Default::default()
         }
     });
-    crate::views::terminal::icon_tooltip(btn.into(), tip)
+    crate::views::terminal::icon_tooltip(btn.boxed(), tip)
 }
 
 /// The dashboard's multi-select mode toggle (issue #230): one of the
@@ -174,7 +175,7 @@ fn toolbar_icon_button(
             }),
         iced::widget::tooltip::Position::Bottom,
     )
-    .into()
+    .boxed()
 }
 
 /// Search icon shown in the toolbar when the window is too narrow for an
@@ -221,13 +222,13 @@ pub(crate) fn card_trailing_overlay<'a>(
     } else {
         Padding { top: 0.0, right: 4.0, bottom: 0.0, left: 0.0 }
     };
-    let overlay = container(trailing)
+    let overlay = container::<_, iced::Theme>(trailing)
         .width(Length::Fill)
         .height(Length::Fill)
         .align_x(align)
         .align_y(iced::alignment::Vertical::Center)
         .padding(pad);
-    iced::widget::Stack::new().push(card).push(overlay).into()
+    iced::widget::Stack::<iced::Element<'_, _>>::new().push(card).push(overlay.boxed()).boxed()
 }
 
 /// Floating `⋮` kebab action button shown on hover over cards (and the
@@ -242,7 +243,7 @@ pub(crate) fn card_kebab_button<'a>(
     glyph_color: Color,
     show_hover: bool,
     on_press: Message,
-) -> button::Button<'a, Message> {
+) -> Element<'a, Message> {
     button(
         container(text("\u{22EE}").size(14).color(glyph_color))
             .center_x(Length::Fixed(22.0))
@@ -261,6 +262,7 @@ pub(crate) fn card_kebab_button<'a>(
             ..Default::default()
         }
     })
+    .boxed()
 }
 
 /// One row of the toolbar Sort dropdown (Hosts / Keychain / Snippets).
@@ -280,22 +282,22 @@ pub(crate) fn sort_menu_row(
         iced_fonts::lucide::check()
             .size(13)
             .color(OryxisColors::t().accent)
-            .into()
+            .boxed()
     } else {
-        Space::new().width(13).into()
+        Space::new().width(13).boxed()
     };
     button(
         container(
             dir_row(vec![
                 icon.size(14)
                     .color(OryxisColors::t().text_secondary)
-                    .into(),
-                Space::new().width(10).into(),
+                    .boxed(),
+                Space::new().width(10).boxed(),
                 text(crate::i18n::t(label_key))
                     .size(12)
                     .color(OryxisColors::t().text_primary)
-                    .into(),
-                Space::new().width(Length::Fill).into(),
+                    .boxed(),
+                Space::new().width(Length::Fill).boxed(),
                 check,
             ])
             .align_y(iced::Alignment::Center),
@@ -317,7 +319,7 @@ pub(crate) fn sort_menu_row(
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }
 
 pub(crate) fn context_menu_item<'a>(
@@ -360,16 +362,16 @@ fn context_menu_row<'a>(
 ) -> Element<'a, Message> {
     let mut row = vec![
         icon.into().view(14.0, color),
-        Space::new().width(8).into(),
-        text(label).size(12).color(OryxisColors::t().text_primary).into(),
+        Space::new().width(8).boxed(),
+        text(label).size(12).color(OryxisColors::t().text_primary).boxed(),
     ];
     if let Some(chord) = chord.filter(|c| !c.is_empty()) {
         // The gap is elastic so every chip in a menu lines up on the
         // trailing edge whatever its label is long, and it survives RTL
         // because `dir_row` reverses the whole sequence.
-        row.push(Space::new().width(Length::Fill).into());
-        row.push(Space::new().width(16).into());
-        row.push(text(chord).size(11).color(OryxisColors::t().text_muted).into());
+        row.push(Space::new().width(Length::Fill).boxed());
+        row.push(Space::new().width(16).boxed());
+        row.push(text(chord).size(11).color(OryxisColors::t().text_muted).boxed());
     }
     button(
         container(dir_row(row).align_y(iced::Alignment::Center))
@@ -392,7 +394,7 @@ fn context_menu_row<'a>(
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }
 
 /// Owned-label sibling of [`context_menu_item`]: the label `String` is
@@ -420,10 +422,10 @@ pub(crate) fn tag_filter_toolbar_button(
         iced_fonts::lucide::tag()
             .size(15)
             .color(OryxisColors::t().button_text)
-            .into(),
+            .boxed(),
     ];
     if active {
-        inner.push(Space::new().width(4).into());
+        inner.push(Space::new().width(4).boxed());
         inner.push(
             text(selected.to_string())
                 .size(11)
@@ -432,7 +434,7 @@ pub(crate) fn tag_filter_toolbar_button(
                     ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
                 })
                 .color(OryxisColors::t().button_text)
-                .into(),
+                .boxed(),
         );
     }
     button(
@@ -457,7 +459,7 @@ pub(crate) fn tag_filter_toolbar_button(
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }
 
 /// The selection check at the leading edge of a host card (issue
@@ -474,9 +476,9 @@ pub(crate) fn tag_filter_toolbar_button(
 pub(crate) fn card_select_check<'a>(selected: bool, msg: Message) -> Element<'a, Message> {
     let palette = OryxisColors::t();
     let glyph: Element<'a, Message> = if selected {
-        iced_fonts::lucide::check().size(12).color(palette.button_text).into()
+        iced_fonts::lucide::check().size(12).color(palette.button_text).boxed()
     } else {
-        Space::new().into()
+        Space::new().boxed()
     };
     button(
         container(glyph)
@@ -503,5 +505,5 @@ pub(crate) fn card_select_check<'a>(selected: bool, msg: Message) -> Element<'a,
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }

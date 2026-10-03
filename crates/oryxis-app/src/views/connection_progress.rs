@@ -1,6 +1,7 @@
 //! Connection progress screen (shown while connecting to SSH) with host-key
 //! verification dialog inline.
 
+use iced::Widget as _;
 use iced::alignment::Horizontal;
 use iced::border::Radius;
 use iced::widget::{button, column, container, pick_list, row, scrollable, text, text_input, Space};
@@ -29,17 +30,17 @@ fn step_color(step: ConnectionStep) -> Color {
 /// dialing, secured channel, credentials, accepted login, PTY setup).
 fn step_glyph(step: ConnectionStep, color: Color) -> Element<'static, Message> {
     match step {
-        ConnectionStep::Starting => iced_fonts::lucide::play().size(15).color(color).into(),
-        ConnectionStep::Connecting => iced_fonts::lucide::plug().size(15).color(color).into(),
+        ConnectionStep::Starting => iced_fonts::lucide::play().size(15).color(color).boxed(),
+        ConnectionStep::Connecting => iced_fonts::lucide::plug().size(15).color(color).boxed(),
         ConnectionStep::Handshake => {
-            iced_fonts::lucide::shield_check().size(15).color(color).into()
+            iced_fonts::lucide::shield_check().size(15).color(color).boxed()
         }
         ConnectionStep::Authenticating => {
-            iced_fonts::lucide::key_round().size(15).color(color).into()
+            iced_fonts::lucide::key_round().size(15).color(color).boxed()
         }
-        ConnectionStep::Authenticated => iced_fonts::lucide::check().size(15).color(color).into(),
+        ConnectionStep::Authenticated => iced_fonts::lucide::check().size(15).color(color).boxed(),
         ConnectionStep::OpeningSession => {
-            iced_fonts::lucide::terminal().size(15).color(color).into()
+            iced_fonts::lucide::terminal().size(15).color(color).boxed()
         }
     }
 }
@@ -147,7 +148,7 @@ impl Oryxis {
     pub(crate) fn view_connection_progress(&self) -> Element<'_, Message> {
         let progress = match &self.connecting {
             Some(p) => p,
-            None => return Space::new().into(),
+            None => return Space::new().boxed(),
         };
         // Keyboard rows (issue #52 convention), recorded in DISPLAY order
         // and with NO default row: the card appears by itself, so only a
@@ -190,7 +191,7 @@ impl Oryxis {
 
         let mut header_children: Vec<Element<'_, Message>> = vec![
             badge,
-            Space::new().width(14).into(),
+            Space::new().width(14).boxed(),
             column![
                 // A quick-connect label embeds `user@host`, so the label
                 // is redacted like every other string on this screen.
@@ -207,9 +208,9 @@ impl Oryxis {
             ]
             .width(Length::Fill)
             .align_x(crate::widgets::dir_align_x())
-            .into(),
+            .boxed(),
             // Keeps a wrapped title off the trailing controls.
-            Space::new().width(12).into(),
+            Space::new().width(12).boxed(),
         ];
         if self.progress_privacy_on(progress) {
             // Same eye affordance as Logs / Known Hosts, so the masked
@@ -232,7 +233,7 @@ impl Oryxis {
             matches!(progress.origin, crate::state::ProgressOrigin::Quick(_));
         if failed || is_quick_origin {
             if self.progress_privacy_on(progress) {
-                header_children.push(Space::new().width(8).into());
+                header_children.push(Space::new().width(8).boxed());
             }
             let edit_btn: Element<'_, Message> = button(
                 container(text(crate::i18n::t("edit_host")).size(13).color(OryxisColors::t().text_primary))
@@ -247,7 +248,7 @@ impl Oryxis {
                 border: Border { radius: Radius::from(8.0), ..Default::default() },
                 ..Default::default()
             })
-            .into();
+            .boxed();
             header_children.push(self.progress_slot(
                 owned,
                 Message::Ssh(SshMessage::SshEditFromProgress),
@@ -294,10 +295,9 @@ impl Oryxis {
                         },
                         ..Default::default()
                     }),
-                ]
-                .into()
+                ].boxed()
             }
-            None => Space::new().into(),
+            None => Space::new().boxed(),
         };
 
         // What a command proxy said while this dial was pending (issue
@@ -309,7 +309,7 @@ impl Oryxis {
         // host it opens and acts only on a click. Built here, right after
         // the banner, so its link rows are recorded in display order.
         let proxy_block: Element<'_, Message> = if progress.proxy_output.is_empty() {
-            Space::new().into()
+            Space::new().boxed()
         } else {
             let joined = progress
                 .proxy_output
@@ -360,10 +360,10 @@ impl Oryxis {
                 }),
             ];
             if !links.is_empty() {
-                col = col.push(Space::new().height(8));
-                col = col.push(crate::widgets::dir_row(links).spacing(8));
+                col = col.push(Space::new().height(8).boxed());
+                col = col.push(crate::widgets::dir_row(links).spacing(8).boxed());
             }
-            col.into()
+            col.boxed()
         };
 
         // Pulse for the in-flight timeline node while still connecting.
@@ -398,9 +398,9 @@ impl Oryxis {
                     OryxisColors::t().bg_hover,
                 ),
             );
-            crate::widgets::dir_row(vec![queued.into(), Space::new().width(Length::Fill).into(), cancel])
+            crate::widgets::dir_row(vec![queued.boxed(), Space::new().width(Length::Fill).boxed(), cancel])
                 .align_y(iced::Alignment::Center)
-                .into()
+                .boxed()
         });
 
         // Host key verification or normal status/log timeline.
@@ -431,7 +431,7 @@ impl Oryxis {
             let status: Element<'_, Message> = text(crate::i18n::t("legacy_algo_title"))
                 .size(14)
                 .color(OryxisColors::t().warning)
-                .into();
+                .boxed();
             // Redacted: a quick-connect label embeds `user@host`.
             let desc = crate::i18n::t("legacy_algo_desc")
                 .replace("{host}", &self.redact_progress(progress, &host_label))
@@ -446,10 +446,10 @@ impl Oryxis {
             ];
             for off in &legacy.server_offers {
                 body_col = body_col.push(
-                    text(format!("  {off}")).size(12).color(OryxisColors::t().text_primary),
+                    text(format!("  {off}")).size(12).color(OryxisColors::t().text_primary).boxed(),
                 );
             }
-            let body: Element<'_, Message> = body_col.into();
+            let body: Element<'_, Message> = body_col.boxed();
             // Keyboard rows with no default, like the rest of the card:
             // enabling weaker algorithms is a choice, never a stray Enter.
             let cancel_msg = Message::Ssh(SshMessage::LegacyAlgoCancel);
@@ -485,7 +485,7 @@ impl Oryxis {
             ];
             if !is_quick {
                 let always_msg = Message::Ssh(SshMessage::LegacyAlgoAccept { remember: true });
-                btm_row = btm_row.push(Space::new().width(8)).push(self.progress_slot(
+                btm_row = btm_row.push(Space::new().width(8).boxed()).push(self.progress_slot(
                     owned,
                     always_msg.clone(),
                     8.0,
@@ -497,7 +497,7 @@ impl Oryxis {
                     ),
                 ));
             }
-            let btm: Element<'_, Message> = btm_row.align_y(iced::Alignment::Center).into();
+            let btm: Element<'_, Message> = btm_row.align_y(iced::Alignment::Center).boxed();
             (status, body, btm)
         } else if let Some(ref kbi) = self.pending_kbi_prompt {
             // Keyboard-interactive (2FA / OTP). `name` and the prompt labels
@@ -512,14 +512,14 @@ impl Oryxis {
                 self.redact_progress(progress, &kbi.name)
             };
             let status: Element<'_, Message> =
-                text(title).size(14).color(OryxisColors::t().accent).into();
+                text(title).size(14).color(OryxisColors::t().accent).boxed();
 
-            let mut body_col = column![].push(Space::new().height(8));
+            let mut body_col = iced::widget::Column::<iced::Element<'_, _>>::new().push(Space::new().height(8).boxed());
 
             if !kbi.instructions.trim().is_empty() {
                 body_col = body_col
-                    .push(text(self.redact_progress(progress, &kbi.instructions)).size(13).color(OryxisColors::t().text_secondary))
-                    .push(Space::new().height(12));
+                    .push(text(self.redact_progress(progress, &kbi.instructions)).size(13).color(OryxisColors::t().text_secondary).boxed())
+                    .push(Space::new().height(12).boxed());
             }
 
             for (i, prompt) in kbi.prompts.iter().enumerate() {
@@ -540,10 +540,10 @@ impl Oryxis {
                     input = input.secure(true);
                 }
                 body_col = body_col
-                    .push(text(prompt_label.clone()).size(12).color(OryxisColors::t().text_muted))
-                    .push(Space::new().height(4))
-                    .push(input)
-                    .push(Space::new().height(12));
+                    .push(text(prompt_label.clone()).size(12).color(OryxisColors::t().text_muted).boxed())
+                    .push(Space::new().height(4).boxed())
+                    .push(input.boxed())
+                    .push(Space::new().height(12).boxed());
             }
 
             // Quick-connect prompt: offer the saved identities / keys as an
@@ -551,7 +551,7 @@ impl Oryxis {
             if let Some(qid) = self.pending_kbi_quick
                 && let Some(section) = self.view_quick_auth_switch(qid)
             {
-                body_col = body_col.push(section).push(Space::new().height(12));
+                body_col = body_col.push(section).push(Space::new().height(12).boxed());
             }
 
             let body: Element<'_, Message> = container(body_col)
@@ -563,7 +563,7 @@ impl Oryxis {
                     border: Border { radius: Radius::from(10.0), ..Default::default() },
                     ..Default::default()
                 })
-                .into();
+                .boxed();
 
             let cancel_btn = button(
                 container(text(crate::i18n::t("cancel")).size(13).color(OryxisColors::t().text_primary))
@@ -614,7 +614,7 @@ impl Oryxis {
                 cancel_btn,
                 Space::new().width(Length::Fill),
                 submit_btn,
-            ].align_y(iced::Alignment::Center).into();
+            ].align_y(iced::Alignment::Center).boxed();
 
             (status, body, btm)
         } else if let Some(ref query) = self.pending_proxy_command {
@@ -626,7 +626,7 @@ impl Oryxis {
             let status: Element<'_, Message> = text(crate::i18n::t("proxy_cmd_title"))
                 .size(14)
                 .color(OryxisColors::t().warning)
-                .into();
+                .boxed();
 
             let endpoint = self.redact_progress(
                 progress,
@@ -646,7 +646,7 @@ impl Oryxis {
                 border: Border { radius: Radius::from(10.0), ..Default::default() },
                 ..Default::default()
             })
-            .into();
+            .boxed();
 
             (status, body, self.proxy_command_buttons())
         } else if let Some(ref query) = self.pending_host_key {
@@ -659,38 +659,38 @@ impl Oryxis {
             };
             let question_color = if is_changed { OryxisColors::t().error } else { OryxisColors::t().warning };
 
-            let status: Element<'_, Message> = text(question_text).size(14).color(question_color).into();
+            let status: Element<'_, Message> = text(question_text).size(14).color(question_color).boxed();
 
-            let mut body_col = column![];
+            let mut body_col = iced::widget::Column::<iced::Element<'_, _>>::new();
 
             if is_changed {
                 body_col = body_col
-                    .push(Space::new().height(8))
-                    .push(text(crate::i18n::t("hk_warning_desc")).size(13).color(OryxisColors::t().error))
-                    .push(Space::new().height(12));
+                    .push(Space::new().height(8).boxed())
+                    .push(text(crate::i18n::t("hk_warning_desc")).size(13).color(OryxisColors::t().error).boxed())
+                    .push(Space::new().height(12).boxed());
                 if let oryxis_ssh::HostKeyStatus::Changed { ref old_fingerprint } = query.status {
                     body_col = body_col
-                        .push(text(format!("{} {}", crate::i18n::t("hk_old_fingerprint"), old_fingerprint)).size(12).color(OryxisColors::t().text_muted))
-                        .push(Space::new().height(8));
+                        .push(text(format!("{} {}", crate::i18n::t("hk_old_fingerprint"), old_fingerprint)).size(12).color(OryxisColors::t().text_muted).boxed())
+                        .push(Space::new().height(8).boxed());
                 }
             } else {
                 body_col = body_col
-                    .push(Space::new().height(8))
+                    .push(Space::new().height(8).boxed())
                     .push(text(
                         crate::i18n::t("hk_unknown_desc")
                             .replace("{host}", &self.redact_progress(progress, &query.hostname)),
-                    ).size(13).color(OryxisColors::t().text_secondary))
-                    .push(Space::new().height(12));
+                    ).size(13).color(OryxisColors::t().text_secondary).boxed())
+                    .push(Space::new().height(12).boxed());
             }
 
             body_col = body_col
                 .push(text(
                     crate::i18n::t("hk_fingerprint_sha256").replace("{key_type}", &query.key_type),
-                ).size(13).color(OryxisColors::t().text_secondary))
-                .push(Space::new().height(8))
-                .push(text(&query.fingerprint).size(14).color(OryxisColors::t().text_primary))
-                .push(Space::new().height(16))
-                .push(text(crate::i18n::t("hk_add_question")).size(13).color(OryxisColors::t().text_secondary));
+                ).size(13).color(OryxisColors::t().text_secondary).boxed())
+                .push(Space::new().height(8).boxed())
+                .push(text(&query.fingerprint).size(14).color(OryxisColors::t().text_primary).boxed())
+                .push(Space::new().height(16).boxed())
+                .push(text(crate::i18n::t("hk_add_question")).size(13).color(OryxisColors::t().text_secondary).boxed());
 
             let body: Element<'_, Message> = container(body_col)
                 .width(Length::Fill)
@@ -701,7 +701,7 @@ impl Oryxis {
                     border: Border { radius: Radius::from(10.0), ..Default::default() },
                     ..Default::default()
                 })
-                .into();
+                .boxed();
 
             (status, body, self.host_key_buttons())
         } else {
@@ -730,8 +730,7 @@ impl Oryxis {
                 Space::new().height(8),
                 title,
                 Space::new().height(4),
-            ]
-            .into();
+            ].boxed();
 
             (status, self.view_connection_log_timeline(progress, failed, pulse), self.view_connection_log_buttons(progress, failed, owned))
         };
@@ -739,7 +738,7 @@ impl Oryxis {
         let bottom: Element<'_, Message> = match batch_row {
             Some(batch_row) => column![batch_row, Space::new().height(12), bottom]
                 .width(Length::Fill)
-                .into(),
+                .boxed(),
             None => bottom,
         };
 
@@ -764,7 +763,7 @@ impl Oryxis {
             background: Some(Background::Color(OryxisColors::t().bg_primary)),
             ..Default::default()
         })
-        .into()
+        .boxed()
     }
 
     /// The saved identities and keys a quick-connect host can switch to,
@@ -829,7 +828,7 @@ impl Oryxis {
                 pick,
             ]
             .width(Length::Fill)
-            .into(),
+            .boxed(),
         )
     }
 
@@ -858,7 +857,7 @@ impl Oryxis {
             // disc shape so the column stays visually aligned.
             let node_color = if is_error { OryxisColors::t().error } else { step_color(*step) };
             let glyph: Element<'_, Message> = if is_error {
-                iced_fonts::lucide::circle_alert().size(15).color(node_color).into()
+                iced_fonts::lucide::circle_alert().size(15).color(node_color).boxed()
             } else {
                 step_glyph(*step, node_color)
             };
@@ -885,7 +884,7 @@ impl Oryxis {
                     },
                     ..Default::default()
                 })
-                .into();
+                .boxed();
 
             // Connector descends from this node toward the next one. Dimmed
             // so it reads as a guide line, not a solid bar. The segment
@@ -898,7 +897,7 @@ impl Oryxis {
             // that happened to precede it.
             let feeds_active = !failed && i + 2 == n;
             let connector: Element<'_, Message> = if is_last {
-                Space::new().into()
+                Space::new().boxed()
             } else {
                 let (next_step, next_msg) = &progress.logs[i + 1];
                 let next_color = if next_msg.starts_with("Error") {
@@ -914,7 +913,7 @@ impl Oryxis {
                         background: Some(Background::Color(line_color)),
                         ..Default::default()
                     })
-                    .into();
+                    .boxed();
                 if feeds_active {
                     // Spark riding the same tint, eased lap ~1.2 s on the
                     // 100 ms anim tick. Even-sized (8 px, flush with the
@@ -927,7 +926,7 @@ impl Oryxis {
                     let spark = container(Space::new())
                         .width(Length::Fixed(8.0))
                         .height(Length::Fixed(8.0))
-                        .style(move |_| container::Style {
+                        .style(move |_: &iced::Theme| container::Style {
                             background: Some(Background::Color(next_color)),
                             border: Border {
                                 radius: Radius::from(4.0),
@@ -936,19 +935,19 @@ impl Oryxis {
                             },
                             ..Default::default()
                         });
-                    iced::widget::Stack::with_children(vec![
-                        container(line).center_x(Length::Fixed(8.0)).height(Length::Fill).into(),
+                    iced::widget::Stack::<iced::Element<'_, _>>::with_children(vec![
+                        container(line).center_x(Length::Fixed(8.0)).height(Length::Fill).boxed(),
                         column![
                             Space::new().height(Length::FillPortion(pos)),
                             container(spark).center_x(Length::Fixed(8.0)),
                             Space::new().height(Length::FillPortion(1000 - pos)),
                         ]
                         .height(Length::Fill)
-                        .into(),
+                        .boxed(),
                     ])
                     .width(Length::Fixed(8.0))
                     .height(Length::Fill)
-                    .into()
+                    .boxed()
                 } else {
                     line
                 }
@@ -987,18 +986,18 @@ impl Oryxis {
 
             rows.push(
                 crate::widgets::dir_row(vec![
-                    rail.into(),
-                    Space::new().width(10).into(),
-                    message_cell.into(),
+                    rail.boxed(),
+                    Space::new().width(10).boxed(),
+                    message_cell.boxed(),
                 ])
                 .align_y(iced::Alignment::Start)
                 .height(Length::Shrink)
-                .into(),
+                .boxed(),
             );
         }
 
         let timeline = column(rows).padding(Padding { top: 14.0, right: 16.0, bottom: 14.0, left: 12.0 });
-        let log_list = scrollable(iced::widget::selectable_group::<(), Message, _, _>(timeline))
+        let log_list = scrollable(timeline)
             .height(Length::Fill);
 
         container(log_list)
@@ -1009,7 +1008,7 @@ impl Oryxis {
                 border: Border { radius: Radius::from(10.0), ..Default::default() },
                 ..Default::default()
             })
-            .into()
+            .boxed()
     }
 
     /// Bottom action row for the failed state: "Copy logs" on the leading
@@ -1022,7 +1021,7 @@ impl Oryxis {
         owned: bool,
     ) -> Element<'_, Message> {
         if !failed {
-            return Space::new().into();
+            return Space::new().boxed();
         }
 
         // Quick connect that died in the auth stage (a publickey-only
@@ -1138,35 +1137,35 @@ impl Oryxis {
             Message::CopyToClipboard(payload),
             8.0,
             false,
-            copy_btn.into(),
+            copy_btn.boxed(),
         );
         let close_btn = self.progress_slot(
             owned,
             Message::Ssh(SshMessage::SshCloseProgress),
             8.0,
             false,
-            close_btn.into(),
+            close_btn.boxed(),
         );
         let start_over_btn = self.progress_slot(
             owned,
             Message::Ssh(SshMessage::SshRetry),
             8.0,
             true,
-            start_over_btn.into(),
+            start_over_btn.boxed(),
         );
         let buttons = crate::widgets::dir_row(vec![
             copy_btn,
-            Space::new().width(Length::Fill).into(),
+            Space::new().width(Length::Fill).boxed(),
             close_btn,
-            Space::new().width(8).into(),
+            Space::new().width(8).boxed(),
             start_over_btn,
         ])
         .align_y(iced::Alignment::Center);
         match switch_section {
             Some(section) => column![section, Space::new().height(14), buttons]
                 .width(Length::Fill)
-                .into(),
-            None => buttons.into(),
+                .boxed(),
+            None => buttons.boxed(),
         }
     }
 }

@@ -1,5 +1,6 @@
 //! UI helper widgets: host_icon. Split out of widgets/mod.rs.
 
+use iced::Widget as _;
 use super::*;
 /// Resolve a `Color` from a `#RRGGBB` hex string. Returns `None` for any
 /// other input so callers can fall through to the global accent.
@@ -90,7 +91,7 @@ pub(crate) fn host_icon_text<'a>(
             border,
             ..Default::default()
         })
-        .into()
+        .boxed()
 }
 
 /// White on a dark badge, the theme's primary text on a light one.
@@ -136,7 +137,7 @@ pub(crate) fn host_icon<'a>(
                 _ => 0.0,
             };
             let inner: Element<'a, Message> = glyph
-                .unwrap_or_else(|| Space::new().into());
+                .unwrap_or_else(|| Space::new().boxed());
             container(inner)
                 .center_x(Length::Fixed(size))
                 .center_y(Length::Fixed(size))
@@ -145,11 +146,11 @@ pub(crate) fn host_icon<'a>(
                     border: Border { radius: Radius::from(radius), ..Default::default() },
                     ..Default::default()
                 })
-                .into()
+                .boxed()
         }
         HostIconStyle::Outline => {
             let inner: Element<'a, Message> = glyph
-                .unwrap_or_else(|| Space::new().into());
+                .unwrap_or_else(|| Space::new().boxed());
             container(inner)
                 .center_x(Length::Fixed(size))
                 .center_y(Length::Fixed(size))
@@ -162,7 +163,7 @@ pub(crate) fn host_icon<'a>(
                     },
                     ..Default::default()
                 })
-                .into()
+                .boxed()
         }
         HostIconStyle::Initials => {
             // Take up to two leading alphanumeric chars, uppercased.
@@ -196,7 +197,7 @@ pub(crate) fn host_icon<'a>(
                     border: Border { radius: Radius::from(half), ..Default::default() },
                     ..Default::default()
                 })
-                .into()
+                .boxed()
         }
     }
 }

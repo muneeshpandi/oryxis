@@ -8,7 +8,7 @@ use iced::widget::row;
 /// `/ / home` doubling that crept in when separators were emitted at the
 /// start of every iteration.
 pub(crate) fn remote_breadcrumb<'a>(side: SftpPaneSide, path: &str) -> Element<'a, Message> {
-    let mut row = iced::widget::Row::new().align_y(iced::Alignment::Center).spacing(2);
+    let mut row = iced::widget::Row::<iced::Element<'_, _>>::new().align_y(iced::Alignment::Center).spacing(2);
     row = row.push(crumb_remote(side, "/", "/"));
     let mut accumulated = String::new();
     let mut first_segment = true;
@@ -16,12 +16,12 @@ pub(crate) fn remote_breadcrumb<'a>(side: SftpPaneSide, path: &str) -> Element<'
         accumulated.push('/');
         accumulated.push_str(segment);
         if !first_segment {
-            row = row.push(text("/").size(11).color(OryxisColors::t().text_muted));
+            row = row.push(text("/").size(11).color(OryxisColors::t().text_muted).boxed());
         }
         first_segment = false;
         row = row.push(crumb_remote(side, segment, &accumulated));
     }
-    row.into()
+    row.boxed()
 }
 
 /// Build a clickable breadcrumb for a local filesystem path. On Windows
@@ -37,7 +37,7 @@ pub(crate) fn local_breadcrumb<'a>(side: SftpPaneSide, path: &std::path::Path) -
     // either the user is on Linux or they're navigating into a Linux
     // filesystem from Windows.
     let separator = if is_windows_disk_path(path) { "\\" } else { "/" };
-    let mut row = iced::widget::Row::new().align_y(iced::Alignment::Center).spacing(2);
+    let mut row = iced::widget::Row::<iced::Element<'_, _>>::new().align_y(iced::Alignment::Center).spacing(2);
     let mut accumulated = std::path::PathBuf::new();
     let mut first = true;
     let mut last_was_root_or_drive = false;
@@ -63,7 +63,7 @@ pub(crate) fn local_breadcrumb<'a>(side: SftpPaneSide, path: &std::path::Path) -
         };
         accumulated.push(component.as_os_str());
         if !first && !last_was_root_or_drive {
-            row = row.push(text(separator).size(11).color(OryxisColors::t().text_muted));
+            row = row.push(text(separator).size(11).color(OryxisColors::t().text_muted).boxed());
         }
         first = false;
         last_was_root_or_drive = is_root || is_drive;
@@ -97,13 +97,13 @@ pub(crate) fn local_breadcrumb<'a>(side: SftpPaneSide, path: &std::path::Path) -
                         border: Border { radius: Radius::from(4.0), ..Default::default() },
                         ..Default::default()
                     }
-                }),
+                }).boxed(),
             );
         } else {
             row = row.push(local_crumb(side, label, accumulated.clone()));
         }
     }
-    row.into()
+    row.boxed()
 }
 
 pub(crate) fn crumb_remote<'a>(side: SftpPaneSide, label: &str, full: &str) -> Element<'a, Message> {
@@ -123,7 +123,7 @@ pub(crate) fn crumb_remote<'a>(side: SftpPaneSide, label: &str, full: &str) -> E
                 ..Default::default()
             }
         })
-        .into()
+        .boxed()
 }
 
 pub(crate) fn local_crumb<'a>(side: SftpPaneSide, label: String, full: std::path::PathBuf) -> Element<'a, Message> {
@@ -141,7 +141,7 @@ pub(crate) fn local_crumb<'a>(side: SftpPaneSide, label: String, full: std::path
                 ..Default::default()
             }
         })
-        .into()
+        .boxed()
 }
 
 /// Breadcrumb while zip-browsing: the archive's real parent directory
@@ -162,11 +162,11 @@ pub(crate) fn zip_breadcrumb<'a>(
     } else {
         local_breadcrumb(side, &zip.return_local_path)
     };
-    let mut row = iced::widget::Row::new()
+    let mut row = iced::widget::Row::<iced::Element<'_, _>>::new()
         .align_y(iced::Alignment::Center)
         .spacing(2)
         .push(parent)
-        .push(text("/").size(11).color(OryxisColors::t().text_muted))
+        .push(text("/").size(11).color(OryxisColors::t().text_muted).boxed())
         .push(zip_crumb(side, zip.archive_name.clone(), String::new(), true));
     let mut accumulated = String::new();
     for segment in zip.inner.split('/').filter(|s| !s.is_empty()) {
@@ -174,10 +174,10 @@ pub(crate) fn zip_breadcrumb<'a>(
             accumulated.push('/');
         }
         accumulated.push_str(segment);
-        row = row.push(text("/").size(11).color(OryxisColors::t().text_muted));
+        row = row.push(text("/").size(11).color(OryxisColors::t().text_muted).boxed());
         row = row.push(zip_crumb(side, segment.to_string(), accumulated.clone(), false));
     }
-    row.into()
+    row.boxed()
 }
 
 /// One crumb inside the archive: navigates the VIRTUAL tree. The
@@ -196,14 +196,14 @@ fn zip_crumb<'a>(
     };
     let content: Element<'a, Message> = if is_archive_chip {
         crate::widgets::dir_row(vec![
-            iced_fonts::lucide::archive().size(11).color(color).into(),
-            Space::new().width(4).into(),
-            text(label).size(11).color(color).into(),
+            iced_fonts::lucide::archive().size(11).color(color).boxed(),
+            Space::new().width(4).boxed(),
+            text(label).size(11).color(color).boxed(),
         ])
         .align_y(iced::Alignment::Center)
-        .into()
+        .boxed()
     } else {
-        text(label).size(11).color(color).into()
+        text(label).size(11).color(color).boxed()
     };
     button(content)
         .on_press(Message::Sftp(SftpMessage::SftpZipNavigate(side, inner)))
@@ -219,5 +219,5 @@ fn zip_crumb<'a>(
                 ..Default::default()
             }
         })
-        .into()
+        .boxed()
 }

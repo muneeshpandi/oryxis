@@ -10,6 +10,7 @@
 pub(crate) use iced::border::Radius;
 pub(crate) use iced::widget::button::Status as BtnStatus;
 pub(crate) use iced::widget::{button, container, scrollable, text, text_input, MouseArea, Space};
+use iced::Widget as _;
 use iced::widget::column;
 pub(crate) use uuid::Uuid;
 pub(crate) use iced::{Background, Border, Color, Element, Length, Padding};
@@ -581,12 +582,12 @@ impl Oryxis {
             iced_fonts::lucide::list_checks()
                 .size(12)
                 .color(OryxisColors::t().accent)
-                .into(),
-            Space::new().width(6).into(),
+                .boxed(),
+            Space::new().width(6).boxed(),
             text(t("selection_count").replace("{n}", &n.to_string()))
                 .size(13)
                 .color(OryxisColors::t().accent)
-                .into(),
+                .boxed(),
         ])
         .align_y(iced::Alignment::Center);
         // Selected hosts the view does not show (a search, or a folded
@@ -595,12 +596,12 @@ impl Oryxis {
         // cannot see without being told.
         let count = if hidden > 0 {
             dir_row(vec![
-                count.into(),
-                Space::new().width(8).into(),
+                count.boxed(),
+                Space::new().width(8).boxed(),
                 text(t("selection_hidden").replace("{n}", &hidden.to_string()))
                     .size(12)
                     .color(OryxisColors::t().text_muted)
-                    .into(),
+                    .boxed(),
             ])
         } else {
             count
@@ -654,16 +655,16 @@ impl Oryxis {
         );
         let bar = container(
             dir_row(vec![
-                count.into(),
-                Space::new().width(Length::Fill).into(),
+                count.boxed(),
+                Space::new().width(Length::Fill).boxed(),
                 all_btn,
-                Space::new().width(8).into(),
+                Space::new().width(8).boxed(),
                 clear_btn,
-                Space::new().width(8).into(),
+                Space::new().width(8).boxed(),
                 connect_btn,
-                Space::new().width(8).into(),
+                Space::new().width(8).boxed(),
                 move_btn,
-                Space::new().width(8).into(),
+                Space::new().width(8).boxed(),
                 delete_btn,
             ])
             .align_y(iced::Alignment::Center),
@@ -684,7 +685,7 @@ impl Oryxis {
                 background: Some(Background::Color(OryxisColors::t().border)),
                 ..Default::default()
             });
-        column![bar, hairline].width(Length::Fill).into()
+        column![bar, hairline].width(Length::Fill).boxed()
     }
 
     /// True on a first-run vault: nothing saved anywhere, so the
@@ -711,13 +712,13 @@ impl Oryxis {
         // The host search lives in the dashboard toolbar
         // (`vault_search_field`) now, so the legacy full-width bar here
         // collapses to a zero-height spacer.
-        let search_bar: Element<'_, Message> = Space::new().into();
+        let search_bar: Element<'_, Message> = Space::new().boxed();
 
         // The host editor's validation error renders inside the
         // editor panel itself (`host_panel::view_host_panel`) right
         // above the Save button. Slot reserved for future list-level
         // statuses.
-        let status: Element<'_, Message> = Space::new().into();
+        let status: Element<'_, Message> = Space::new().boxed();
         let at_root = self.active_group.is_none();
         let flatten = self.flatten_hosts && at_root;
 
@@ -793,7 +794,7 @@ impl Oryxis {
                 .align_x(crate::widgets::dir_align_x()),
             )
             .padding(Padding { top: 4.0, right: 0.0, bottom: 8.0, left: 0.0 })
-            .into()
+            .boxed()
         };
 
         // Saved session groups that live in the current folder. The
@@ -906,9 +907,9 @@ impl Oryxis {
                 // be drawn over whatever sits to the right of the band,
                 // so clip it at the same edge the scroller did.
                 .clip(true)
-                .into()
+                .boxed()
         } else {
-            Space::new().height(0).into()
+            Space::new().height(0).boxed()
         };
         if tree_mode {
             let washed =
@@ -926,7 +927,7 @@ impl Oryxis {
                 grouped.extend(session_group_cards);
                 let grouped = apply_card_wash(grouped, glass, selected, self.kn().ring_bounds.clone());
                 content_rows.push(distribute_card_grid(grouped, cols, gap, gap));
-                content_rows.push(Space::new().height(20).into());
+                content_rows.push(Space::new().height(20).boxed());
             }
             if !host_cards.is_empty() {
                 content_rows.push(section_header("hosts_section"));
@@ -979,17 +980,17 @@ impl Oryxis {
             let chip = container(
                 dir_row(vec![
                     brand_glyph.view(12.0, brand_color),
-                    Space::new().width(6).into(),
+                    Space::new().width(6).boxed(),
                     text(crate::i18n::t("host_filter_active"))
                         .size(11)
                         .color(OryxisColors::t().text_muted)
-                        .into(),
-                    Space::new().width(4).into(),
+                        .boxed(),
+                    Space::new().width(4).boxed(),
                     text(profile_label)
                         .size(11)
                         .color(OryxisColors::t().text_primary)
-                        .into(),
-                    Space::new().width(6).into(),
+                        .boxed(),
+                    Space::new().width(6).boxed(),
                     button(
                         text("\u{00D7}")
                             .size(13)
@@ -1006,7 +1007,7 @@ impl Oryxis {
                         background: None,
                         ..Default::default()
                     })
-                    .into(),
+                    .boxed(),
                 ])
                 .align_y(iced::Alignment::Center),
             )
@@ -1037,15 +1038,15 @@ impl Oryxis {
                 })
                 .align_x(dir_align_x())
                 .width(Length::Fill)
-                .into()
+                .boxed()
         } else {
-            Space::new().into()
+            Space::new().boxed()
         };
 
         let main_content = column![toolbar, search_bar, filter_chip, status, selection_bar, grid]
             .width(Length::Fill)
             .height(Length::Fill);
-        main_content.into()
+        main_content.boxed()
     }
 
     /// Centered ad-hoc quick-connect card, shown when the host search
@@ -1094,21 +1095,21 @@ impl Oryxis {
                                 text_color: fg,
                                 ..Default::default()
                             })
-                            .into()
+                            .boxed()
                     })
                     .collect();
                 container(crate::widgets::dir_row(chips).spacing(6))
                     .padding(Padding { top: 10.0, right: 0.0, bottom: 0.0, left: 0.0 })
                     .center_x(Length::Fill)
-                    .into()
+                    .boxed()
             });
         let card = button(
-            iced::widget::Column::with_children(vec![
+            iced::widget::Column::<iced::Element<'_, _>>::with_children(vec![
                 iced_fonts::lucide::zap()
                     .size(28)
                     .color(OryxisColors::t().accent)
-                    .into(),
-                Space::new().height(10).into(),
+                    .boxed(),
+                Space::new().height(10).boxed(),
                 // The protocol is named whenever it is not the default
                 // one, so a Telnet or Serial dial says so before Enter
                 // rather than after it opens.
@@ -1127,13 +1128,13 @@ impl Oryxis {
                 )
                 .size(15)
                 .color(OryxisColors::t().text_primary)
-                .into(),
-                Space::new().height(4).into(),
+                .boxed(),
+                Space::new().height(4).boxed(),
                 text(t("quick_connect_not_saved"))
                     .size(12)
                     .color(OryxisColors::t().text_muted)
-                    .into(),
-                Space::new().height(8).into(),
+                    .boxed(),
+                Space::new().height(8).boxed(),
                 container(
                     text(t("quick_connect_hint"))
                         .size(11)
@@ -1148,7 +1149,7 @@ impl Oryxis {
                     },
                     ..Default::default()
                 })
-                .into(),
+                .boxed(),
             ])
             .align_x(iced::alignment::Horizontal::Center),
         )
@@ -1156,7 +1157,7 @@ impl Oryxis {
             crate::state::QuickConnectEntry::bare(conn),
         ))))
         .padding(Padding { top: 24.0, right: 32.0, bottom: 24.0, left: 32.0 })
-        .style(|_, status| {
+        .style(|_: &iced::Theme, status| {
             let (bg, bc) = match status {
                 BtnStatus::Hovered => (OryxisColors::t().bg_hover, OryxisColors::t().accent),
                 BtnStatus::Pressed => {
@@ -1174,8 +1175,8 @@ impl Oryxis {
                 ..Default::default()
             }
         });
-        let mut stack = iced::widget::Column::new().align_x(iced::alignment::Horizontal::Center);
-        stack = stack.push(card);
+        let mut stack = iced::widget::Column::<iced::Element<'_, _>>::new().align_x(iced::alignment::Horizontal::Center);
+        stack = stack.push(card.boxed());
         if let Some(badges) = badges {
             stack = stack.push(badges);
         }
@@ -1183,7 +1184,7 @@ impl Oryxis {
             .width(Length::Fill)
             .center_x(Length::Fill)
             .padding(Padding { top: 32.0, right: 0.0, bottom: 0.0, left: 0.0 })
-            .into()
+            .boxed()
     }
 }
 
@@ -1203,7 +1204,7 @@ pub(crate) fn status_pill_widget(label: String, accent: Color) -> Element<'stati
             },
             ..Default::default()
         })
-        .into()
+        .boxed()
 }
 
 /// Compact "5m ago" / "2h ago" / "3d ago" formatter. Negative or

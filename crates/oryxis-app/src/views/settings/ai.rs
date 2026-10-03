@@ -44,7 +44,7 @@ impl Oryxis {
                 .width(220)
                 .padding(10)
                 .style(crate::widgets::rounded_pick_list_style)
-                .into(),
+                .boxed(),
             );
 
             let model_input: Element<'_, Message> = self.settings_nav_slot_labeled(
@@ -58,7 +58,7 @@ impl Oryxis {
                     .width(300)
                     .style(crate::widgets::rounded_input_style)
                     .align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
             );
 
             let mut provider_col = column![
@@ -107,10 +107,10 @@ impl Oryxis {
                         .width(300)
                         .style(crate::widgets::rounded_input_style)
                         .align_x(dir_align_x())
-                        .into(),
+                        .boxed(),
                 );
                 provider_col = provider_col
-                    .push(Space::new().height(12))
+                    .push(Space::new().height(12).boxed())
                     .push(panel_field(crate::i18n::t("api_url"), url_input));
             }
 
@@ -160,7 +160,7 @@ impl Oryxis {
                     ),
                 )
                 .width(280)
-                .into(),
+                .boxed(),
             );
             let save_btn = self.settings_nav_slot(
                 crate::keynav::RowAction::activate(Message::Ai(AiMessage::SaveAiApiKey)),
@@ -169,35 +169,35 @@ impl Oryxis {
             );
             let key_status: Element<'_, Message> = if self.ai.api_key_set {
                 dir_row(vec![
-                    iced_fonts::lucide::circle_check().size(13).color(OryxisColors::t().success).into(),
-                    Space::new().width(6).into(),
-                    text(t("api_key_saved")).size(12).color(OryxisColors::t().success).into(),
+                    iced_fonts::lucide::circle_check().size(13).color(OryxisColors::t().success).boxed(),
+                    Space::new().width(6).boxed(),
+                    text(t("api_key_saved")).size(12).color(OryxisColors::t().success).boxed(),
                 ])
                 .align_y(iced::Alignment::Center)
-                .into()
+                .boxed()
             } else {
                 dir_row(vec![
-                    iced_fonts::lucide::circle_alert().size(13).color(OryxisColors::t().text_muted).into(),
-                    Space::new().width(6).into(),
-                    text(t("no_api_key")).size(12).color(OryxisColors::t().text_muted).into(),
+                    iced_fonts::lucide::circle_alert().size(13).color(OryxisColors::t().text_muted).boxed(),
+                    Space::new().width(6).boxed(),
+                    text(t("no_api_key")).size(12).color(OryxisColors::t().text_muted).boxed(),
                 ])
                 .align_y(iced::Alignment::Center)
-                .into()
+                .boxed()
             };
 
             provider_col = provider_col
-                .push(Space::new().height(12))
+                .push(Space::new().height(12).boxed())
                 .push(panel_field(
                     crate::i18n::t("api_key"),
-                    dir_row(vec![key_input, Space::new().width(8).into(), save_btn])
+                    dir_row(vec![key_input, Space::new().width(8).boxed(), save_btn])
                         .align_y(iced::Alignment::Center)
-                        .into(),
+                        .boxed(),
                 ))
-                .push(Space::new().height(4))
+                .push(Space::new().height(4).boxed())
                 .push(key_status);
 
             content_col = content_col
-                .push(Space::new().height(12))
+                .push(Space::new().height(12).boxed())
                 .push(panel_section(provider_col));
 
             // System prompt, multi-line editor that grows with the
@@ -209,7 +209,7 @@ impl Oryxis {
                 .padding(10)
                 .height(Length::Shrink)
                 .style(crate::widgets::rounded_text_editor_style)
-                .into();
+                .boxed();
             let prompt_section = panel_section(column![
                 panel_field(t("additional_system_prompt"), prompt_editor),
                 Space::new().height(4),
@@ -217,7 +217,7 @@ impl Oryxis {
                     .size(11).color(OryxisColors::t().text_muted),
             ]);
             content_col = content_col
-                .push(Space::new().height(12))
+                .push(Space::new().height(12).boxed())
                 .push(prompt_section);
         }
 
@@ -230,6 +230,6 @@ impl Oryxis {
         .id(iced::widget::Id::new("settings-ai-scroll"))
         .on_scroll(|s| Message::Settings(SettingsMessage::SectionScrolled(s.viewport.relative_offset().y)))
         .height(Length::Fill)
-        .into()
+        .boxed()
     }
 }

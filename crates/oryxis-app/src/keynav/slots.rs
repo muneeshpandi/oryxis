@@ -9,6 +9,7 @@
 //! `ModalSurface` tag on the selection makes a surface swap (menu
 //! closes, another opens) drop the selection for free.
 
+use iced::Widget as _;
 use std::cell::RefCell;
 
 use crate::app::{Message, NavigationMessage};
@@ -316,7 +317,7 @@ impl crate::app::Oryxis {
         // Hover converges the ring with the mouse position.
         let el: iced::Element<'a, Message> = iced::widget::MouseArea::new(el)
             .on_enter(Message::Navigation(NavigationMessage::ModalNavHover(idx)))
-            .into();
+            .boxed();
         // RAW index comparison, no clamping: this runs mid-recording,
         // when the list is still partial, and clamping a selection of
         // e.g. 3 against a 1-long list would ring EVERY row on its
@@ -849,18 +850,18 @@ impl crate::app::Oryxis {
                 .width(width)
                 .padding(10)
                 .style(crate::widgets::rounded_pick_list_style)
-                .into(),
+                .boxed(),
         );
         crate::widgets::dir_row(vec![
             iced::widget::text(label)
                 .size(13)
                 .color(crate::theme::OryxisColors::t().text_primary)
-                .into(),
-            iced::widget::Space::new().width(iced::Length::Fill).into(),
+                .boxed(),
+            iced::widget::Space::new().width(iced::Length::Fill).boxed(),
             picker,
         ])
         .align_y(iced::Alignment::Center)
-        .into()
+        .boxed()
     }
 
     /// Recording wrapper over `widgets::sort_menu_row`.

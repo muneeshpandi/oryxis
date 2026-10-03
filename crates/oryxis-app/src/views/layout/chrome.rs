@@ -40,7 +40,7 @@ pub(crate) fn dialog_action_button<'a>(label: String, danger: bool) -> Element<'
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }
 
 pub(crate) fn open_link_button<'a>(label: String, url: String) -> Element<'a, Message> {
@@ -72,7 +72,7 @@ pub(crate) fn open_link_button<'a>(label: String, url: String) -> Element<'a, Me
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }
 
 /// One choice row in the folder-delete modal: a full-width card with a
@@ -114,7 +114,7 @@ pub(crate) fn folder_choice_card<'a>(
     ]
     .width(Length::Fill)
     .align_x(dir_align_x());
-    let body = dir_row(vec![badge.into(), Space::new().width(12).into(), texts.into()])
+    let body = dir_row(vec![badge.boxed(), Space::new().width(12).boxed(), texts.boxed()])
         .align_y(iced::Alignment::Center);
     button(
         container(body).padding(Padding { top: 11.0, right: 14.0, bottom: 11.0, left: 14.0 }),
@@ -135,7 +135,7 @@ pub(crate) fn folder_choice_card<'a>(
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }
 
 /// Low-emphasis, full-width text button used for the modal "Cancel" so it
@@ -170,7 +170,7 @@ pub(crate) fn ghost_button<'a>(label: &'a str, msg: Message) -> Element<'a, Mess
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }
 
 /// Invisible hit-zone used on the window edges and corners. Captures a press
@@ -189,7 +189,7 @@ pub(crate) fn resize_handle<'a>(direction: Direction, width: Length, height: Len
     if matches!(direction, Direction::North | Direction::South) {
         area = area.on_double_click(Message::Tabs(TabsMessage::WindowExpandVertical));
     }
-    area.into()
+    area.boxed()
 }
 
 /// Layers the resize border on top of the given content, or returns the
@@ -199,12 +199,12 @@ pub(crate) fn wrap_with_resize<'a>(
     overlay: Option<Element<'a, Message>>,
 ) -> Element<'a, Message> {
     match overlay {
-        Some(overlay) => Stack::new()
+        Some(overlay) => Stack::<iced::Element<'_, _>>::new()
             .push(content)
             .push(overlay)
             .width(Length::Fill)
             .height(Length::Fill)
-            .into(),
+            .boxed(),
         None => content,
     }
 }
@@ -236,5 +236,5 @@ pub(crate) fn resize_border<'a>() -> Element<'a, Message> {
     ]
     .width(Length::Fill)
     .height(Length::Fill)
-    .into()
+    .boxed()
 }

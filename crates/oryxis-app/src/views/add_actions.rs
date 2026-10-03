@@ -11,6 +11,7 @@
 //!   key CTAs, so a vault with nothing in it had no way to reach the
 //!   identity form at all (issue #148 follow-up).
 
+use iced::Widget as _;
 use iced::widget::{button, container, text};
 use iced::{Background, Border, Color, Element, Length, Padding};
 
@@ -188,8 +189,8 @@ pub(crate) fn secondary_action_button(action: AddAction<'_>, width: f32) -> Elem
         container(
             dir_row(vec![
                 icon.view(14.0, color),
-                iced::widget::Space::new().width(8).into(),
-                text(label).size(13).color(OryxisColors::t().text_secondary).into(),
+                iced::widget::Space::new().width(8).boxed(),
+                text(label).size(13).color(OryxisColors::t().text_secondary).boxed(),
             ])
             .align_y(iced::Alignment::Center),
         )
@@ -215,7 +216,7 @@ pub(crate) fn secondary_action_button(action: AddAction<'_>, width: f32) -> Elem
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }
 
 /// A hairline rule with the "or" label centered in it, separating an
@@ -240,5 +241,5 @@ pub(crate) fn or_divider<'a>(width: f32) -> Element<'a, Message> {
         .align_y(iced::Alignment::Center),
     )
     .width(width)
-    .into()
+    .boxed()
 }

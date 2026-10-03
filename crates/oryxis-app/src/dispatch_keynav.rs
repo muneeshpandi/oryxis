@@ -529,9 +529,9 @@ impl Oryxis {
                     } else {
                         "vault-nav-rail-scroll"
                     };
-                    return iced::widget::operation::snap_to(
+                    return iced::widget::operation::scrollable::snap_to(
                         iced::widget::Id::new(rail_id),
-                        iced::widget::operation::RelativeOffset {
+                        iced::widget::operation::scrollable::RelativeOffset {
                             x: None,
                             y: Some(pos as f32 / denom as f32),
                         },
@@ -1031,9 +1031,9 @@ impl Oryxis {
         let max_scroll_rows = (rows.len() as f32 - visible_rows).max(1.0);
         let offset_rows = (sel_row - visible_rows + 1.0).max(0.0);
         let y = (offset_rows / max_scroll_rows).clamp(0.0, 1.0);
-        iced::widget::operation::snap_to(
+        iced::widget::operation::scrollable::snap_to(
             scroll_id,
-            iced::widget::operation::RelativeOffset { x: None, y: Some(y) },
+            iced::widget::operation::scrollable::RelativeOffset { x: None, y: Some(y) },
             iced::widget::operation::Animation::Instant,
         )
     }

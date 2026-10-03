@@ -1,5 +1,6 @@
 //! Vault setup / unlock / error screens.
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::{button, column, container, svg, text, Space};
 use iced::{Background, Border, Color, Element, Length, Padding};
@@ -25,7 +26,7 @@ pub(crate) fn with_chrome<'a>(body: Element<'a, Message>, maximized: bool) -> El
         iced::widget::column![window_chrome_bar(), h_separator, body]
             .width(Length::Fill)
             .height(Length::Fill)
-            .into();
+            .boxed();
     let overlay = if maximized { None } else { Some(crate::views::layout::resize_border()) };
     crate::views::layout::wrap_with_resize(content, overlay)
 }
@@ -53,7 +54,7 @@ impl Oryxis {
             Some(iced::widget::Id::new("vault-unlock-password")),
         ))
         .width(300)
-        .into()
+        .boxed()
     }
 
     // The first-run setup screen used to live here as `view_vault_setup`.
@@ -87,7 +88,7 @@ impl Oryxis {
                 crate::biometric::bio_icon()
                     .size(14)
                     .color(OryxisColors::t().button_text)
-                    .into(),
+                    .boxed(),
                 crate::biometric::bio_unlock_label(),
                 Message::Vault(VaultMessage::BiometricUnlockRequested),
                 OryxisColors::t().accent,
@@ -116,7 +117,7 @@ impl Oryxis {
             });
             column![bio_btn, Space::new().height(10), fallback_link]
                 .align_x(iced::Alignment::Center)
-                .into()
+                .boxed()
         } else {
             let input = self.vault_master_password_field(
                 crate::i18n::t("master_password_placeholder"),
@@ -137,26 +138,26 @@ impl Oryxis {
                         crate::biometric::bio_icon()
                             .size(14)
                             .color(crate::theme::contrast_text_for(OryxisColors::t().bg_hover))
-                            .into(),
+                            .boxed(),
                         crate::biometric::bio_unlock_label(),
                         Message::Vault(VaultMessage::BiometricUnlockRequested),
                         OryxisColors::t().bg_hover,
                     ),
                 ]
                 .align_x(iced::Alignment::Center)
-                .into()
+                .boxed()
             } else {
-                Space::new().into()
+                Space::new().boxed()
             };
             column![input, Space::new().height(12), btn, biometric_btn]
                 .align_x(iced::Alignment::Center)
-                .into()
+                .boxed()
         };
 
         let error = if let Some(err) = &self.vault_ui.error {
-            Element::from(text(err.clone()).size(13).color(OryxisColors::t().error))
+            text(err.clone()).size(13).color(OryxisColors::t().error).boxed()
         } else {
-            Space::new().into()
+            Space::new().boxed()
         };
 
         let destroy_section: Element<'_, Message> = if self.vault_ui.destroy_confirm {
@@ -164,7 +165,7 @@ impl Oryxis {
                 text(crate::i18n::t("vault_destroy_confirm")).size(12).color(OryxisColors::t().error),
                 Space::new().height(6),
                 styled_button(crate::i18n::t("destroy_vault"), Message::Vault(VaultMessage::VaultDestroy), OryxisColors::t().error),
-            ].align_x(iced::Alignment::Center).into()
+            ].align_x(iced::Alignment::Center).boxed()
         } else {
             button(
                 text(crate::i18n::t("forgot_password")).size(12).color(OryxisColors::t().text_muted),
@@ -172,7 +173,7 @@ impl Oryxis {
             .on_press(Message::Vault(VaultMessage::VaultDestroyConfirm))
             .padding(Padding { top: 6.0, right: 12.0, bottom: 6.0, left: 12.0 })
             .style(|_, _| button::Style::default())
-            .into()
+            .boxed()
         };
 
         // The unlock form sits on a gradient card centered on an
@@ -218,7 +219,7 @@ impl Oryxis {
             })
             .width(Length::Fill)
             .height(Length::Fill)
-            .into();
+            .boxed();
         with_chrome(body, self.cur_maximized())
     }
 
@@ -234,7 +235,7 @@ impl Oryxis {
         })
         .width(Length::Fill)
         .height(Length::Fill)
-        .into();
+        .boxed();
         with_chrome(body, self.cur_maximized())
     }
 

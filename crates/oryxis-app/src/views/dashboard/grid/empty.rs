@@ -46,15 +46,15 @@ impl Oryxis {
                     border: Border { radius: Radius::from(12.0), ..Default::default() },
                     ..Default::default()
                 })
-                .into(),
-            Space::new().height(20).into(),
+                .boxed(),
+            Space::new().height(20).boxed(),
             text(crate::i18n::t("create_host_title"))
                 .size(20)
                 .color(OryxisColors::t().text_primary)
-                .into(),
-            Space::new().height(8).into(),
-            text(crate::i18n::t("create_host_desc")).size(13).color(OryxisColors::t().text_muted).into(),
-            Space::new().height(24).into(),
+                .boxed(),
+            Space::new().height(8).boxed(),
+            text(crate::i18n::t("create_host_desc")).size(13).color(OryxisColors::t().text_muted).boxed(),
+            Space::new().height(24).boxed(),
             // Hostname input. Enter on its keyboard row focuses it (the
             // id), typing then submits with the same Enter.
             self.content_action_slot(
@@ -80,9 +80,9 @@ impl Oryxis {
                     .width(BLOCK_WIDTH)
                     .style(crate::widgets::rounded_input_style)
                     .align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
             ),
-            Space::new().height(12).into(),
+            Space::new().height(12).boxed(),
             // Continue button
             self.content_action_slot(
                 crate::keynav::RowAction::activate(Message::Navigation(NavigationMessage::QuickHostContinue)),
@@ -119,7 +119,7 @@ impl Oryxis {
                         ..Default::default()
                     }
                 })
-                .into(),
+                .boxed(),
             ),
         ];
 
@@ -129,22 +129,22 @@ impl Oryxis {
         // the first-run user has no reason to click.
         let actions = self.add_host_actions();
         if !actions.is_empty() {
-            items.push(Space::new().height(24).into());
+            items.push(Space::new().height(24).boxed());
             items.push(crate::views::add_actions::or_divider(BLOCK_WIDTH));
-            items.push(Space::new().height(16).into());
+            items.push(Space::new().height(16).boxed());
             for action in actions {
                 items.push(self.content_action_slot(
                     crate::keynav::RowAction::activate(action.msg.clone()),
                     8.0,
                     crate::views::add_actions::secondary_action_button(action, BLOCK_WIDTH),
                 ));
-                items.push(Space::new().height(8).into());
+                items.push(Space::new().height(8).boxed());
             }
         }
 
         let empty_state = container(column(items).align_x(iced::Alignment::Center)).center(Length::Fill);
 
-        column![empty_state].width(Length::Fill).height(Length::Fill).into()
+        column![empty_state].width(Length::Fill).height(Length::Fill).boxed()
     }
 }
 

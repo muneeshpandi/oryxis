@@ -3,6 +3,7 @@
 pub(crate) use iced::border::Radius;
 pub(crate) use iced::widget::button::Status as BtnStatus;
 pub(crate) use iced::widget::{button, container, scrollable, text, text_input, MouseArea, Space};
+use iced::Widget as _;
 use iced::widget::{column, row};
 pub(crate) use iced::{Background, Border, Color, Element, Length, Padding};
 
@@ -57,7 +58,7 @@ impl Oryxis {
         )
         .on_press(Message::Sftp(SftpMessage::SftpSplitResizeStart))
         .interaction(iced::mouse::Interaction::ResizingHorizontally)
-        .into();
+        .boxed();
         let left_portion = (self.sftp_chrome.split_ratio * 1000.0).round().clamp(1.0, 999.0) as u16;
         let right_portion = 1000u16.saturating_sub(left_portion).max(1);
         let panes = row![
@@ -99,7 +100,7 @@ impl Oryxis {
             if self.cur_sftp().transfer.panel_open {
                 panes_area = panes_area.push(transfer_file_panel(transfer, &self.cur_sftp().transfer.done_log));
             }
-            panes_area = panes_area.push(strip);
+            panes_area = panes_area.push(strip.boxed());
         }
 
         // Footer: the optional message-log panel (FileZilla-style) above a
@@ -113,7 +114,7 @@ impl Oryxis {
             body_col = body_col.push(sftp_log_panel(&self.cur_sftp().log, self.cur_sftp().log_height));
         }
         body_col = body_col.push(sftp_log_bar(self.cur_sftp().log_open, self.cur_sftp().log.len()));
-        let body: Element<'_, Message> = body_col.into();
+        let body: Element<'_, Message> = body_col.boxed();
 
         // Pane-anchored popovers (the `⋮` actions menu and the collapsed
         // filter input) are layered here, at the whole-view level, rather than
@@ -163,11 +164,11 @@ impl Oryxis {
         // scrollables' internal offset — the "opening a menu resets the other
         // pane's scroll" bug. Base stays at Stack index 0 either way.
         let Some((side, kind)) = open else {
-            return iced::widget::Stack::new()
+            return iced::widget::Stack::<iced::Element<'_, _>>::new()
                 .push(base)
                 .width(Length::Fill)
                 .height(Length::Fill)
-                .into();
+                .boxed();
         };
         let pane = self.cur_sftp().pane(side);
 
@@ -191,11 +192,11 @@ impl Oryxis {
                 SftpPaneSide::Right => content_w - left_w,
             };
             if (pane_w - 6.0).max(1.0) >= 430.0 {
-                return iced::widget::Stack::new()
+                return iced::widget::Stack::<iced::Element<'_, _>>::new()
                     .push(base)
                     .width(Length::Fill)
                     .height(Length::Fill)
-                    .into();
+                    .boxed();
             }
         }
 
@@ -220,19 +221,18 @@ impl Oryxis {
             container(Space::new()).width(Length::Fill).height(Length::Fill),
         )
         .on_press(Message::Sftp(SftpMessage::SftpCloseMenus))
-        .into();
+        .boxed();
         let positioned: Element<'a, Message> = column![
             Space::new().height(Length::Fixed(y)),
             row![Space::new().width(Length::Fixed(x)), card],
-        ]
-        .into();
-        iced::widget::Stack::new()
+        ].boxed();
+        iced::widget::Stack::<iced::Element<'_, _>>::new()
             .push(base)
             .push(scrim)
             .push(positioned)
             .width(Length::Fill)
             .height(Length::Fill)
-            .into()
+            .boxed()
     }
 
     /// Layer a floating ghost of the column header being reordered over
@@ -248,11 +248,11 @@ impl Oryxis {
         // scroll offset. Base stays at Stack index 0 whether or not a drag is
         // live.
         let Some(drag) = self.sftp_chrome.col_drag.filter(|d| d.active) else {
-            return iced::widget::Stack::new()
+            return iced::widget::Stack::<iced::Element<'_, _>>::new()
                 .push(base)
                 .width(Length::Fill)
                 .height(Length::Fill)
-                .into();
+                .boxed();
         };
         let ghost = col_drag_ghost(data_col_label(drag.col));
         // Cursor → view-local coordinates: x is offset by the nav rail (0 on
@@ -270,14 +270,13 @@ impl Oryxis {
         let positioned: Element<'a, Message> = column![
             Space::new().height(Length::Fixed(gy)),
             row![Space::new().width(Length::Fixed(gx)), ghost],
-        ]
-        .into();
-        iced::widget::Stack::new()
+        ].boxed();
+        iced::widget::Stack::<iced::Element<'_, _>>::new()
             .push(base)
             .push(positioned)
             .width(Length::Fill)
             .height(Length::Fill)
-            .into()
+            .boxed()
     }
 
     /// Layer the active SFTP modal over `base` (the whole composed app), so
@@ -326,12 +325,12 @@ impl Oryxis {
         // the top the moment one opened (same rule as `layer_modals` and
         // `modal_overlay_opt`).
         let Some(modal) = modal else {
-            return iced::widget::Stack::new()
+            return iced::widget::Stack::<iced::Element<'_, _>>::new()
                 .push(base)
-                .push(Space::new())
+                .push(Space::new().boxed())
                 .width(Length::Fill)
                 .height(Length::Fill)
-                .into();
+                .boxed();
         };
         // Full-window scrim, NO top reserve: a modal must block everything
         // behind it, including the tab bar. If the top chrome stayed
@@ -342,12 +341,12 @@ impl Oryxis {
         // click / Cancel) the only way forward, which is the point of a
         // blocking modal. `opaque` swallows scroll/motion too, not just
         // clicks, so nothing bleeds through to the panes behind.
-        iced::widget::Stack::new()
+        iced::widget::Stack::<iced::Element<'_, _>>::new()
             .push(base)
-            .push(iced::widget::opaque(modal))
+            .push(iced::widget::opaque(modal).boxed())
             .width(Length::Fill)
             .height(Length::Fill)
-            .into()
+            .boxed()
     }
 
     /// Render one pane (Left or Right). Branches on the pane's
@@ -446,7 +445,7 @@ impl Oryxis {
                 border: Border { radius: Radius::from(4.0), ..Default::default() },
                 ..Default::default()
             })
-            .into()
+            .boxed()
         } else {
             let mounted_conn = pane.host_label.as_ref().and_then(|label| {
                 self.connections.iter().find(|c| &c.label == label)
@@ -464,7 +463,7 @@ impl Oryxis {
                         border: Border { radius: Radius::from(4.0), ..Default::default() },
                         ..Default::default()
                     })
-                    .into()
+                    .boxed()
             } else {
                 container(
                     iced_fonts::lucide::server()
@@ -473,7 +472,7 @@ impl Oryxis {
                 )
                 .center_x(Length::Fixed(20.0))
                 .center_y(Length::Fixed(20.0))
-                .into()
+                .boxed()
             }
         };
         let chip_label = if !is_remote {
@@ -497,11 +496,11 @@ impl Oryxis {
                 .wrapping(iced::widget::text::Wrapping::None),
         ]
         .align_y(iced::Alignment::Center);
-        chip_row = chip_row.push(Space::new().width(8));
+        chip_row = chip_row.push(Space::new().width(8).boxed());
         chip_row = chip_row.push(
             iced_fonts::lucide::chevron_down()
                 .size(10)
-                .color(OryxisColors::t().text_muted),
+                .color(OryxisColors::t().text_muted).boxed(),
         );
         let header_title: Element<'_, Message> = button(chip_row)
             .padding(Padding { top: 4.0, right: 8.0, bottom: 4.0, left: 4.0 })
@@ -518,7 +517,7 @@ impl Oryxis {
                     ..Default::default()
                 }
             })
-            .into();
+            .boxed();
 
         let actions_btn: Element<'_, Message> = pane_actions_btn(Message::Sftp(SftpMessage::SftpToggleActions(side)));
 
@@ -547,7 +546,7 @@ impl Oryxis {
                     ..Default::default()
                 }
             })
-            .into()
+            .boxed()
         } else {
             // Sized to match the system-standard search field (size 13 +
             // 9/12 padding, see `layout.rs` sub-nav search).
@@ -561,7 +560,7 @@ impl Oryxis {
             if is_remote {
                 filter_input = filter_input.id(iced::widget::Id::new("search-sftp-remote"));
             }
-            filter_input.into()
+            filter_input.boxed()
         };
 
         // Wide pane: natural-width chip + a Fill spacer pushes filter/kebab to
@@ -569,9 +568,9 @@ impl Oryxis {
         // so a fixed gap is enough. Either way filter + kebab stay fixed and
         // never get clipped.
         let lead_spacer: Element<'_, Message> = if compact {
-            Space::new().width(8).into()
+            Space::new().width(8).boxed()
         } else {
-            Space::new().width(Length::Fill).into()
+            Space::new().width(Length::Fill).boxed()
         };
         let toolbar = row![
             header_title,
@@ -600,7 +599,7 @@ impl Oryxis {
                 .size(11)
                 .style(crate::widgets::rounded_input_style)
                 .align_x(dir_align_x())
-                .into()
+                .boxed()
         } else {
             let crumbs: Element<'_, Message> = if let Some(zip) = &pane.zip {
                 // Zip-browse mode: parent dir + accent archive chip +
@@ -613,7 +612,7 @@ impl Oryxis {
             };
             MouseArea::new(container(crumbs).width(Length::Fill))
                 .on_press(Message::Sftp(SftpMessage::SftpStartEditPath(side)))
-                .into()
+                .boxed()
         };
 
         // Combo-box arrow: only once this pane has somewhere to go back
@@ -622,12 +621,12 @@ impl Oryxis {
             path_inner
         } else {
             crate::widgets::dir_row(vec![
-                container(path_inner).width(Length::Fill).into(),
-                Space::new().width(4).into(),
+                container(path_inner).width(Length::Fill).boxed(),
+                Space::new().width(4).boxed(),
                 path_history_button(side, pane.path_history_open),
             ])
             .align_y(iced::Alignment::Center)
-            .into()
+            .boxed()
         };
 
         let needle = pane.filter.to_lowercase();
@@ -657,7 +656,7 @@ impl Oryxis {
                     .align_y(iced::Alignment::Center),
                 )
                 .padding(Padding { top: 0.0, right: 14.0, bottom: 6.0, left: 14.0 })
-                .width(Length::Fill),
+                .width(Length::Fill).boxed(),
             );
         }
         if !layout.overflow {
@@ -702,7 +701,7 @@ impl Oryxis {
                 // the error stands in for the entries we couldn't list.
                 col = col.push(
                     container(text(err.clone()).size(12).color(OryxisColors::t().error))
-                        .padding(12),
+                        .padding(12).boxed(),
                 );
             } else {
                 // Per-pane invariants hoisted out of the entry loop:
@@ -831,7 +830,7 @@ impl Oryxis {
                 ]
                 .padding(16),
             )
-            .into()
+            .boxed()
         } else if pane.remote_loading && pane.remote_entries.is_empty() {
             // Only take over the pane with a loading screen on the first
             // load (nothing to show yet). On navigation/refresh we keep the
@@ -849,7 +848,7 @@ impl Oryxis {
                 ]
                 .padding(12),
             )
-            .into()
+            .boxed()
         } else if pane.host_label.is_none() {
             // Empty remote pane: a centered prompt with a button that opens
             // the host picker, instead of a lone line of muted text in the
@@ -877,7 +876,7 @@ impl Oryxis {
             .height(Length::Fill)
             .center_x(Length::Fill)
             .center_y(Length::Fill)
-            .into()
+            .boxed()
         } else {
             let mut col = column![].spacing(0);
             if pane.remote_path != "/" && !pane.remote_path.is_empty() {
@@ -1001,7 +1000,7 @@ impl Oryxis {
         let body: Element<'_, Message> = if browsable {
             MouseArea::new(body)
                 .on_right_press(Message::Sftp(SftpMessage::SftpBackgroundRightClick(side)))
-                .into()
+                .boxed()
         } else {
             body
         };
@@ -1014,7 +1013,7 @@ impl Oryxis {
             column![header_band, body]
                 .width(Length::Fill)
                 .height(Length::Fill)
-                .into()
+                .boxed()
         } else {
             body
         };
@@ -1022,7 +1021,7 @@ impl Oryxis {
         // pushed here: they're layered at the `view_sftp` level with a
         // full-window scrim so a click anywhere (including the other pane)
         // dismisses them. The drives picker (Windows-only) stays pane-local.
-        let mut stack = iced::widget::Stack::new()
+        let mut stack = iced::widget::Stack::<iced::Element<'_, _>>::new()
             .push(pane_body)
             .width(Length::Fill)
             .height(Length::Fill);
@@ -1055,9 +1054,9 @@ impl Oryxis {
                     },
                     ..Default::default()
                 });
-            stack = stack.push(outline);
+            stack = stack.push(outline.boxed());
         }
-        stack.into()
+        stack.boxed()
     }
 
     fn view_sftp_picker(&self) -> Element<'_, Message> {
@@ -1077,7 +1076,7 @@ impl Oryxis {
             .map(|(i, _)| i)
             .collect();
 
-        let mut list = column![].spacing(4);
+        let mut list = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(4);
         // The left pane can be Local; the right pane can't. Offer a
         // "Local" entry at the top of the list only when picking for the
         // left pane.
@@ -1096,15 +1095,15 @@ impl Oryxis {
                 });
                 let local_btn = button(
                     crate::widgets::dir_row(vec![
-                        badge.into(),
-                        Space::new().width(10).into(),
+                        badge.boxed(),
+                        Space::new().width(10).boxed(),
                         column![
                             text(t("sftp_local")).size(13).color(OryxisColors::t().text_primary),
                             text(t("sftp_local_machine")).size(10).color(OryxisColors::t().text_muted),
                         ]
                         .width(Length::Fill)
                         .align_x(dir_align_x())
-                        .into(),
+                        .boxed(),
                     ])
                     .align_y(iced::Alignment::Center),
                 )
@@ -1122,7 +1121,7 @@ impl Oryxis {
                         ..Default::default()
                     }
                 });
-                list = list.push(local_btn);
+                list = list.push(local_btn.boxed());
             }
         }
         for ci in matches {
@@ -1165,14 +1164,14 @@ impl Oryxis {
             let row_btn = button(
                 crate::widgets::dir_row(vec![
                     badge,
-                    Space::new().width(10).into(),
+                    Space::new().width(10).boxed(),
                     column![
                         text(conn.label.clone()).size(13).color(OryxisColors::t().text_primary),
                         text(status_text).size(10).color(status_color),
                     ]
                     .width(Length::Fill)
                     .align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
                 ])
                 .align_y(iced::Alignment::Center),
             )
@@ -1190,14 +1189,14 @@ impl Oryxis {
                     ..Default::default()
                 }
             });
-            list = list.push(row_btn);
+            list = list.push(row_btn.boxed());
         }
 
         let dialog = container(
             column![
                 crate::widgets::dir_row(vec![
-                    text(t("select_a_host")).size(15).color(OryxisColors::t().text_primary).into(),
-                    Space::new().width(Length::Fill).into(),
+                    text(t("select_a_host")).size(15).color(OryxisColors::t().text_primary).boxed(),
+                    Space::new().width(Length::Fill).boxed(),
                     button(
                         iced_fonts::lucide::x()
                             .size(13)
@@ -1216,7 +1215,7 @@ impl Oryxis {
                             ..Default::default()
                         }
                     })
-                    .into(),
+                    .boxed(),
                 ])
                 .align_y(iced::Alignment::Center)
                 .width(Length::Fill),
@@ -1232,7 +1231,7 @@ impl Oryxis {
             .width(Length::Fixed(440.0))
             .align_x(dir_align_x()),
         )
-        .style(|_| container::Style {
+        .style(|_: &iced::Theme| container::Style {
             background: Some(Background::Color(OryxisColors::t().bg_surface)),
             border: Border {
                 radius: Radius::from(12.0),
@@ -1258,22 +1257,22 @@ impl Oryxis {
                     }),
             )
             .on_press(Message::Sftp(SftpMessage::SftpClosePicker)),
-        );
+        ).boxed();
 
         // Wrap the dialog in a MouseArea that swallows clicks via
         // `NoOp`, otherwise events fall through the Stack to the scrim
         // underneath and the picker closes on every click inside it.
-        let centered = container(MouseArea::new(dialog).on_press(Message::NoOp))
+        let centered = container::<_, iced::Theme>(MouseArea::new(dialog).on_press(Message::NoOp))
             .width(Length::Fill)
             .height(Length::Fill)
             .center_x(Length::Fill)
             .center_y(Length::Fill);
 
-        iced::widget::Stack::new()
+        iced::widget::Stack::<iced::Element<'_, _>>::new()
             .push(scrim)
-            .push(centered)
+            .push(centered.boxed())
             .width(Length::Fill)
             .height(Length::Fill)
-            .into()
+            .boxed()
     }
 }

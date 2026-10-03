@@ -5,6 +5,7 @@
 //! Everything here is informational, so the only keyboard row is the
 //! opt-in button shown while the host hasn't enabled monitoring.
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::{column, container, text, Space};
 use iced::{Background, Border, Element, Length, Padding};
@@ -60,7 +61,7 @@ impl Oryxis {
         iced::widget::scrollable(body)
             .id(crate::keynav::sidebar_scroll_id(crate::state::TerminalSidebarTab::Monitor))
             .height(Length::Fill)
-            .into()
+            .boxed()
     }
 
     /// The vitals body shared by the sidebar Monitor tab and the
@@ -110,7 +111,7 @@ impl Oryxis {
             }
         };
 
-        let mut body = column![].spacing(14).padding(Padding {
+        let mut body = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(14).padding(Padding {
             top: 12.0,
             right: 12.0,
             bottom: 12.0,
@@ -228,7 +229,7 @@ impl Oryxis {
                                 .size(11)
                                 .color(OryxisColors::t().text_muted),
                         )
-                        .padding(Padding { top: 2.0, right: 6.0, bottom: 6.0, left: 8.0 }),
+                        .padding(Padding { top: 2.0, right: 6.0, bottom: 6.0, left: 8.0 }).boxed(),
                     );
                 }
             }
@@ -282,11 +283,11 @@ impl Oryxis {
             body = body.push(
                 text(e.clone())
                     .size(11)
-                    .color(OryxisColors::t().warning),
+                    .color(OryxisColors::t().warning).boxed(),
             );
         }
 
-        Some(body.into())
+        Some(body.boxed())
     }
 
     /// Opt-in prompt for a host that hasn't enabled monitoring. The
@@ -315,7 +316,7 @@ impl Oryxis {
             .padding(Padding { top: 0.0, right: 14.0, bottom: 0.0, left: 14.0 }),
         ]
         .width(Length::Fill)
-        .into()
+        .boxed()
     }
 }
 
@@ -332,17 +333,17 @@ fn ports_header<'a>(count: usize, open: bool) -> Element<'a, Message> {
     };
     iced::widget::button(
         dir_row(vec![
-            chevron.size(12).color(OryxisColors::t().text_muted).into(),
-            Space::new().width(6).into(),
+            chevron.size(12).color(OryxisColors::t().text_muted).boxed(),
+            Space::new().width(6).boxed(),
             text(t("monitor_ports"))
                 .size(11)
                 .color(OryxisColors::t().text_secondary)
-                .into(),
-            Space::new().width(6).into(),
+                .boxed(),
+            Space::new().width(6).boxed(),
             text(count.to_string())
                 .size(11)
                 .color(OryxisColors::t().text_muted)
-                .into(),
+                .boxed(),
         ])
         .align_y(iced::Alignment::Center),
     )
@@ -361,7 +362,7 @@ fn ports_header<'a>(count: usize, open: bool) -> Element<'a, Message> {
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }
 
 /// "Disks (N)" disclosure row (issue #83 follow-up): clicking it
@@ -377,17 +378,17 @@ fn disks_header<'a>(count: usize, open: bool) -> Element<'a, Message> {
     };
     iced::widget::button(
         dir_row(vec![
-            chevron.size(12).color(OryxisColors::t().text_muted).into(),
-            Space::new().width(6).into(),
+            chevron.size(12).color(OryxisColors::t().text_muted).boxed(),
+            Space::new().width(6).boxed(),
             text(t("monitor_disk"))
                 .size(11)
                 .color(OryxisColors::t().text_secondary)
-                .into(),
-            Space::new().width(6).into(),
+                .boxed(),
+            Space::new().width(6).boxed(),
             text(count.to_string())
                 .size(11)
                 .color(OryxisColors::t().text_muted)
-                .into(),
+                .boxed(),
         ])
         .align_y(iced::Alignment::Center),
     )
@@ -406,7 +407,7 @@ fn disks_header<'a>(count: usize, open: bool) -> Element<'a, Message> {
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }
 
 /// One listening socket: `port/proto`, the process name when the host
@@ -433,20 +434,20 @@ fn port_row<'a>(
             .font(iced::Font::MONOSPACE)
             .color(OryxisColors::t().text_primary)
             .width(Length::Fixed(74.0))
-            .into(),
+            .boxed(),
         text(name)
             .size(11)
             .color(OryxisColors::t().text_secondary)
             .width(Length::Fill)
-            .into(),
+            .boxed(),
         // The arrow only appears where a forward is actually possible.
         if forward.is_some() {
             iced_fonts::lucide::arrow_right_left()
                 .size(11)
                 .color(OryxisColors::t().accent)
-                .into()
+                .boxed()
         } else {
-            Space::new().width(11).into()
+            Space::new().width(11).boxed()
         },
     ])
     .align_y(iced::Alignment::Center);
@@ -464,18 +465,18 @@ fn port_row<'a>(
                 .padding(padding)
                 .width(Length::Fill)
                 .style(port_row_style);
-            crate::views::terminal::icon_tooltip(btn.into(), t("monitor_forward_port"))
+            crate::views::terminal::icon_tooltip(btn.boxed(), t("monitor_forward_port"))
         }
         (None, Some(menu_msg)) => iced::widget::button(content)
             .on_press(menu_msg)
             .padding(padding)
             .width(Length::Fill)
             .style(port_row_style)
-            .into(),
-        (None, None) => container(content).padding(padding).width(Length::Fill).into(),
+            .boxed(),
+        (None, None) => container(content).padding(padding).width(Length::Fill).boxed(),
     };
     match menu {
-        Some(menu) => iced::widget::MouseArea::new(body).on_right_press(menu).into(),
+        Some(menu) => iced::widget::MouseArea::new(body).on_right_press(menu).boxed(),
         None => body,
     }
 }
@@ -503,7 +504,7 @@ fn placeholder(label: &str) -> Element<'_, Message> {
         .center_x(Length::Fill)
         .padding(Padding { top: 40.0, right: 12.0, bottom: 0.0, left: 12.0 })
         .width(Length::Fill)
-        .into()
+        .boxed()
 }
 
 /// Label + value line above a filled bar. The fill colour follows the
@@ -539,18 +540,18 @@ pub(crate) fn gauge_block<'a>(label: &str, pct: f32, value: &str) -> Element<'a,
                 .size(11)
                 .color(OryxisColors::t().text_secondary)
                 .width(Length::Fill)
-                .into(),
+                .boxed(),
             text(value.to_string())
                 .size(11)
                 .color(OryxisColors::t().text_primary)
-                .into(),
+                .boxed(),
         ])
         .align_y(iced::Alignment::Center),
         Space::new().height(4),
         bar,
     ]
     .width(Length::Fill)
-    .into()
+    .boxed()
 }
 
 /// A metric that needs a second sample before it can be reported.
@@ -560,14 +561,14 @@ fn pending_block<'a>(label: &'a str) -> Element<'a, Message> {
             .size(11)
             .color(OryxisColors::t().text_secondary)
             .width(Length::Fill)
-            .into(),
+            .boxed(),
         text(t("monitor_sampling"))
             .size(11)
             .color(OryxisColors::t().text_muted)
-            .into(),
+            .boxed(),
     ])
     .align_y(iced::Alignment::Center)
-    .into()
+    .boxed()
 }
 
 pub(crate) fn stat_row<'a>(label: &'a str, value: String) -> Element<'a, Message> {
@@ -576,15 +577,15 @@ pub(crate) fn stat_row<'a>(label: &'a str, value: String) -> Element<'a, Message
             .size(11)
             .color(OryxisColors::t().text_secondary)
             .width(Length::Fill)
-            .into(),
+            .boxed(),
         text(value)
             .size(11)
             .color(OryxisColors::t().text_primary)
             .font(iced::Font::MONOSPACE)
-            .into(),
+            .boxed(),
     ])
     .align_y(iced::Alignment::Center)
-    .into()
+    .boxed()
 }
 
 /// CPU history as a row of bars, oldest to newest. A canvas would be
@@ -607,13 +608,13 @@ pub(crate) fn sparkline<'a>(series: &[f32]) -> Element<'a, Message> {
             .height(Length::Fixed(24.0))
             .width(Length::Fill)
             .align_y(iced::alignment::Vertical::Bottom)
-            .into()
+            .boxed()
         })
         .collect();
     container(iced::widget::Row::with_children(bars).spacing(1))
         .width(Length::Fill)
         .height(Length::Fixed(24.0))
-        .into()
+        .boxed()
 }
 
 /// `fmt_bytes` without the space, for the status bar where horizontal

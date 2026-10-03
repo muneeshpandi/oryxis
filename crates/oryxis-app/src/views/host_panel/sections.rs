@@ -62,15 +62,15 @@ impl Oryxis {
         };
         let mut header_col = column![
             dir_row(vec![
-                chevron.size(14).color(OryxisColors::t().text_muted).into(),
-                Space::new().width(8).into(),
-                glyph.size(13).color(OryxisColors::t().text_secondary).into(),
-                Space::new().width(7).into(),
+                chevron.size(14).color(OryxisColors::t().text_muted).boxed(),
+                Space::new().width(8).boxed(),
+                glyph.size(13).color(OryxisColors::t().text_secondary).boxed(),
+                Space::new().width(7).boxed(),
                 text(t(section.title_key()))
                     .size(13)
                     .color(OryxisColors::t().text_secondary)
-                    .into(),
-                Space::new().width(Length::Fill).into(),
+                    .boxed(),
+                Space::new().width(Length::Fill).boxed(),
             ])
             .align_y(iced::Alignment::Center),
         ];
@@ -84,7 +84,7 @@ impl Oryxis {
                         text(summary).size(11).color(OryxisColors::t().accent),
                     )
                     // Align under the title, past the chevron + glyph.
-                    .padding(Padding { top: 4.0, right: 0.0, bottom: 0.0, left: 42.0 }),
+                    .padding(Padding { top: 4.0, right: 0.0, bottom: 0.0, left: 42.0 }).boxed(),
                 );
             }
         }
@@ -106,11 +106,11 @@ impl Oryxis {
                         ..Default::default()
                     }
                 })
-                .into(),
+                .boxed(),
         );
         let mut col = column![header];
         if open {
-            col = col.push(Space::new().height(GROUP_GAP)).push(body());
+            col = col.push(Space::new().height(GROUP_GAP).boxed()).push(body());
         }
         panel_section(col)
     }
@@ -312,12 +312,12 @@ impl Oryxis {
                 4.0,
                 button(
                     dir_row(vec![
-                        icon.size(13).color(OryxisColors::t().text_secondary).into(),
-                        Space::new().width(6).into(),
+                        icon.size(13).color(OryxisColors::t().text_secondary).boxed(),
+                        Space::new().width(6).boxed(),
                         text(t(preset.label_key()))
                             .size(12)
                             .color(OryxisColors::t().text_secondary)
-                            .into(),
+                            .boxed(),
                     ])
                     .align_y(iced::Alignment::Center),
                 )
@@ -340,7 +340,7 @@ impl Oryxis {
                         ..Default::default()
                     }
                 })
-                .into(),
+                .boxed(),
             )
         };
         container(
@@ -348,18 +348,18 @@ impl Oryxis {
                 text(t("editor_preset_heading"))
                     .size(11)
                     .color(OryxisColors::t().text_muted)
-                    .into(),
-                Space::new().width(8).into(),
+                    .boxed(),
+                Space::new().width(8).boxed(),
                 chip(self, P::BasicSsh),
-                Space::new().width(6).into(),
+                Space::new().width(6).boxed(),
                 chip(self, P::ViaBastion),
-                Space::new().width(6).into(),
+                Space::new().width(6).boxed(),
                 chip(self, P::Cloud),
             ])
             .align_y(iced::Alignment::Center),
         )
         .padding(Padding { top: 0.0, right: 16.0, bottom: 10.0, left: 16.0 })
-        .into()
+        .boxed()
     }
 }
 

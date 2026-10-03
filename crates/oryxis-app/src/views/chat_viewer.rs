@@ -6,6 +6,7 @@
 //! no way to send another message, exactly as a recording is re-watched
 //! rather than re-entered.
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::button::Status as BtnStatus;
 use iced::widget::{button, column, container, scrollable, text, Space};
@@ -23,13 +24,13 @@ impl Oryxis {
             iced_fonts::lucide::bot()
                 .size(14)
                 .color(theme.accent)
-                .into(),
-            Space::new().width(8).into(),
+                .boxed(),
+            Space::new().width(8).boxed(),
             text(viewer.label.clone())
                 .size(13)
                 .color(theme.text_primary)
-                .into(),
-            Space::new().width(8).into(),
+                .boxed(),
+            Space::new().width(8).boxed(),
             text(format!(
                 "{} {}",
                 viewer.messages.len(),
@@ -37,13 +38,13 @@ impl Oryxis {
             ))
             .size(11)
             .color(theme.text_muted)
-            .into(),
-            Space::new().width(Length::Fill).into(),
+            .boxed(),
+            Space::new().width(Length::Fill).boxed(),
             close_button(),
         ])
         .align_y(iced::Alignment::Center);
 
-        let mut turns = column![].spacing(10);
+        let mut turns = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(10);
         for msg in &viewer.messages {
             turns = turns.push(turn_view(msg));
         }
@@ -75,7 +76,7 @@ impl Oryxis {
             background: Some(Background::Color(OryxisColors::t().bg_surface)),
             ..Default::default()
         })
-        .into()
+        .boxed()
     }
 }
 
@@ -99,7 +100,7 @@ fn turn_view<'a>(msg: &'a oryxis_vault::ChatMessageEntry) -> Element<'a, Message
         Space::new().height(3),
     ];
     if !msg.content.is_empty() {
-        col = col.push(text(msg.content.clone()).size(12).color(theme.text_primary));
+        col = col.push(text(msg.content.clone()).size(12).color(theme.text_primary).boxed());
     }
 
     // The tool exchange was stored as JSON so the reader can lay it out the
@@ -109,7 +110,7 @@ fn turn_view<'a>(msg: &'a oryxis_vault::ChatMessageEntry) -> Element<'a, Message
         && let Some(output) = v["output"].as_str()
         && !output.is_empty()
     {
-        col = col.push(Space::new().height(4));
+        col = col.push(Space::new().height(4).boxed());
         col = col.push(
             container(text(output.to_string()).size(11).color(theme.text_secondary))
                 .padding(8)
@@ -121,11 +122,11 @@ fn turn_view<'a>(msg: &'a oryxis_vault::ChatMessageEntry) -> Element<'a, Message
                         ..Default::default()
                     },
                     ..Default::default()
-                }),
+                }).boxed(),
         );
     }
 
-    container(col).width(Length::Fill).into()
+    container(col).width(Length::Fill).boxed()
 }
 
 fn close_button<'a>() -> Element<'a, Message> {
@@ -166,5 +167,5 @@ fn close_button<'a>() -> Element<'a, Message> {
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }

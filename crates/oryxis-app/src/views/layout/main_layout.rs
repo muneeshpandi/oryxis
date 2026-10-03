@@ -52,7 +52,7 @@ impl Oryxis {
         // the titlebar contract moves into the strip's header row.
         let side_hidden_bar = self.top_bar_hidden();
         let tab_bar: Element<'_, Message> = if immersive || side_hidden_bar {
-            Space::new().into()
+            Space::new().boxed()
         } else if bottom_tabs || side_tabs {
             self.view_top_chrome_bar()
         } else {
@@ -91,7 +91,7 @@ impl Oryxis {
             None => (1.0_f32, OryxisColors::t().border),
         };
         let h_separator: Element<'_, Message> = if immersive {
-            Space::new().into()
+            Space::new().boxed()
         } else {
             container(Space::new().height(hair_height))
                 .width(Length::Fill)
@@ -116,7 +116,7 @@ impl Oryxis {
                         ..Default::default()
                     }
                 })
-                .into()
+                .boxed()
         };
         // Vault contextual nav: shown only when the Home area is active.
         // On Sftp / Settings / a connection tab it's hidden.
@@ -130,7 +130,7 @@ impl Oryxis {
         let sub_nav: Element<'_, Message> = if in_vault_area && !vertical_rail {
             self.view_vault_sub_nav()
         } else {
-            Space::new().into()
+            Space::new().boxed()
         };
         // Vertical icon rail on the leading edge of the content.
         let nav_rail: Option<Element<'_, Message>> = if in_vault_area && vertical_rail {
@@ -153,12 +153,12 @@ impl Oryxis {
                     .padding(Padding { top: 8.0, right: 0.0, bottom: 0.0, left: 0.0 })
                     .width(Length::Fill)
                     .height(Length::Fill);
-                dir_row(vec![rail, content.into()]).height(Length::Fill).into()
+                dir_row(vec![rail, content.boxed()]).height(Length::Fill).boxed()
             }
-            None => column![sub_nav, content].height(Length::Fill).into(),
+            None => column![sub_nav, content].height(Length::Fill).boxed(),
         };
         let body: Element<'_, Message> = match self.active_side_panel() {
-            Some(panel) => dir_row(vec![inner, panel]).height(Length::Fill).into(),
+            Some(panel) => dir_row(vec![inner, panel]).height(Length::Fill).boxed(),
             None => inner,
         };
         // ── Constant-shape chrome tree ──
@@ -179,7 +179,7 @@ impl Oryxis {
         // first stateful widget inside, a scrollable, silently loses its
         // offset). A Shrink Space passes the void filter and still lays
         // out at zero pixels.
-        let empty = || -> Element<'_, Message> { Space::new().into() };
+        let empty = || -> Element<'_, Message> { Space::new().boxed() };
         let chrome_sep = || -> Element<'_, Message> {
             // Neutral 1 px separator under the slim chrome bar of the
             // docked layouts, so it still reads as a titlebar.
@@ -189,7 +189,7 @@ impl Oryxis {
                     background: Some(Background::Color(OryxisColors::t().border)),
                     ..Default::default()
                 })
-                .into()
+                .boxed()
         };
         let mut slot_top: Element<'_, Message> = empty();
         let mut slot_top_sep: Element<'_, Message> = empty();
@@ -231,7 +231,7 @@ impl Oryxis {
                             }),
                             ..Default::default()
                         })
-                        .into();
+                        .boxed();
                 let strip = self.view_side_tab_strip();
                 if tab_pos == crate::views::tab_bar::TabBarPos::Left {
                     slot_left = strip;
@@ -268,7 +268,7 @@ impl Oryxis {
             iced::widget::Column::with_children(vec![body, slot_inner_status])
                 .width(Length::Fill)
                 .height(Length::Fill)
-                .into();
+                .boxed();
         let middle: Element<'_, Message> = iced::widget::Row::with_children(vec![
             slot_left,
             slot_left_sep,
@@ -277,7 +277,7 @@ impl Oryxis {
             slot_right,
         ])
         .height(Length::Fill)
-        .into();
+        .boxed();
         let layout = column![
             slot_top,
             slot_top_sep,
@@ -306,7 +306,7 @@ impl Oryxis {
                 background: backdrop,
                 ..Default::default()
             })
-            .into();
+            .boxed();
         base
     }
 
@@ -325,11 +325,11 @@ impl Oryxis {
         // this function, so the content keeps its position.
         if !self.floats_here() {
             return wrap_with_resize(
-                Stack::new()
+                Stack::<iced::Element<'_, _>>::new()
                     .push(base)
                     .width(Length::Fill)
                     .height(Length::Fill)
-                    .into(),
+                    .boxed(),
                 resize_overlay,
             );
         }
@@ -339,12 +339,12 @@ impl Oryxis {
         // state with no modal to resolve it.
         if self.pending_sftp_close.is_some() {
             return wrap_with_resize(
-                Stack::new()
+                Stack::<iced::Element<'_, _>>::new()
                     .push(base)
-                    .push(iced::widget::opaque(crate::views::sftp::close_guard_modal()))
+                    .push(iced::widget::opaque(crate::views::sftp::close_guard_modal()).boxed())
                     .width(Length::Fill)
                     .height(Length::Fill)
-                    .into(),
+                    .boxed(),
                 resize_overlay,
             );
         }
@@ -356,12 +356,12 @@ impl Oryxis {
         if self.panels.burger_menu {
             let menu = self.view_burger_menu();
             return wrap_with_resize(
-                Stack::new()
+                Stack::<iced::Element<'_, _>>::new()
                     .push(base)
                     .push(menu)
                     .width(Length::Fill)
                     .height(Length::Fill)
-                    .into(),
+                    .boxed(),
                 resize_overlay,
             );
         }
@@ -371,12 +371,12 @@ impl Oryxis {
         if self.panels.subnav_overflow {
             let menu = self.view_subnav_overflow_menu();
             return wrap_with_resize(
-                Stack::new()
+                Stack::<iced::Element<'_, _>>::new()
                     .push(base)
                     .push(menu)
                     .width(Length::Fill)
                     .height(Length::Fill)
-                    .into(),
+                    .boxed(),
                 resize_overlay,
             );
         }
@@ -685,12 +685,12 @@ impl Oryxis {
         if self.panels.icon_picker {
             let picker = self.view_icon_picker();
             return wrap_with_resize(
-                Stack::new()
+                Stack::<iced::Element<'_, _>>::new()
                     .push(base)
                     .push(picker)
                     .width(Length::Fill)
                     .height(Length::Fill)
-                    .into(),
+                    .boxed(),
                 resize_overlay,
             );
         }
@@ -752,12 +752,12 @@ impl Oryxis {
         if self.theme_ui.editor.is_some() {
             let editor = self.view_theme_editor_modal();
             return wrap_with_resize(
-                Stack::new()
+                Stack::<iced::Element<'_, _>>::new()
                     .push(base)
                     .push(editor)
                     .width(Length::Fill)
                     .height(Length::Fill)
-                    .into(),
+                    .boxed(),
                 resize_overlay,
             );
         }
@@ -801,12 +801,12 @@ impl Oryxis {
         if self.ui_theme_editor.is_some() {
             let editor = self.view_ui_theme_editor_modal();
             return wrap_with_resize(
-                Stack::new()
+                Stack::<iced::Element<'_, _>>::new()
                     .push(base)
                     .push(editor)
                     .width(Length::Fill)
                     .height(Length::Fill)
-                    .into(),
+                    .boxed(),
                 resize_overlay,
             );
         }
@@ -909,11 +909,11 @@ impl Oryxis {
         // every scrollable inside it (host list, editor form, ...) would
         // reset to the top. Keeping the depth constant preserves them.
         wrap_with_resize(
-            Stack::new()
+            Stack::<iced::Element<'_, _>>::new()
                 .push(base)
                 .width(Length::Fill)
                 .height(Length::Fill)
-                .into(),
+                .boxed(),
             resize_overlay,
         )
     }
@@ -932,7 +932,7 @@ impl Oryxis {
         const HINT_BANNER_HEIGHT: f32 = 32.0;
         let in_top_zone = self.cur_mouse().y < TOP_HOVER_ZONE;
 
-        let mut layers = Stack::new()
+        let mut layers = Stack::<iced::Element<'_, _>>::new()
             .push(content)
             .width(Length::Fill)
             .height(Length::Fill);
@@ -963,7 +963,7 @@ impl Oryxis {
             ]
             .width(Length::Fill)
             .height(Length::Fill);
-            layers = layers.push(centered);
+            layers = layers.push(centered.boxed());
         }
 
         if in_top_zone {
@@ -1011,9 +1011,9 @@ impl Oryxis {
             ]
             .width(Length::Fill)
             .height(Length::Fill);
-            layers = layers.push(positioned);
+            layers = layers.push(positioned.boxed());
         }
 
-        layers.into()
+        layers.boxed()
     }
 }

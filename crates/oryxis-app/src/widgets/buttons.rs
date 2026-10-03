@@ -1,5 +1,6 @@
 //! UI helper widgets: buttons. Split out of widgets/mod.rs.
 
+use iced::Widget as _;
 use super::*;
 /// Wide call-to-action button, Semibold label, theme-defined
 /// `button_bg` / `button_text` pair, fixed 380-wide / 8 px radius.
@@ -34,7 +35,7 @@ pub(crate) fn cta_button<'a>(label: String, msg: Message) -> Element<'a, Message
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }
 
 /// Primary styled button, bold Inter, compact vertical padding, wide
@@ -112,7 +113,7 @@ pub(crate) fn styled_button_owned<'a>(
     if let Some(msg) = msg {
         b = b.on_press(msg);
     }
-    b.into()
+    b.boxed()
 }
 
 /// Like [`styled_button`] but with a leading icon glyph. The caller colors
@@ -134,7 +135,7 @@ pub(crate) fn styled_icon_button<'a>(
         container(
             dir_row(vec![
                 icon,
-                Space::new().width(8).into(),
+                Space::new().width(8).boxed(),
                 text(label.to_owned())
                     .size(12)
                     .font(iced::Font {
@@ -142,7 +143,7 @@ pub(crate) fn styled_icon_button<'a>(
                         ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
                     })
                     .color(fg)
-                    .into(),
+                    .boxed(),
             ])
             .align_y(iced::Alignment::Center),
         )
@@ -165,5 +166,5 @@ pub(crate) fn styled_icon_button<'a>(
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }

@@ -58,7 +58,7 @@ impl Oryxis {
                         ..Default::default()
                     }
                 })
-                .into(),
+                .boxed(),
             )
         };
 
@@ -117,7 +117,7 @@ impl Oryxis {
                         }
                     }
                 })
-                .into(),
+                .boxed(),
             );
             iced::widget::tooltip(
                 btn,
@@ -138,7 +138,7 @@ impl Oryxis {
                 }),
                 iced::widget::tooltip::Position::Top,
             )
-            .into()
+            .boxed()
         };
         let actions_row: Element<'_, Message> = if self.editor_form.editing_id.is_none() {
             let (leading, trailing) = if quick_flow {
@@ -148,9 +148,9 @@ impl Oryxis {
             } else {
                 (make_connect_btn(self), make_save_btn(self))
             };
-            dir_row(vec![leading, Space::new().width(8).into(), trailing])
+            dir_row(vec![leading, Space::new().width(8).boxed(), trailing])
                 .width(Length::Fill)
-                .into()
+                .boxed()
         } else {
             // Editing an existing host: NOTHING. Removing the Save
             // button was about removing the footer, not about replacing
@@ -163,7 +163,7 @@ impl Oryxis {
             // saves-and-closes via the fields' on_submit; Esc / X
             // flush on their way out; only a FAILED write speaks up
             // (inline error + toast).
-            Space::new().into()
+            Space::new().boxed()
         };
         actions_row
     }

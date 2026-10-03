@@ -7,6 +7,7 @@
 //! install opt-in modal (`view_plugin_install_modal`) lives here too
 //! and is layered by `root_view`.
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::button::Status as BtnStatus;
 use iced::widget::{button, column, container, scrollable, text, Space};
@@ -28,8 +29,8 @@ impl Oryxis {
             text(crate::i18n::t("features"))
                 .size(13)
                 .color(OryxisColors::t().text_primary)
-                .into(),
-            Space::new().height(8).into(),
+                .boxed(),
+            Space::new().height(8).boxed(),
             panel_section(column![
                 self.settings_nav_slot_labeled(
                     crate::i18n::t("ai_assistant"),
@@ -136,7 +137,7 @@ impl Oryxis {
                 // section, which appears while the agent is enabled.
                 self.agent_server_toggle(),
             ]),
-            Space::new().height(18).into(),
+            Space::new().height(18).boxed(),
             // Offline mode: the catalog and the binaries are not fetched,
             // by the user's own choice. Said once here, above the list,
             // rather than as a network failure on every card: the cards
@@ -149,9 +150,9 @@ impl Oryxis {
                         .color(OryxisColors::t().warning),
                 )
                 .padding(Padding { top: 0.0, right: 0.0, bottom: 14.0, left: 0.0 })
-                .into()
+                .boxed()
             } else {
-                Space::new().into()
+                Space::new().boxed()
             },
             // Plugins list header: subtitle on the leading edge; the
             // list-wide actions (one update check for every installed
@@ -162,8 +163,8 @@ impl Oryxis {
                 text(crate::i18n::t("plugins_subtitle"))
                     .size(12)
                     .color(OryxisColors::t().text_muted)
-                    .into(),
-                Space::new().width(Length::Fill).into(),
+                    .boxed(),
+                Space::new().width(Length::Fill).boxed(),
                 self.settings_nav_slot_labeled(
                     crate::i18n::t("plugin_action_check_updates"),
                     crate::keynav::RowAction::activate(Message::Plugin(PluginMessage::PluginCheckAllUpdates)),
@@ -175,7 +176,7 @@ impl Oryxis {
                         false,
                     ),
                 ),
-                Space::new().width(14).into(),
+                Space::new().width(14).boxed(),
                 self.settings_nav_slot_labeled(
                     crate::i18n::t("plugins_auto_update_global"),
                     crate::keynav::RowAction::activate(Message::Plugin(PluginMessage::PluginToggleGlobalAutoUpdate(
@@ -191,8 +192,8 @@ impl Oryxis {
             ])
             .align_y(iced::Alignment::Center)
             .width(Length::Fill)
-            .into(),
-            Space::new().height(14).into(),
+            .boxed(),
+            Space::new().height(14).boxed(),
         ];
 
         if self.plugins.is_empty() {
@@ -203,13 +204,13 @@ impl Oryxis {
                         .color(OryxisColors::t().text_muted),
                 )
                 .padding(16)
-                .into(),
+                .boxed(),
             );
         }
 
         for entry in &self.plugins {
             rows.push(plugin_card(self, entry));
-            rows.push(Space::new().height(8).into());
+            rows.push(Space::new().height(8).boxed());
         }
 
         scrollable(
@@ -226,7 +227,7 @@ impl Oryxis {
         .on_scroll(|s| Message::Settings(SettingsMessage::SectionScrolled(s.viewport.relative_offset().y)))
         .height(Length::Fill)
         .width(Length::Fill)
-        .into()
+        .boxed()
     }
 
     /// First-use install opt-in modal. Returns just the dialog;
@@ -267,12 +268,12 @@ impl Oryxis {
                 ))
                 .size(12)
                 .color(OryxisColors::t().text_secondary)
-                .into()
+                .boxed()
             }
             None if checking => text(crate::i18n::t("plugin_status_checking"))
                 .size(12)
                 .color(OryxisColors::t().text_muted)
-                .into(),
+                .boxed(),
             // Offline mode: no host was consulted, so the firewall
             // allowlist below would name hosts the user asked not to
             // reach. Decided from the switch, not from the fetch's
@@ -281,7 +282,7 @@ impl Oryxis {
             None if self.prefs.offline_mode => text(crate::i18n::t("plugin_err_offline"))
                 .size(12)
                 .color(OryxisColors::t().warning)
-                .into(),
+                .boxed(),
             // The manifest DID arrive and every version in it was
             // filtered out (min_app / protocol / platform). Nothing
             // about the network is wrong here, so this must not show
@@ -292,7 +293,7 @@ impl Oryxis {
                 text(crate::i18n::t("plugin_err_needs_update"))
                     .size(12)
                     .color(OryxisColors::t().warning)
-                    .into()
+                    .boxed()
             }
             // The fetch itself failed. A bare "unavailable" was a dead
             // end (discussion #163, a mainland-China network with
@@ -312,21 +313,21 @@ impl Oryxis {
                 // which is what made #163 undebuggable from the
                 // outside.
                 if let Some(cause) = entry.and_then(|e| e.manifest_error.as_deref()) {
-                    block = block.push(Space::new().height(6)).push(
+                    block = block.push(Space::new().height(6).boxed()).push(
                         text(format!("{}: {cause}", crate::i18n::t("plugin_err_cause")))
                             .size(11)
                             .font(iced::Font::MONOSPACE)
-                            .color(OryxisColors::t().text_muted),
+                            .color(OryxisColors::t().text_muted).boxed(),
                     );
                 }
                 block
-                    .push(Space::new().height(10))
+                    .push(Space::new().height(10).boxed())
                     .push(
                         text(crate::i18n::t("plugin_hosts_hint"))
                             .size(12)
-                            .color(OryxisColors::t().text_secondary),
+                            .color(OryxisColors::t().text_secondary).boxed(),
                     )
-                    .push(Space::new().height(4))
+                    .push(Space::new().height(4).boxed())
                     .push(
                         container(
                             text(hosts)
@@ -346,22 +347,22 @@ impl Oryxis {
                                 width: 1.0,
                             },
                             ..Default::default()
-                        }),
+                        }).boxed(),
                     )
-                    .push(Space::new().height(10))
+                    .push(Space::new().height(10).boxed())
                     .push(
                         text(crate::i18n::t("plugin_mirror_hint"))
                             .size(12)
-                            .color(OryxisColors::t().text_secondary),
+                            .color(OryxisColors::t().text_secondary).boxed(),
                     )
-                    .push(Space::new().height(8))
+                    .push(Space::new().height(8).boxed())
                     .push(dir_row(vec![pill_button(
                         crate::i18n::t("download_mirror"),
                         Some(Message::Plugin(PluginMessage::OpenMirrorSetting)),
                         OryxisColors::t().accent,
                         false,
-                    )]))
-                    .into()
+                    )]).boxed())
+                    .boxed()
             }
         };
 
@@ -376,17 +377,17 @@ impl Oryxis {
 
         // Changelog, when the manifest carried one.
         if let Some(notes) = best.and_then(|b| b.changelog.as_deref()) {
-            body = body.push(Space::new().height(12));
+            body = body.push(Space::new().height(12).boxed());
             body = body.push(
                 text(crate::i18n::t("plugin_changelog"))
                     .size(12)
-                    .color(OryxisColors::t().text_secondary),
+                    .color(OryxisColors::t().text_secondary).boxed(),
             );
-            body = body.push(Space::new().height(4));
+            body = body.push(Space::new().height(4).boxed());
             body = body.push(
                 text(notes.to_string())
                     .size(12)
-                    .color(OryxisColors::t().text_muted),
+                    .color(OryxisColors::t().text_muted).boxed(),
             );
         }
 
@@ -421,9 +422,9 @@ impl Oryxis {
 
         let footer = container(
             dir_row(vec![
-                Space::new().width(Length::Fill).into(),
+                Space::new().width(Length::Fill).boxed(),
                 cancel_btn,
-                Space::new().width(8).into(),
+                Space::new().width(8).boxed(),
                 install_btn,
             ])
             .align_y(iced::Alignment::Center),
@@ -462,7 +463,7 @@ impl Oryxis {
         .on_press(Message::NoOp);
 
         // Bare card; `widgets::modal_overlay` (the caller) centers + scrims.
-        dialog.into()
+        dialog.boxed()
     }
 
     /// The ssh-agent ENABLE toggle, shown in the Features section. Any
@@ -473,7 +474,7 @@ impl Oryxis {
     fn agent_server_toggle(&self) -> Element<'_, Message> {
         // No socket path means no listener on this platform: hide it.
         if crate::agent_server::listener_socket_display().is_none() {
-            return Space::new().into();
+            return Space::new().boxed();
         }
 
         let toggle = self.settings_nav_slot_labeled(
@@ -493,8 +494,7 @@ impl Oryxis {
                 toggle,
                 Space::new().height(6),
                 text(err.clone()).size(11).color(OryxisColors::t().error),
-            ]
-            .into();
+            ].boxed();
         }
         toggle
     }
@@ -600,21 +600,21 @@ fn plugin_card<'a>(app: &Oryxis, entry: &'a PluginUiEntry) -> Element<'a, Messag
 
     let mut row_items: Vec<Element<'_, Message>> = vec![
         brand_icon.view(16.0, brand_icon_color),
-        Space::new().width(10).into(),
+        Space::new().width(10).boxed(),
         text(&entry.display_name)
             .size(14)
             .color(OryxisColors::t().text_primary)
-            .into(),
+            .boxed(),
     ];
     if let Some(v) = version {
-        row_items.push(Space::new().width(8).into());
+        row_items.push(Space::new().width(8).boxed());
         row_items.push(
-            text(v).size(11).color(OryxisColors::t().text_secondary).into(),
+            text(v).size(11).color(OryxisColors::t().text_secondary).boxed(),
         );
     }
-    row_items.push(Space::new().width(10).into());
-    row_items.push(badge.into());
-    row_items.push(Space::new().width(Length::Fill).into());
+    row_items.push(Space::new().width(10).boxed());
+    row_items.push(badge.boxed());
+    row_items.push(Space::new().width(Length::Fill).boxed());
 
     // Primary action per status, trailing edge. Everything secondary
     // is in the kebab, so a healthy installed row carries no inline
@@ -657,7 +657,7 @@ fn plugin_card<'a>(app: &Oryxis, entry: &'a PluginUiEntry) -> Element<'a, Messag
                     false,
                 ),
             ));
-            row_items.push(Space::new().width(8).into());
+            row_items.push(Space::new().width(8).boxed());
             row_items.push(app.settings_nav_slot(
                 crate::keynav::RowAction::activate(Message::Plugin(PluginMessage::ShowPluginInstallModal(id.clone()))),
                 6.0,
@@ -685,7 +685,7 @@ fn plugin_card<'a>(app: &Oryxis, entry: &'a PluginUiEntry) -> Element<'a, Messag
         PluginUiStatus::Installed(_) | PluginUiStatus::UpdateAvailable { .. }
     ) || (matches!(entry.status, PluginUiStatus::DevBuild) && entry.cached_install);
     if has_menu {
-        row_items.push(Space::new().width(8).into());
+        row_items.push(Space::new().width(8).boxed());
         row_items.push(app.settings_nav_slot(
             crate::keynav::RowAction::activate(Message::Plugin(PluginMessage::ShowPluginMenu(id.clone()))),
             6.0,
@@ -694,7 +694,7 @@ fn plugin_card<'a>(app: &Oryxis, entry: &'a PluginUiEntry) -> Element<'a, Messag
                 true,
                 Message::Plugin(PluginMessage::ShowPluginMenu(id.clone())),
             )
-            .into(),
+            .boxed(),
         ));
     }
 
@@ -705,7 +705,7 @@ fn plugin_card<'a>(app: &Oryxis, entry: &'a PluginUiEntry) -> Element<'a, Messag
         .width(Length::Fill)
         .align_x(dir_align_x());
     if let Some((line, color)) = detail {
-        card = card.push(text(line).size(11).color(color));
+        card = card.push(text(line).size(11).color(color).boxed());
     }
 
     let styled = container(card)
@@ -729,9 +729,9 @@ fn plugin_card<'a>(app: &Oryxis, entry: &'a PluginUiEntry) -> Element<'a, Messag
         // (app-wide card convention).
         iced::widget::MouseArea::new(styled)
             .on_right_press(Message::Plugin(PluginMessage::ShowPluginMenu(id)))
-            .into()
+            .boxed()
     } else {
-        styled.into()
+        styled.boxed()
     }
 }
 
@@ -792,6 +792,6 @@ fn pill_button<'a>(
     if let Some(msg) = msg {
         b = b.on_press(msg);
     }
-    b.into()
+    b.boxed()
 }
 

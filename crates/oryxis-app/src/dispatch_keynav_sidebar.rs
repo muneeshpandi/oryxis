@@ -208,9 +208,9 @@ impl Oryxis {
     fn sidebar_nav_scroll(&self, tab: TerminalSidebarTab, idx: usize) -> Task<Message> {
         let len = self.sidebar_items_for(tab).borrow().len();
         let denom = len.saturating_sub(1).max(1);
-        iced::widget::operation::snap_to(
+        iced::widget::operation::scrollable::snap_to(
             crate::keynav::sidebar_scroll_id(tab),
-            iced::widget::operation::RelativeOffset {
+            iced::widget::operation::scrollable::RelativeOffset {
                 x: None,
                 y: Some(idx as f32 / denom as f32),
             },

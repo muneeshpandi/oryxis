@@ -891,7 +891,13 @@ impl Operation for DumpTexts {
         operate(self);
     }
 
-    fn text(&mut self, _id: Option<&Id>, bounds: Rectangle, text: &str) {
+    fn text(
+        &mut self,
+        _id: Option<&Id>,
+        bounds: Rectangle,
+        state: &mut dyn iced::advanced::widget::operation::text::Text,
+    ) {
+        let text = state.text();
         let text = text.trim();
         if !text.is_empty() {
             self.entries.push((text.to_owned(), bounds));

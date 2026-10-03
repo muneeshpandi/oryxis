@@ -2,6 +2,7 @@
 //! carries an on/off toggle that opens / tears down a dedicated PTY-less
 //! SSH session; the runtime state lives in `Oryxis::active_forwards`.
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::button::Status as BtnStatus;
 use iced::widget::{button, checkbox, column, container, pick_list, scrollable, text, text_input, MouseArea, Space};
@@ -43,12 +44,12 @@ impl Oryxis {
                         text("+").size(13).font(iced::Font {
                             weight: iced::font::Weight::Bold,
                             ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
-                        }).color(fg).into(),
-                        Space::new().width(4).into(),
+                        }).color(fg).boxed(),
+                        Space::new().width(4).boxed(),
                         text(t("port_forward_btn")).size(11).font(iced::Font {
                             weight: iced::font::Weight::Bold,
                             ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
-                        }).color(fg).into(),
+                        }).color(fg).boxed(),
                     ]).align_y(iced::Alignment::Center),
                 )
                 .center_y(Length::Fixed(24.0))
@@ -65,7 +66,7 @@ impl Oryxis {
                     border: Border { radius: Radius::from(6.0), ..Default::default() },
                     ..Default::default()
                 }
-            }).into()
+            }).boxed()
         };
         // Responsive collapse: search yields first, then folds to an icon;
         // at the narrowest the action moves into the `…` overflow menu.
@@ -96,7 +97,7 @@ impl Oryxis {
         let toolbar = container(
             dir_row(vec![
                 search_slot,
-                Space::new().width(10).into(),
+                Space::new().width(10).boxed(),
                 trailing,
             ]).align_y(iced::Alignment::Center),
         )
@@ -104,10 +105,10 @@ impl Oryxis {
         .width(Length::Fill);
 
         let status: Element<'_, Message> = if let Some(err) = &self.port_forward_form.error {
-            container(Element::from(text(err.clone()).size(12).color(OryxisColors::t().error)))
-                .padding(Padding { top: 0.0, right: 24.0, bottom: 8.0, left: 24.0 }).into()
+            container(text(err.clone()).size(12).color(OryxisColors::t().error).boxed())
+                .padding(Padding { top: 0.0, right: 24.0, bottom: 8.0, left: 24.0 }).boxed()
         } else {
-            Space::new().into()
+            Space::new().boxed()
         };
 
         if self.port_forward_rules.is_empty() {
@@ -115,7 +116,7 @@ impl Oryxis {
                 iced_fonts::lucide::route()
                     .size(32)
                     .color(OryxisColors::t().text_muted)
-                    .into(),
+                    .boxed(),
                 t("create_port_forward_title").to_string(),
                 t("create_port_forward_desc").to_string(),
                 Some((
@@ -135,7 +136,7 @@ impl Oryxis {
             let main_content = column![status, empty_state]
                 .width(Length::Fill)
                 .height(Length::Fill);
-            return main_content.into();
+            return main_content.boxed();
         }
 
         let needle = self.port_forward_search.to_lowercase();
@@ -182,7 +183,7 @@ impl Oryxis {
                 .size(14)
                 .line_height(1.0)
                 .color(Color::WHITE)
-                .into();
+                .boxed();
             let icon_style = crate::widgets::resolve_host_icon_style(
                 None,
                 &self.prefs.default_host_icon,
@@ -262,9 +263,9 @@ impl Oryxis {
                     true,
                     Message::PortForward(PortForwardMessage::ShowPortForwardMenu(idx)),
                 )
-                .into()
+                .boxed()
             } else {
-                Space::new().width(Length::Fixed(DOTS_SLOT_W)).height(Length::Fixed(22.0)).into()
+                Space::new().width(Length::Fixed(DOTS_SLOT_W)).height(Length::Fixed(22.0)).boxed()
             };
 
             let kind_badge = format!("{}  \u{00B7}  {}", rule.kind, host_label);
@@ -273,7 +274,7 @@ impl Oryxis {
                 container(
                     dir_row(vec![
                         icon_box,
-                        Space::new().width(8).into(),
+                        Space::new().width(8).boxed(),
                         column![
                             text(&rule.label)
                                 .size(13)
@@ -290,9 +291,9 @@ impl Oryxis {
                                 .size(9)
                                 .color(OryxisColors::t().text_secondary)
                                 .wrapping(iced::widget::text::Wrapping::None),
-                        ].width(Length::Fill).into(),
-                        toggle.into(),
-                        Space::new().width(4).into(),
+                        ].width(Length::Fill).boxed(),
+                        toggle.boxed(),
+                        Space::new().width(4).boxed(),
                         dots,
                     ]).align_y(iced::Alignment::Center),
                 )
@@ -318,9 +319,9 @@ impl Oryxis {
                 .on_enter(Message::PortForward(PortForwardMessage::PortForwardCardHovered(idx)))
                 .on_exit(Message::PortForward(PortForwardMessage::PortForwardCardUnhovered(idx)))
                 .on_right_press(Message::PortForward(PortForwardMessage::ShowPortForwardMenu(idx)))
-                .into();
+                .boxed();
             let card_el: Element<'_, Message> =
-                container(wrapped).width(Length::Fill).clip(true).into();
+                container(wrapped).width(Length::Fill).clip(true).boxed();
             cards.push(crate::widgets::select_ring_opt(
                 card_el,
                 10.0,
@@ -354,13 +355,13 @@ impl Oryxis {
         // Inline search in Classic mode (Workspace puts it on the sub-nav).
         // Search now lives in the toolbar (`vault_search_field`); the
         // legacy below-toolbar search bar collapses to nothing.
-        let search_bar: Element<'_, Message> = Space::new().into();
+        let search_bar: Element<'_, Message> = Space::new().boxed();
 
         // Side panel hoisted to `view_main` (active_side_panel).
         column![toolbar, search_bar, status, grid]
             .width(Length::Fill)
             .height(Length::Fill)
-            .into()
+            .boxed()
     }
 
     pub(crate) fn view_port_forward_panel<'a>(&'a self) -> Element<'a, Message> {
@@ -374,8 +375,8 @@ impl Oryxis {
 
         let panel_header = container(
             dir_row(vec![
-                text(title).size(18).color(OryxisColors::t().text_primary).into(),
-                Space::new().width(Length::Fill).into(),
+                text(title).size(18).color(OryxisColors::t().text_primary).boxed(),
+                Space::new().width(Length::Fill).boxed(),
                 button(text("\u{00D7}").size(14).color(OryxisColors::t().text_muted))
                     .on_press(Message::PortForward(PortForwardMessage::HidePortForwardPanel))
                     .padding(Padding { top: 4.0, right: 8.0, bottom: 4.0, left: 8.0 })
@@ -383,7 +384,7 @@ impl Oryxis {
                         background: Some(Background::Color(OryxisColors::t().bg_surface)),
                         border: Border { radius: Radius::from(6.0), ..Default::default() },
                         ..Default::default()
-                    }).into(),
+                    }).boxed(),
             ]).align_y(iced::Alignment::Center),
         )
         .padding(Padding { top: 20.0, right: 20.0, bottom: 16.0, left: 20.0 });
@@ -438,7 +439,7 @@ impl Oryxis {
                         .padding(10)
                         .style(crate::widgets::rounded_input_style)
                         .align_x(dir_align_x())
-                        .into(),
+                        .boxed(),
                 ),
             ]
         };
@@ -451,7 +452,7 @@ impl Oryxis {
             self.panel_nav_slot(
                 crate::keynav::RowAction::input(iced::widget::Id::new("panel-pf-kind")),
                 10.0,
-                kind_picker.into(),
+                kind_picker.boxed(),
             ),
             Space::new().height(14),
             text(t("pf_host")).size(12).color(OryxisColors::t().text_secondary),
@@ -459,7 +460,7 @@ impl Oryxis {
             self.panel_nav_slot(
                 crate::keynav::RowAction::input(iced::widget::Id::new("panel-pf-host")),
                 10.0,
-                host_picker.into(),
+                host_picker.boxed(),
             ),
             Space::new().height(14),
             label_field(t("pf_listen_host"), &self.port_forward_form.listen_host, "127.0.0.1", "panel-pf-listen-host", |v| Message::PortForward(PortForwardMessage::PfListenHostChanged(v))),
@@ -473,17 +474,17 @@ impl Oryxis {
         // Their keyboard rows record here too, only when rendered.
         if self.port_forward_form.kind.has_target() {
             form = form
-                .push(Space::new().height(14))
-                .push(label_field(t("pf_target_host"), &self.port_forward_form.target_host, "10.0.0.5", "panel-pf-target-host", |v| Message::PortForward(PortForwardMessage::PfTargetHostChanged(v))))
-                .push(Space::new().height(14))
-                .push(label_field(t("pf_target_port"), &self.port_forward_form.target_port, "5432", "panel-pf-target-port", |v| Message::PortForward(PortForwardMessage::PfTargetPortChanged(v))));
+                .push(Space::new().height(14).boxed())
+                .push(label_field(t("pf_target_host"), &self.port_forward_form.target_host, "10.0.0.5", "panel-pf-target-host", |v| Message::PortForward(PortForwardMessage::PfTargetHostChanged(v))).boxed())
+                .push(Space::new().height(14).boxed())
+                .push(label_field(t("pf_target_port"), &self.port_forward_form.target_port, "5432", "panel-pf-target-port", |v| Message::PortForward(PortForwardMessage::PfTargetPortChanged(v))).boxed());
         }
 
         // Remote bind on 0.0.0.0 needs `GatewayPorts yes` on the server.
         if self.port_forward_form.kind == ForwardKind::Remote && self.port_forward_form.listen_host.trim() == "0.0.0.0" {
             form = form
-                .push(Space::new().height(10))
-                .push(text(t("gateway_ports_hint")).size(11).color(OryxisColors::t().warning));
+                .push(Space::new().height(10).boxed())
+                .push(text(t("gateway_ports_hint")).size(11).color(OryxisColors::t().warning).boxed());
         }
 
         // A dynamic SOCKS forward is an unauthenticated proxy. Bound to a
@@ -493,12 +494,12 @@ impl Oryxis {
         let exposed = !matches!(listen, "" | "127.0.0.1" | "localhost" | "::1" | "[::1]");
         if self.port_forward_form.kind == ForwardKind::Dynamic && exposed {
             form = form
-                .push(Space::new().height(10))
-                .push(text(t("socks_open_proxy_hint")).size(11).color(OryxisColors::t().warning));
+                .push(Space::new().height(10).boxed())
+                .push(text(t("socks_open_proxy_hint")).size(11).color(OryxisColors::t().warning).boxed());
         }
 
         form = form
-            .push(Space::new().height(14))
+            .push(Space::new().height(14).boxed())
             .push(self.panel_nav_slot(
                 crate::keynav::RowAction::activate(Message::PortForward(PortForwardMessage::PfAutoStartToggled(
                     !self.port_forward_form.auto_start,
@@ -509,15 +510,15 @@ impl Oryxis {
                     .on_toggle(|v| Message::PortForward(PortForwardMessage::PfAutoStartToggled(v)))
                     .size(16)
                     .text_size(12)
-                    .into(),
+                    .boxed(),
             ));
 
         // Document the self-healing behavior so the KeePassXC-key-not-ready
         // ordering problem has an in-product answer.
         if self.port_forward_form.auto_start {
             form = form
-                .push(Space::new().height(6))
-                .push(text(t("pf_auto_start_hint")).size(11).color(OryxisColors::t().text_muted));
+                .push(Space::new().height(6).boxed())
+                .push(text(t("pf_auto_start_hint")).size(11).color(OryxisColors::t().text_muted).boxed());
         }
 
         // While editing an existing rule, Delete keeps its own
@@ -542,9 +543,9 @@ impl Oryxis {
                     border: Border { radius: Radius::from(8.0), color: OryxisColors::t().error, width: 1.0 },
                     ..Default::default()
                 })
-                .into(),
+                .boxed(),
             );
-            body = body.push(Space::new().height(20));
+            body = body.push(Space::new().height(20).boxed());
             body = body.push(del_btn);
         }
 
@@ -577,7 +578,7 @@ impl Oryxis {
             footer,
         ].height(Length::Fill);
 
-        crate::widgets::side_panel_frame(panel_content.into(), OryxisColors::t().bg_sidebar, self.panel_width)
+        crate::widgets::side_panel_frame(panel_content.boxed(), OryxisColors::t().bg_sidebar, self.panel_width)
     }
 
     /// Standalone host-key verification modal, used when a backgrounded
@@ -586,7 +587,7 @@ impl Oryxis {
     /// inline. Reuses the same `SshHostKey*` messages as the terminal flow.
     pub(crate) fn view_host_key_modal(&self) -> Element<'_, Message> {
         let Some(query) = self.pending_host_key.as_ref() else {
-            return Space::new().into();
+            return Space::new().boxed();
         };
         let is_changed = matches!(query.status, oryxis_ssh::HostKeyStatus::Changed { .. });
         let title = if is_changed { t("hk_warning_title") } else { t("hk_unknown_title") };
@@ -598,27 +599,27 @@ impl Oryxis {
         ];
         if is_changed {
             body = body
-                .push(text(t("hk_warning_desc")).size(13).color(OryxisColors::t().error))
-                .push(Space::new().height(8));
+                .push(text(t("hk_warning_desc")).size(13).color(OryxisColors::t().error).boxed())
+                .push(Space::new().height(8).boxed());
             if let oryxis_ssh::HostKeyStatus::Changed { old_fingerprint } = &query.status {
                 body = body
                     .push(
                         text(format!("{} {}", t("hk_old_fingerprint"), old_fingerprint))
                             .size(12)
-                            .color(OryxisColors::t().text_muted),
+                            .color(OryxisColors::t().text_muted).boxed(),
                     )
-                    .push(Space::new().height(8));
+                    .push(Space::new().height(8).boxed());
             }
         }
         body = body
-            .push(text(format!("{}:{}", query.hostname, query.port)).size(13).color(OryxisColors::t().text_secondary))
-            .push(Space::new().height(8))
-            .push(text(format!("{} SHA256:", query.key_type)).size(12).color(OryxisColors::t().text_secondary))
-            .push(Space::new().height(4))
-            .push(text(&query.fingerprint).size(13).color(OryxisColors::t().text_primary).font(iced::Font::MONOSPACE))
-            .push(Space::new().height(14))
-            .push(text(t("hk_add_question")).size(13).color(OryxisColors::t().text_secondary))
-            .push(Space::new().height(18));
+            .push(text(format!("{}:{}", query.hostname, query.port)).size(13).color(OryxisColors::t().text_secondary).boxed())
+            .push(Space::new().height(8).boxed())
+            .push(text(format!("{} SHA256:", query.key_type)).size(12).color(OryxisColors::t().text_secondary).boxed())
+            .push(Space::new().height(4).boxed())
+            .push(text(&query.fingerprint).size(13).color(OryxisColors::t().text_primary).font(iced::Font::MONOSPACE).boxed())
+            .push(Space::new().height(14).boxed())
+            .push(text(t("hk_add_question")).size(13).color(OryxisColors::t().text_secondary).boxed())
+            .push(Space::new().height(18).boxed());
 
         let card = container(column![body, self.host_key_buttons()].width(Length::Fill))
             .width(Length::Fixed(480.0))
@@ -630,7 +631,7 @@ impl Oryxis {
             });
 
         // Bare card; `widgets::modal_overlay` (the caller) centers + scrims.
-        card.into()
+        card.boxed()
     }
 
     /// Reject / continue once / add-and-continue, in that order, shared
@@ -704,27 +705,27 @@ impl Oryxis {
                 RowAction::activate(Message::Ssh(SshMessage::SshHostKeyReject)),
                 8.0,
                 false,
-                close_btn.into(),
+                close_btn.boxed(),
             ),
-            Space::new().width(8).into(),
+            Space::new().width(8).boxed(),
             self.modal_nav_slot(
                 RowAction::activate(Message::Ssh(SshMessage::SshHostKeyContinue)),
                 8.0,
                 false,
-                continue_btn.into(),
+                continue_btn.boxed(),
             ),
-            Space::new().width(Length::Fill).into(),
+            Space::new().width(Length::Fill).boxed(),
             // Success-filled: the ring needs the contrast colour or it
             // vanishes into the fill.
             self.modal_nav_slot(
                 RowAction::activate(Message::Ssh(SshMessage::SshHostKeyAcceptAndSave)),
                 8.0,
                 true,
-                accept_btn.into(),
+                accept_btn.boxed(),
             ),
         ])
         .align_y(iced::Alignment::Center)
-        .into()
+        .boxed()
     }
 
     /// Standalone keyboard-interactive (2FA / OTP) modal, used when a
@@ -734,7 +735,7 @@ impl Oryxis {
     /// are server strings, rendered verbatim, never translated.
     pub(crate) fn view_kbi_modal(&self) -> Element<'_, Message> {
         let Some(kbi) = self.pending_kbi_prompt.as_ref() else {
-            return Space::new().into();
+            return Space::new().boxed();
         };
         let title = if kbi.name.trim().is_empty() {
             t("kbi_title").to_string()
@@ -748,8 +749,8 @@ impl Oryxis {
         ];
         if !kbi.instructions.trim().is_empty() {
             body = body
-                .push(text(kbi.instructions.clone()).size(13).color(OryxisColors::t().text_secondary))
-                .push(Space::new().height(10));
+                .push(text(kbi.instructions.clone()).size(13).color(OryxisColors::t().text_secondary).boxed())
+                .push(Space::new().height(10).boxed());
         }
         for (i, prompt) in kbi.prompts.iter().enumerate() {
             let value = self.kbi_inputs.get(i).map(|s| s.as_str()).unwrap_or("");
@@ -765,19 +766,19 @@ impl Oryxis {
                 input = input.secure(true);
             }
             body = body
-                .push(text(prompt.prompt.clone()).size(12).color(OryxisColors::t().text_muted))
-                .push(Space::new().height(4))
-                .push(input)
-                .push(Space::new().height(12));
+                .push(text(prompt.prompt.clone()).size(12).color(OryxisColors::t().text_muted).boxed())
+                .push(Space::new().height(4).boxed())
+                .push(input.boxed())
+                .push(Space::new().height(12).boxed());
         }
         // Quick-connect prompt (split-pane connect): offer the saved
         // identities / keys as an alternative to answering by hand.
         if let Some(qid) = self.pending_kbi_quick
             && let Some(section) = self.view_quick_auth_switch(qid)
         {
-            body = body.push(section).push(Space::new().height(12));
+            body = body.push(section).push(Space::new().height(12).boxed());
         }
-        body = body.push(Space::new().height(6));
+        body = body.push(Space::new().height(6).boxed());
 
         let cancel_btn = button(
             container(text(t("cancel")).size(13).color(OryxisColors::t().text_primary))
@@ -802,9 +803,9 @@ impl Oryxis {
         });
 
         let buttons = dir_row(vec![
-            cancel_btn.into(),
-            Space::new().width(Length::Fill).into(),
-            submit_btn.into(),
+            cancel_btn.boxed(),
+            Space::new().width(Length::Fill).boxed(),
+            submit_btn.boxed(),
         ])
         .align_y(iced::Alignment::Center);
 
@@ -818,6 +819,6 @@ impl Oryxis {
             });
 
         // Bare card; `widgets::modal_overlay` (the caller) centers + scrims.
-        card.into()
+        card.boxed()
     }
 }

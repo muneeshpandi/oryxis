@@ -40,7 +40,7 @@ pub(crate) fn new_tab_btn<'a>(inline: bool) -> Element<'a, Message> {
     MouseArea::new(btn)
         .on_enter(Message::Tabs(TabsMessage::ShowSplitMenu))
         .on_exit(Message::Tabs(TabsMessage::SplitMenuLeave))
-        .into()
+        .boxed()
 }
 
 /// The reserved window-drag handle (`DRAG_SPACER_WIDTH`, issue #226):
@@ -60,7 +60,7 @@ pub(crate) fn drag_spacer<'a>() -> Element<'a, Message> {
     .on_press(Message::Tabs(TabsMessage::WindowDrag))
     .on_double_click(Message::Tabs(TabsMessage::WindowMaximizeToggle))
     .on_right_press(Message::Tabs(TabsMessage::ShowTabBarMenu))
-    .into()
+    .boxed()
 }
 
 /// Tab-jump button, opens the Termius-style "Jump to" modal listing
@@ -95,7 +95,7 @@ pub(crate) fn tab_jump_btn<'a>() -> Element<'a, Message> {
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }
 
 /// Terminal side-panel toggle, one per sidebar region (issue #102).
@@ -137,7 +137,7 @@ pub(crate) fn sidebar_btn<'a>(
     });
     // Two near-identical glyphs can sit side by side now, so each
     // names its region (icon-only controls get a tooltip).
-    crate::views::terminal::icon_tooltip(btn.into(), tip)
+    crate::views::terminal::icon_tooltip(btn.boxed(), tip)
 }
 
 /// Burger menu trigger at the leading edge of the tab bar. When the
@@ -174,7 +174,7 @@ pub(crate) fn burger_menu_btn<'a>(is_open: bool) -> Element<'a, Message> {
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }
 
 /// Minimize / maximize / close glyph button for the window chrome.
@@ -208,5 +208,5 @@ pub(crate) fn window_btn<'a>(
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }

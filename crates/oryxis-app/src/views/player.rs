@@ -6,6 +6,7 @@
 //! speed). Read-only by construction: the backend has no PTY and no
 //! input callback is wired.
 
+use iced::Widget as _;
 use std::sync::Arc;
 
 use iced::border::Radius;
@@ -59,17 +60,17 @@ impl Oryxis {
             text(title)
                 .size(16)
                 .color(OryxisColors::t().text_primary)
-                .into(),
-            Space::new().width(10).into(),
+                .boxed(),
+            Space::new().width(10).boxed(),
             text(format!("{}x{}", p.cols, p.rows))
                 .size(11)
                 .color(OryxisColors::t().text_muted)
-                .into(),
-            Space::new().width(Length::Fill).into(),
+                .boxed(),
+            Space::new().width(Length::Fill).boxed(),
         ];
         if privacy_applies {
             header_items.push(crate::widgets::privacy_reveal_btn(self.privacy.revealed));
-            header_items.push(Space::new().width(8).into());
+            header_items.push(Space::new().width(8).boxed());
         }
         // Recording actions, mirroring the static viewer's header: a
         // "View log" button back to the log-only surface plus the same
@@ -81,11 +82,11 @@ impl Oryxis {
                 iced_fonts::lucide::file_text()
                     .size(11)
                     .color(OryxisColors::t().text_secondary)
-                    .into(),
+                    .boxed(),
                 Some(crate::i18n::t("player_view_log")),
                 Message::History(HistoryMessage::ViewSessionLog(p.log_id)),
             ));
-            header_items.push(Space::new().width(8).into());
+            header_items.push(Space::new().width(8).boxed());
             let menu_open = matches!(
                 self.overlay.as_ref().map(|o| &o.content),
                 Some(crate::state::OverlayContent::SessionLogViewerActions(i)) if *i == idx
@@ -99,7 +100,7 @@ impl Oryxis {
                     } else {
                         OryxisColors::t().text_muted
                     })
-                    .into(),
+                    .boxed(),
                 None,
                 Message::History(HistoryMessage::ShowSessionLogViewerMenu(idx)),
             );
@@ -112,7 +113,7 @@ impl Oryxis {
             } else {
                 crate::views::terminal::icon_tooltip(kebab, crate::i18n::t("more_actions"))
             });
-            header_items.push(Space::new().width(8).into());
+            header_items.push(Space::new().width(8).boxed());
         }
         header_items.push(
             button(
@@ -141,7 +142,7 @@ impl Oryxis {
                     ..Default::default()
                 }
             })
-            .into(),
+            .boxed(),
         );
         let header = container(
             crate::widgets::dir_row(header_items).align_y(iced::Alignment::Center),
@@ -249,8 +250,7 @@ impl Oryxis {
             // the larger of the stage and the (padded) canvas: a
             // fitted frame centers on both axes, an overflowing one
             // (fit at the floor) keeps its natural size and scrolls.
-            Element::from(
-                scrollable(
+            scrollable(
                     container(term_canvas)
                         .padding(STAGE_PAD)
                         .width(Length::Fixed(
@@ -266,8 +266,7 @@ impl Oryxis {
                     vertical: scrollable::Scrollbar::default(),
                     horizontal: scrollable::Scrollbar::default(),
                 })
-                .height(Length::Fill),
-            )
+                .height(Length::Fill).boxed()
         });
         let stage = container(stage)
             .width(Length::Fill)
@@ -331,22 +330,22 @@ impl Oryxis {
             )
             .on_press(Message::Player(PlayerMessage::SpeedCycle))
             .style(|_, status| transport_style(status))
-            .into(),
+            .boxed(),
             crate::i18n::t("player_speed_tip"),
         );
         let controls = container(
             crate::widgets::dir_row(vec![
                 play_btn,
-                Space::new().width(4).into(),
+                Space::new().width(4).boxed(),
                 restart_btn,
-                Space::new().width(12).into(),
+                Space::new().width(12).boxed(),
                 text(time_label)
                     .size(11)
                     .color(OryxisColors::t().text_muted)
-                    .into(),
-                Space::new().width(12).into(),
-                scrubber.into(),
-                Space::new().width(12).into(),
+                    .boxed(),
+                Space::new().width(12).boxed(),
+                scrubber.boxed(),
+                Space::new().width(12).boxed(),
                 speed_btn,
             ])
             .align_y(iced::Alignment::Center),
@@ -361,7 +360,7 @@ impl Oryxis {
                 background: Some(Background::Color(OryxisColors::t().bg_primary)),
                 ..Default::default()
             })
-            .into()
+            .boxed()
     }
 }
 
@@ -440,7 +439,7 @@ fn transport_btn<'a>(
         )
         .on_press(msg)
         .style(|_, status| transport_style(status))
-        .into(),
+        .boxed(),
         tip,
     )
 }

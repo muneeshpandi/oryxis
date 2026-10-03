@@ -1,5 +1,6 @@
 //! Read-only certificate viewer modal (B2). Split out of views/keys.rs.
 
+use iced::Widget as _;
 use super::*;
 use iced::widget::column;
 
@@ -10,7 +11,7 @@ impl Oryxis {
     /// `Modal::CertificateViewer` (Confirm family: Close is the default).
     pub(crate) fn view_cert_viewer_modal(&self) -> Element<'_, Message> {
         let Some(data) = self.cert_viewer.as_ref() else {
-            return Space::new().into();
+            return Space::new().boxed();
         };
         let c = OryxisColors::t();
         self.modal_nav_reset();
@@ -26,17 +27,17 @@ impl Oryxis {
             ]
             .width(Length::Fill)
             .align_x(dir_align_x())
-            .into()
+            .boxed()
         };
 
         let mut body = column![
             dir_row(vec![
-                iced_fonts::lucide::badge_check().size(16).color(c.accent).into(),
-                Space::new().width(8).into(),
+                iced_fonts::lucide::badge_check().size(16).color(c.accent).boxed(),
+                Space::new().width(8).boxed(),
                 container(text(&data.key_label).size(16).color(c.text_primary))
                     .width(Length::Fill)
                     .align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
             ])
             .align_y(iced::Alignment::Center),
             Space::new().height(14),
@@ -48,9 +49,9 @@ impl Oryxis {
             body = body.push(
                 container(
                     dir_row(vec![
-                        iced_fonts::lucide::triangle_alert().size(13).color(c.error).into(),
-                        Space::new().width(6).into(),
-                        text(t("cert_expired_warn")).size(12).color(c.error).into(),
+                        iced_fonts::lucide::triangle_alert().size(13).color(c.error).boxed(),
+                        Space::new().width(6).boxed(),
+                        text(t("cert_expired_warn")).size(12).color(c.error).boxed(),
                     ])
                     .align_y(iced::Alignment::Center),
                 )
@@ -60,9 +61,9 @@ impl Oryxis {
                     background: Some(Background::Color(Color { a: 0.1, ..c.error })),
                     border: Border { radius: Radius::from(6.0), ..Default::default() },
                     ..Default::default()
-                }),
+                }).boxed(),
             )
-            .push(Space::new().height(12));
+            .push(Space::new().height(12).boxed());
         }
 
         // Type (a full phrase) as its own line, then serial + key id.
@@ -74,16 +75,16 @@ impl Oryxis {
                         .color(c.accent),
                 )
                 .width(Length::Fill)
-                .align_x(dir_align_x()),
+                .align_x(dir_align_x()).boxed(),
             )
-            .push(Space::new().height(12))
+            .push(Space::new().height(12).boxed())
             .push(info_row(
                 t("cert_serial").to_string(),
                 data.serial.to_string(),
                 false,
             ));
         if !data.key_id.is_empty() {
-            body = body.push(Space::new().height(10)).push(info_row(
+            body = body.push(Space::new().height(10).boxed()).push(info_row(
                 t("cert_key_id").to_string(),
                 data.key_id.clone(),
                 false,
@@ -95,10 +96,10 @@ impl Oryxis {
             data.principals.join(", ")
         };
         body = body
-            .push(Space::new().height(10))
+            .push(Space::new().height(10).boxed())
             .push(info_row(t("cert_principals").to_string(), principals, false));
         if !data.valid_from.is_empty() {
-            body = body.push(Space::new().height(10)).push(info_row(
+            body = body.push(Space::new().height(10).boxed()).push(info_row(
                 t("cert_valid_from").to_string(),
                 data.valid_from.clone(),
                 false,
@@ -109,17 +110,17 @@ impl Oryxis {
             let until_value = text(until_label)
                 .size(12)
                 .color(if data.expired { c.error } else { c.text_primary });
-            body = body.push(Space::new().height(10)).push(
+            body = body.push(Space::new().height(10).boxed()).push(
                 column![
                     text(t("cert_valid_until")).size(11).color(c.text_muted),
                     Space::new().height(2),
                     until_value,
                 ]
                 .width(Length::Fill)
-                .align_x(dir_align_x()),
+                .align_x(dir_align_x()).boxed(),
             );
         }
-        body = body.push(Space::new().height(10)).push(info_row(
+        body = body.push(Space::new().height(10).boxed()).push(info_row(
             t("key_ca_sha256").to_string(),
             data.ca_fingerprint.clone(),
             true,
@@ -132,7 +133,7 @@ impl Oryxis {
                 false,
                 crate::widgets::styled_button(t("cert_remove"), Message::Keys(KeysMessage::RequestRemoveKeyCertificate(data.key_idx)), c.error),
             ),
-            Space::new().width(Length::Fill).into(),
+            Space::new().width(Length::Fill).boxed(),
             self.modal_nav_slot_default(
                 crate::keynav::RowAction::activate(Message::Keys(KeysMessage::CloseCertViewer)),
                 6.0,
@@ -154,6 +155,6 @@ impl Oryxis {
             border: Border { color: c.border, width: 1.0, radius: Radius::from(12.0) },
             ..Default::default()
         });
-        card.into()
+        card.boxed()
     }
 }

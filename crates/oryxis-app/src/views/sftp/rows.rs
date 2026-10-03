@@ -23,7 +23,7 @@ pub(crate) fn parent_row<'a>(
         .size(12)
         .color(OryxisColors::t().text_muted)
         .width(Length::Fill)
-        .into();
+        .boxed();
     // Blank trailing cells keep the ".." row aligned with the columns.
     let children = row_cells(visible, widths, icon, label, None, |_| String::new());
     let inner = iced::widget::Row::with_children(children).align_y(iced::Alignment::Center);
@@ -48,7 +48,7 @@ pub(crate) fn parent_row<'a>(
                 ..Default::default()
             }
         })
-        .into()
+        .boxed()
 }
 
 /// One data cell: a single, fixed-width line of text that truncates with an
@@ -67,7 +67,7 @@ pub(crate) fn data_cell<'a>(value: String, width: f32, color: Color) -> Element<
     )
     .width(Length::Fixed(width))
     .padding(Padding { top: 0.0, right: CELL_PAD_RIGHT, bottom: 0.0, left: 0.0 })
-    .into()
+    .boxed()
 }
 
 /// The Name cell: the file icon, then the filename (or, while renaming, the
@@ -112,8 +112,8 @@ pub(crate) fn name_cell<'a>(
             }),
             iced::widget::tooltip::Position::Bottom,
         )
-        .into(),
-        None => cell.into(),
+        .boxed(),
+        None => cell.boxed(),
     }
 }
 
@@ -144,7 +144,7 @@ pub(crate) fn name_label_widget<'a>(
             .style(crate::widgets::rounded_input_style)
             .align_x(dir_align_x())
             .width(Length::Fill)
-            .into();
+            .boxed();
         return (w, None);
     }
     let label = text(name.to_string())
@@ -153,7 +153,7 @@ pub(crate) fn name_label_widget<'a>(
         .width(Length::Fill)
         .wrapping(iced::widget::text::Wrapping::None)
         .ellipsis(iced::widget::text::Ellipsis::End)
-        .into();
+        .boxed();
     // Space available to the filename inside the Name cell: cell width minus
     // the leading icon area, the inter-column gap, and the right inset (the
     // same assumptions auto-fit's `extra` uses, so an auto-fit column
@@ -191,8 +191,7 @@ pub(crate) fn name_label_widget<'a>(
         container(probe)
             .width(Length::Fill)
             .align_x(iced::alignment::Horizontal::Left),
-    ]
-    .into();
+    ].boxed();
     (layered, tooltip)
 }
 
@@ -217,8 +216,8 @@ pub(crate) fn row_cells<'a>(
         if c == SftpColumn::Name {
             // `ordered_visible()` always yields Name exactly once, so these
             // takes are safe; fall back to an empty cell if that ever changes.
-            let icon = icon.take().unwrap_or_else(|| Space::new().into());
-            let label = name_label.take().unwrap_or_else(|| Space::new().into());
+            let icon = icon.take().unwrap_or_else(|| Space::new().boxed());
+            let label = name_label.take().unwrap_or_else(|| Space::new().boxed());
             cells.push(name_cell(icon, label, tooltip_name.take(), widths.get(c)));
         } else {
             cells.push(data_cell(value(c), widths.get(c), OryxisColors::t().text_muted));
@@ -230,7 +229,7 @@ pub(crate) fn row_cells<'a>(
 /// Visually distinct band that wraps the toolbar / breadcrumb / column
 /// headers, gives the file list a clean separation from the chrome,
 /// matching how Finder / Explorer / Termius split the two regions.
-pub(crate) fn pane_header_band<'a>(content: iced::widget::Column<'a, Message>) -> Element<'a, Message> {
+pub(crate) fn pane_header_band<'a>(content: iced::widget::Column<iced::Element<'a, Message>>) -> Element<'a, Message> {
     container(content)
         .width(Length::Fill)
         .style(|_| container::Style {
@@ -242,7 +241,7 @@ pub(crate) fn pane_header_band<'a>(content: iced::widget::Column<'a, Message>) -
             },
             ..Default::default()
         })
-        .into()
+        .boxed()
 }
 
 /// Wrap a built file-list column in the right scrollable. With columns
@@ -251,7 +250,7 @@ pub(crate) fn pane_header_band<'a>(content: iced::widget::Column<'a, Message>) -
 /// rows) and the scrollable gains a horizontal scrollbar.
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn sftp_list_scrollable<'a>(
-    col: iced::widget::Column<'a, Message>,
+    col: iced::widget::Column<iced::Element<'a, Message>>,
     scroll_id: &str,
     side: SftpPaneSide,
     sort: crate::state::SftpSort,
@@ -291,14 +290,14 @@ pub(crate) fn sftp_list_scrollable<'a>(
             .on_scroll(move |scroll: scrollable::Scroll| {
                 Message::Sftp(SftpMessage::SftpListPanned(side, scroll.viewport.absolute_offset().x))
             })
-            .into()
+            .boxed()
     } else {
         scrollable(col)
             .id(iced::widget::Id::from(scroll_id.to_string()))
             .width(Length::Fill)
             .height(Length::Fill)
             .on_scroll(on_scroll)
-            .into()
+            .boxed()
     }
 }
 
@@ -408,7 +407,7 @@ pub(crate) fn file_row_local<'a>(
         .on_right_press(Message::Sftp(SftpMessage::SftpRowRightClick(side, path_str, is_dir)))
         .on_enter(Message::Sftp(SftpMessage::SftpRowEnter(side, path_for_enter.clone(), is_dir)))
         .on_exit(Message::Sftp(SftpMessage::SftpRowExit(side, path_for_enter)))
-        .into()
+        .boxed()
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -510,7 +509,7 @@ pub(crate) fn file_row_remote<'a>(
         .on_right_press(Message::Sftp(SftpMessage::SftpRowRightClick(side, full_path.clone(), is_dir)))
         .on_enter(Message::Sftp(SftpMessage::SftpRowEnter(side, full_path.clone(), is_dir)))
         .on_exit(Message::Sftp(SftpMessage::SftpRowExit(side, full_path)))
-        .into()
+        .boxed()
 }
 
 /// Fixed-width slot for a row's type icon. Folder rows turn it into a
@@ -528,7 +527,7 @@ pub(crate) fn icon_slot<'a>(
         return container(icon)
             .width(Length::Fixed(SLOT_W))
             .align_x(iced::alignment::Horizontal::Center)
-            .into();
+            .boxed();
     };
     let btn = button(
         container(icon)
@@ -554,7 +553,7 @@ pub(crate) fn icon_slot<'a>(
         tooltip_chip(crate::i18n::t("open")),
         iced::widget::tooltip::Position::Top,
     )
-    .into()
+    .boxed()
 }
 
 pub(crate) fn file_icon<'a>(name: &str, is_dir: bool, is_symlink: bool) -> iced::widget::Text<'a> {

@@ -5,7 +5,7 @@ pub(crate) use iced::widget::{button, checkbox, container, pick_list, scrollable
 // `column` carries both a fn and a `column!` macro; re-exporting it through the
 // `use super::*` glob makes the macro ambiguous in the section submodules, so it
 // is imported directly here and in each section file instead.
-use iced::widget::column;
+use iced::Widget as _;
 pub(crate) use iced::widget::button::Status as BtnStatus;
 pub(crate) use iced::{Background, Border, Color, Element, Length, Padding};
 
@@ -121,11 +121,11 @@ impl Oryxis {
                 .style(crate::widgets::rounded_input_style)
                 .align_x(dir_align_x());
 
-            let mut col = column![]
+            let mut col = iced::widget::Column::<iced::Element<'_, _>>::new()
                 .spacing(4)
                 .padding(Padding { top: 8.0, right: 8.0, bottom: 8.0, left: 8.0 });
             col = col.push(
-                container(search).padding(Padding { top: 0.0, right: 0.0, bottom: 2.0, left: 0.0 }),
+                container(search).padding(Padding { top: 0.0, right: 0.0, bottom: 2.0, left: 0.0 }).boxed(),
             );
             // Find-in-page counter + hint: which match Enter is on and
             // how many there are (Enter / Shift+Enter cycle them).
@@ -141,7 +141,7 @@ impl Oryxis {
                         .size(11)
                         .color(OryxisColors::t().text_muted),
                     )
-                    .padding(Padding { top: 0.0, right: 16.0, bottom: 6.0, left: 4.0 }),
+                    .padding(Padding { top: 0.0, right: 16.0, bottom: 6.0, left: 4.0 }).boxed(),
                 );
             }
             // Gibberish query: the tree gives no signal on its own, so
@@ -155,7 +155,7 @@ impl Oryxis {
                     )
                     .width(Length::Fill)
                     .align_x(dir_align_x())
-                    .padding(Padding { top: 4.0, right: 16.0, bottom: 8.0, left: 16.0 }),
+                    .padding(Padding { top: 4.0, right: 16.0, bottom: 8.0, left: 16.0 }).boxed(),
                 );
             }
 
@@ -179,16 +179,16 @@ impl Oryxis {
                     OryxisColors::t().text_secondary
                 };
                 let mut row_items: Vec<Element<'_, Message>> =
-                    vec![text(label).size(13).color(fg).into()];
+                    vec![text(label).size(13).color(fg).boxed()];
                 if searching && hits > 0 {
                     // Match-count badge: the tree's "this section
                     // contains matches" signal.
-                    row_items.push(Space::new().width(Length::Fill).into());
+                    row_items.push(Space::new().width(Length::Fill).boxed());
                     row_items.push(
                         text(hits.to_string())
                             .size(11)
                             .color(OryxisColors::t().accent)
-                            .into(),
+                            .boxed(),
                     );
                 }
                 let btn: Element<'_, Message> = button(
@@ -226,7 +226,7 @@ impl Oryxis {
                         ..Default::default()
                     }
                 })
-                .into();
+                .boxed();
                 col = col.push(btn);
             }
 
@@ -278,12 +278,12 @@ impl Oryxis {
             SettingsSection::Mcp => self.view_settings_mcp(),
         };
 
-        let layout = container(crate::widgets::dir_row(vec![
-            settings_sidebar.into(),
+        let layout = container::<_, iced::Theme>(crate::widgets::dir_row(vec![
+            settings_sidebar.boxed(),
             container(settings_content)
                 .width(Length::Fill)
                 .height(Length::Fill)
-                .into(),
+                .boxed(),
         ]))
         .width(Length::Fill)
         .height(Length::Fill);
@@ -301,14 +301,14 @@ impl Oryxis {
         // Always a Stack, the page at layer 0: wrapping it only while
         // the picker is up re-parented the whole page on every open and
         // close, which reset its scroll to the top behind the modal.
-        let mut page = iced::widget::Stack::new()
-            .push(layout)
+        let mut page = iced::widget::Stack::<iced::Element<'_, _>>::new()
+            .push(layout.boxed())
             .width(Length::Fill)
             .height(Length::Fill);
         if let Some(target) = picker {
             page = page.push(sync_host_picker_modal(self, target));
         }
-        page.into()
+        page.boxed()
     }
 }
 

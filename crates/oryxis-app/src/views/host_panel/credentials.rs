@@ -30,8 +30,8 @@ impl Oryxis {
             crate::widgets::panel_field_inherited(
                 "",
                 dir_row(vec![
-                    iced_fonts::lucide::user().size(13).color(OryxisColors::t().text_muted).into(),
-                    Space::new().width(10).into(),
+                    iced_fonts::lucide::user().size(13).color(OryxisColors::t().text_muted).boxed(),
+                    Space::new().width(10).boxed(),
                     self.panel_nav_slot(
                         crate::keynav::RowAction::input(iced::widget::Id::new("editor-username")),
                         10.0,
@@ -40,9 +40,9 @@ impl Oryxis {
                             .on_input(|v| Message::Editor(EditorMessage::EditorUsernameChanged(v)))
                             .on_submit_maybe(self.hp_submit())
                             .padding(10)
-                            .style(crate::widgets::rounded_input_style).align_x(dir_align_x()).into(),
+                            .style(crate::widgets::rounded_input_style).align_x(dir_align_x()).boxed(),
                     ),
-                ]).align_y(iced::Alignment::Center).into(),
+                ]).align_y(iced::Alignment::Center).boxed(),
                 username_hint,
             )
         ];
@@ -57,7 +57,7 @@ impl Oryxis {
         // clears `username_focused`), and pushing its rows straight into
         // `cred_items` moved every row below it, so the password input
         // lost its state, focus included, on that keystroke.
-        let mut suggestions = column![];
+        let mut suggestions = iced::widget::Column::<iced::Element<'_, _>>::new();
         if is_ssh && self.editor_form.username_focused && self.editor_form.selected_identity.is_none() && !self.identities.is_empty() {
             let search = self.editor_form.username.to_lowercase();
             let matching: Vec<&Identity> = if search.is_empty() {
@@ -90,12 +90,12 @@ impl Oryxis {
                         button(
                             container(
                                 dir_row(vec![
-                                    iced_fonts::lucide::user().size(12).color(OryxisColors::t().accent).into(),
-                                    Space::new().width(8).into(),
+                                    iced_fonts::lucide::user().size(12).color(OryxisColors::t().accent).boxed(),
+                                    Space::new().width(8).boxed(),
                                     column![
                                         text(label.clone()).size(12).color(OryxisColors::t().text_primary),
                                         text(subtitle.clone()).size(10).color(OryxisColors::t().text_muted),
-                                    ].into(),
+                                    ].boxed(),
                                 ]).align_y(iced::Alignment::Center),
                             )
                             .padding(Padding { top: 6.0, right: 10.0, bottom: 6.0, left: 10.0 })
@@ -118,13 +118,13 @@ impl Oryxis {
                                 ..Default::default()
                             }
                         })
-                        .into(),
+                        .boxed(),
                     ));
-                    suggestions = suggestions.push(Space::new().height(2));
+                    suggestions = suggestions.push(Space::new().height(2).boxed());
                 }
             }
         }
-        cred_items = cred_items.push(suggestions);
+        cred_items = cred_items.push(suggestions.boxed());
 
         // Identity selected -> the "managed by identity" banner replaces
         // both the password (Credentials) and the key (SSH Authentication).
@@ -138,17 +138,17 @@ impl Oryxis {
             .map(|ident_label| {
                 container(
                     dir_row(vec![
-                        iced_fonts::lucide::user().size(14).color(OryxisColors::t().accent).into(),
-                        Space::new().width(8).into(),
+                        iced_fonts::lucide::user().size(14).color(OryxisColors::t().accent).boxed(),
+                        Space::new().width(8).boxed(),
                         column![
                             text(format!("{}: {}", t("identity"), ident_label)).size(12).color(OryxisColors::t().text_primary),
                             text(t("managed_by_identity")).size(10).color(OryxisColors::t().text_muted),
-                        ].into(),
-                        Space::new().width(Length::Fill).into(),
+                        ].boxed(),
+                        Space::new().width(Length::Fill).boxed(),
                         button(text("\u{00D7}").size(11).color(OryxisColors::t().text_muted))
                             .on_press(Message::Editor(EditorMessage::EditorIdentityChanged("(none)".into())))
                             .padding(4)
-                            .style(|_, _| button::Style::default()).into(),
+                            .style(|_, _| button::Style::default()).boxed(),
                     ]).align_y(iced::Alignment::Center),
                 )
                 .padding(10)
@@ -158,7 +158,7 @@ impl Oryxis {
                     border: Border { radius: Radius::from(8.0), color: OryxisColors::t().accent, width: 1.0 },
                     ..Default::default()
                 })
-                .into()
+                .boxed()
             });
 
         // No identity on the host, but a group supplies one (D4): say so
@@ -183,21 +183,21 @@ impl Oryxis {
                     .color(OryxisColors::t().accent),
                 )
                 .padding(Padding { top: 2.0, right: 0.0, bottom: 0.0, left: 0.0 })
-                .into()
+                .boxed()
             });
         // Always one slot, empty when there is no note: the note leaves
         // with the first character typed into the password below it
         // (a typed password answers the credential family, see
         // `editor_form_answers_credentials`), and a child that came
         // and went above the password row cost that row its focus.
-        cred_items = cred_items.push(match inherited_identity_note {
+        cred_items = cred_items.push((match inherited_identity_note {
             Some(note) => column![note],
             None => column![],
-        });
+        }).boxed());
 
         // Credentials body: password row when no identity, else the
         // "managed by identity" banner (both belong with the login).
-        cred_items = cred_items.push(Space::new().height(8));
+        cred_items = cred_items.push(Space::new().height(8).boxed());
         if let Some(banner) = ssh_identity_banner {
             // Keyboard row: Enter/Space clears the identity (the
             // banner's only verb, same as its × button).
@@ -213,13 +213,13 @@ impl Oryxis {
             // Telnet, which always shows a stored-password field).
             cred_items = cred_items.push(
                 dir_row(vec![
-                    iced_fonts::lucide::keyboard().size(13).color(OryxisColors::t().text_muted).into(),
-                    Space::new().width(10).into(),
+                    iced_fonts::lucide::keyboard().size(13).color(OryxisColors::t().text_muted).boxed(),
+                    Space::new().width(10).boxed(),
                     text(t("auth_password_prompt_note"))
                         .size(12)
                         .color(OryxisColors::t().text_muted)
-                        .into(),
-                ]).align_y(iced::Alignment::Center)
+                        .boxed(),
+                ]).align_y(iced::Alignment::Center).boxed()
             );
         } else {
             let pw_placeholder: &'static str = if self.editor_form.has_existing_password
@@ -237,8 +237,8 @@ impl Oryxis {
             ));
             cred_items = cred_items.push(
                 dir_row(vec![
-                    iced_fonts::lucide::keyboard().size(13).color(OryxisColors::t().text_muted).into(),
-                    Space::new().width(10).into(),
+                    iced_fonts::lucide::keyboard().size(13).color(OryxisColors::t().text_muted).boxed(),
+                    Space::new().width(10).boxed(),
                     crate::widgets::password_input_with_eye_nav(
                         pw_placeholder,
                         self.editor_form.password.as_str(),
@@ -256,11 +256,11 @@ impl Oryxis {
                             eye,
                         ),
                     ),
-                ]).align_y(iced::Alignment::Center),
+                ]).align_y(iced::Alignment::Center).boxed(),
             );
         }
 
-        cred_items.into()
+        cred_items.boxed()
         };
         cred_items
     }
@@ -277,16 +277,16 @@ impl Oryxis {
         if !is_ssh {
             return empty();
         }
-        let mut cred_items = column![];
+        let mut cred_items = iced::widget::Column::<iced::Element<'_, _>>::new();
         cred_items = cred_items.push(self.panel_nav_slot(
                 crate::keynav::RowAction::activate(Message::Editor(EditorMessage::EditorUseTotpToggled)),
                 8.0,
                 container(
                     dir_row(vec![
-                        iced_fonts::lucide::shield_check().size(13).color(OryxisColors::t().text_muted).into(),
-                        Space::new().width(10).into(),
-                        text(t("use_totp")).size(13).color(OryxisColors::t().text_secondary).into(),
-                        Space::new().width(Length::Fill).into(),
+                        iced_fonts::lucide::shield_check().size(13).color(OryxisColors::t().text_muted).boxed(),
+                        Space::new().width(10).boxed(),
+                        text(t("use_totp")).size(13).color(OryxisColors::t().text_secondary).boxed(),
+                        Space::new().width(Length::Fill).boxed(),
                         {
                             let on = self.editor_form.use_totp;
                             let bg = if on { OryxisColors::t().success } else { OryxisColors::t().bg_hover };
@@ -299,11 +299,11 @@ impl Oryxis {
                                     text_color: fg,
                                     ..Default::default()
                                 })
-                                .into()
+                                .boxed()
                         },
                     ]).align_y(iced::Alignment::Center)
                 )
-                .padding(Padding { top: 8.0, right: 0.0, bottom: 8.0, left: 0.0 }).into(),
+                .padding(Padding { top: 8.0, right: 0.0, bottom: 8.0, left: 0.0 }).boxed(),
             ));
         if self.editor_form.use_totp {
             let totp_placeholder: &'static str = if self.editor_form.has_existing_totp
@@ -320,7 +320,7 @@ impl Oryxis {
             ));
             cred_items = cred_items.push(
                 dir_row(vec![
-                    Space::new().width(23).into(),
+                    Space::new().width(23).boxed(),
                     crate::widgets::password_input_with_eye_nav(
                         totp_placeholder,
                         self.editor_form.totp_secret.as_str(),
@@ -338,10 +338,10 @@ impl Oryxis {
                             eye,
                         ),
                     ),
-                ]).align_y(iced::Alignment::Center),
+                ]).align_y(iced::Alignment::Center).boxed(),
             );
         }
-        cred_items.into()
+        cred_items.boxed()
     }
 
     pub(super) fn hp_serial_params_block(&self, is_serial: bool) -> Element<'_, Message> {
@@ -372,7 +372,7 @@ impl Oryxis {
                         .width(120)
                         .padding(10)
                         .style(crate::widgets::rounded_pick_list_style)
-                        .into(),
+                        .boxed(),
                 ),
             );
             let data_bits_row = panel_option_row(
@@ -389,7 +389,7 @@ impl Oryxis {
                         .width(120)
                         .padding(10)
                         .style(crate::widgets::rounded_pick_list_style)
-                        .into(),
+                        .boxed(),
                 ),
             );
             let parity_row = panel_option_row(
@@ -410,7 +410,7 @@ impl Oryxis {
                     .width(120)
                     .padding(10)
                     .style(crate::widgets::rounded_pick_list_style)
-                    .into(),
+                    .boxed(),
                 ),
             );
             let stop_row = panel_option_row(
@@ -431,7 +431,7 @@ impl Oryxis {
                     .width(120)
                     .padding(10)
                     .style(crate::widgets::rounded_pick_list_style)
-                    .into(),
+                    .boxed(),
                 ),
             );
             let flow_row = panel_option_row(
@@ -456,7 +456,7 @@ impl Oryxis {
                     .width(140)
                     .padding(10)
                     .style(crate::widgets::rounded_pick_list_style)
-                    .into(),
+                    .boxed(),
                 ),
             );
             let line_ending_row = panel_option_row(
@@ -481,7 +481,7 @@ impl Oryxis {
                     .width(120)
                     .padding(10)
                     .style(crate::widgets::rounded_pick_list_style)
-                    .into(),
+                    .boxed(),
                 ),
             );
             // Local echo: ON/OFF toggle (raw serial has no ECHO
@@ -492,10 +492,10 @@ impl Oryxis {
                 8.0,
                 container(
                     dir_row(vec![
-                        iced_fonts::lucide::eye().size(13).color(OryxisColors::t().text_muted).into(),
-                        Space::new().width(10).into(),
-                        text(t("serial_local_echo")).size(13).color(OryxisColors::t().text_secondary).into(),
-                        Space::new().width(Length::Fill).into(),
+                        iced_fonts::lucide::eye().size(13).color(OryxisColors::t().text_muted).boxed(),
+                        Space::new().width(10).boxed(),
+                        text(t("serial_local_echo")).size(13).color(OryxisColors::t().text_secondary).boxed(),
+                        Space::new().width(Length::Fill).boxed(),
                         {
                             let on = p.local_echo;
                             let bg = if on { OryxisColors::t().success } else { OryxisColors::t().bg_hover };
@@ -508,11 +508,11 @@ impl Oryxis {
                                     text_color: fg,
                                     ..Default::default()
                                 })
-                                .into()
+                                .boxed()
                         },
                     ]).align_y(iced::Alignment::Center)
                 )
-                .padding(Padding { top: 8.0, right: 0.0, bottom: 8.0, left: 0.0 }).into(),
+                .padding(Padding { top: 8.0, right: 0.0, bottom: 8.0, left: 0.0 }).boxed(),
             );
             column![
                 baud_row,
@@ -528,8 +528,7 @@ impl Oryxis {
                 line_ending_row,
                 Space::new().height(ROW_GAP),
                 echo_row,
-            ]
-            .into()
+            ].boxed()
         } else {
             empty()
         };

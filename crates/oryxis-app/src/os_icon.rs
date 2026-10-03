@@ -15,6 +15,7 @@
 //!     legacy ids with `si:` prefix). All routed through
 //!     `canonical_brand_id`.
 
+use iced::Widget as _;
 use std::borrow::Cow;
 
 use iced::widget::svg::Handle;
@@ -475,14 +476,14 @@ impl BrandIcon {
         Message: 'a,
     {
         match self {
-            BrandIcon::Glyph(t) => t.size(size).color(color).into(),
+            BrandIcon::Glyph(t) => t.size(size).color(color).boxed(),
             BrandIcon::Svg(handle) => iced::widget::svg(handle)
                 .width(iced::Length::Fixed(size))
                 .height(iced::Length::Fixed(size))
                 .style(move |_theme: &iced::Theme, _| {
                     iced::widget::svg::Style { color: Some(color) }
                 })
-                .into(),
+                .boxed(),
         }
     }
 }

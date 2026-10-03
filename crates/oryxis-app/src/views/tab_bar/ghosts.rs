@@ -40,24 +40,24 @@ pub(crate) fn drag_ghost<'a>(
         container(badge)
             .center_x(Length::Fixed(CHIP_W))
             .center_y(Length::Fixed(TAB_HEIGHT))
-            .into()
+            .boxed()
     } else {
         crate::widgets::dir_row(vec![
             container(badge)
                 .center_x(Length::Fixed(TAB_ICON_SLOT))
                 .center_y(Length::Fixed(TAB_ICON_SLOT))
-                .into(),
-            Space::new().width(5).into(),
+                .boxed(),
+            Space::new().width(5).boxed(),
             text(truncate_label(&label, width))
                 .size(12)
                 .line_height(1.0)
                 .wrapping(iced::widget::text::Wrapping::None)
                 .font(SYSTEM_UI_SEMIBOLD)
                 .color(label_fg)
-                .into(),
+                .boxed(),
         ])
         .align_y(iced::Alignment::Center)
-        .into()
+        .boxed()
     };
     container(content)
         .center_y(Length::Fixed(TAB_HEIGHT))
@@ -73,7 +73,7 @@ pub(crate) fn drag_ghost<'a>(
             },
             ..Default::default()
         })
-        .into()
+        .boxed()
 }
 
 /// Floating drag ghost for an SFTP tab: the folder badge (tinted with the host
@@ -106,21 +106,21 @@ pub(crate) fn sftp_drag_ghost<'a>(
         container(badge)
             .center_x(Length::Fixed(CHIP_W))
             .center_y(Length::Fixed(TAB_HEIGHT))
-            .into()
+            .boxed()
     } else {
         crate::widgets::dir_row(vec![
-            badge.into(),
-            Space::new().width(5).into(),
+            badge.boxed(),
+            Space::new().width(5).boxed(),
             text(truncate_label(&label, width))
                 .size(12)
                 .line_height(1.0)
                 .wrapping(iced::widget::text::Wrapping::None)
                 .font(SYSTEM_UI_SEMIBOLD)
                 .color(label_fg)
-                .into(),
+                .boxed(),
         ])
         .align_y(iced::Alignment::Center)
-        .into()
+        .boxed()
     };
     container(content)
         .center_y(Length::Fixed(TAB_HEIGHT))
@@ -136,7 +136,7 @@ pub(crate) fn sftp_drag_ghost<'a>(
             },
             ..Default::default()
         })
-        .into()
+        .boxed()
 }
 
 /// Floating drag ghost for the Settings tab (issue #120). Its own
@@ -161,15 +161,15 @@ pub(crate) fn panel_drag_ghost<'a>(
             ..Default::default()
         });
     let content = crate::widgets::dir_row(vec![
-        badge.into(),
-        Space::new().width(5).into(),
+        badge.boxed(),
+        Space::new().width(5).boxed(),
         text(truncate_label(label, width))
             .size(12)
             .line_height(1.0)
             .wrapping(iced::widget::text::Wrapping::None)
             .font(SYSTEM_UI_SEMIBOLD)
             .color(OryxisColors::t().text_primary)
-            .into(),
+            .boxed(),
     ])
     .align_y(iced::Alignment::Center);
     container(content)
@@ -186,5 +186,5 @@ pub(crate) fn panel_drag_ghost<'a>(
             },
             ..Default::default()
         })
-        .into()
+        .boxed()
 }

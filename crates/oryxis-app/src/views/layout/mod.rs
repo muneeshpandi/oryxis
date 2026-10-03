@@ -1,5 +1,6 @@
 //! Root layout, `view_main`, `render_overlay_menu`, and the content dispatcher.
 
+use iced::Widget as _;
 pub(crate) use iced::border::Radius;
 pub(crate) use iced::widget::{button, container, text, text_input, MouseArea, Space, Stack};
 pub(crate) use iced::window::Direction;
@@ -347,7 +348,7 @@ impl Oryxis {
                 background: Some(Background::Color(OryxisColors::t().bg_primary)),
                 ..Default::default()
             })
-            .into()
+            .boxed()
     }
 
     /// Search field for the active vault sub-view, filling its toolbar

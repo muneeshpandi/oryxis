@@ -4,6 +4,7 @@
 //! the sidebar shell (`terminal.rs::view_terminal_sidebar`); this module
 //! holds the heavy per-message rendering it calls into.
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::{container, text};
 use iced::{Background, Border, Color, Element, Length, Padding};
@@ -52,8 +53,6 @@ impl Oryxis {
             inline_code_size: 12.into(),
             code_block_size: 12.into(),
             spacing: 8.into(),
-            selectable: true,
-            group_selection: true,
         }
     }
 
@@ -115,7 +114,7 @@ impl Oryxis {
                                     ..Default::default()
                                 },
                                 ..Default::default()
-                            }),
+                            }).boxed(),
                     );
                 }
 
@@ -133,7 +132,7 @@ impl Oryxis {
                 container(bubble)
                     .width(Length::Fill)
                     .align_x(iced::alignment::Horizontal::Left)
-                    .into()
+                    .boxed()
             }
             ChatRole::User => {
                 // The accent fill pairs with the per-theme `button_text`
@@ -156,7 +155,7 @@ impl Oryxis {
                 container(bubble)
                     .width(Length::Fill)
                     .align_x(iced::alignment::Horizontal::Right)
-                    .into()
+                    .boxed()
             }
             ChatRole::Assistant => {
                 // Markdown items are pre-parsed when the message is added
@@ -176,7 +175,7 @@ impl Oryxis {
                     &ChatMdViewer {
                         theme: self.theme(),
                     },
-                );
+                ).boxed();
 
                 // Bubble fills the sidebar width, earlier we clamped
                 // at 300 px which left a wide empty strip when the user
@@ -198,7 +197,7 @@ impl Oryxis {
                 container(bubble)
                     .width(Length::Fill)
                     .align_x(iced::alignment::Horizontal::Left)
-                    .into()
+                    .boxed()
             }
             ChatRole::System => {
                 let bubble = container(
@@ -215,7 +214,7 @@ impl Oryxis {
                 container(bubble)
                     .width(Length::Fill)
                     .align_x(iced::alignment::Horizontal::Left)
-                    .into()
+                    .boxed()
             }
             ChatRole::PendingTool => {
                 // AI proposed a `risky` command, show it inline with
@@ -322,7 +321,7 @@ impl Oryxis {
                 container(bubble)
                     .width(Length::Fill)
                     .align_x(iced::alignment::Horizontal::Left)
-                    .into()
+                    .boxed()
             }
             ChatRole::Error => {
                 // Distinct error treatment: red-tinted border, alert
@@ -378,7 +377,7 @@ impl Oryxis {
                 container(bubble)
                     .width(Length::Fill)
                     .align_x(iced::alignment::Horizontal::Left)
-                    .into()
+                    .boxed()
             }
         }
     }
@@ -421,7 +420,7 @@ impl<'a>
         _language: Option<&'a str>,
         code: &'a str,
         lines: &'a [iced::widget::markdown::Text],
-    ) -> Element<'a, Message> {
+    ) -> impl iced::advanced::Widget<Message, iced::Theme, iced::Renderer> + 'a {
         // Reuse the stock code-block rendering for the actual text /
         // syntax highlighting / horizontal scroll, then stack a tiny
         // toolbar of Copy + Play in the top-right corner. Built with
@@ -434,7 +433,7 @@ impl<'a>
             settings,
             lines,
             Self::on_link_click,
-        );
+        ).boxed();
         let copy = iced::widget::MouseArea::new(
             container(
                 iced_fonts::lucide::copy()
@@ -447,7 +446,7 @@ impl<'a>
                 bottom: 3.0,
                 left: 5.0,
             })
-            .style(|_| container::Style {
+            .style(|_: &iced::Theme| container::Style {
                 background: Some(Background::Color(Color {
                     a: 0.10,
                     ..OryxisColors::t().text_secondary
@@ -491,7 +490,7 @@ impl<'a>
         // be redundant.
         .on_press(Message::Ai(AiMessage::ChatToolApprove(code.to_string())))
         .interaction(iced::mouse::Interaction::Pointer);
-        let toolbar = container(
+        let toolbar: iced::widget::Container<'_, iced::widget::Row<Element<'_, Message>>> = container(
             iced::widget::row![copy, iced::widget::Space::new().width(4), play]
                 .align_y(iced::Alignment::Center),
         )
@@ -503,10 +502,10 @@ impl<'a>
             bottom: 0.0,
             left: 0.0,
         });
-        iced::widget::Stack::new()
+        iced::widget::Stack::<iced::Element<'_, _>>::new()
             .push(body)
-            .push(toolbar)
-            .into()
+            .push(toolbar.boxed())
+            .boxed()
     }
 
 }
@@ -559,7 +558,7 @@ pub(crate) fn chat_mode_picker<'a>(current: crate::state::ChatMode) -> Element<'
                     ..Default::default()
                 }
             });
-        crate::views::terminal::icon_tooltip(btn.into(), t(tip_key))
+        crate::views::terminal::icon_tooltip(btn.boxed(), t(tip_key))
     };
     iced::widget::row![
         chip(ChatMode::Plan, "ai_mode_plan_tip"),
@@ -568,7 +567,7 @@ pub(crate) fn chat_mode_picker<'a>(current: crate::state::ChatMode) -> Element<'
     ]
     .spacing(4)
     .align_y(iced::Alignment::Center)
-    .into()
+    .boxed()
 }
 
 /// Filled chip-button used by the PendingTool confirmation prompt
@@ -611,5 +610,5 @@ fn pending_tool_btn<'a>(
     )
     .on_press(msg)
     .interaction(iced::mouse::Interaction::Pointer)
-    .into()
+    .boxed()
 }

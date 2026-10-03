@@ -4,6 +4,7 @@
 //! connection. "Reset to auto" clears the override and lets OS detection take
 //! over again on the next successful connect.
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::button::Status as BtnStatus;
 use iced::widget::{
@@ -85,11 +86,11 @@ impl Oryxis {
             let is_selected = selected_icon.as_deref() == Some(id);
             current_row.push(icon_cell(id, is_selected));
             if current_row.len() == 7 {
-                icon_rows.push(dir_row(std::mem::take(&mut current_row)).spacing(6).into());
+                icon_rows.push(dir_row(std::mem::take(&mut current_row)).spacing(6).boxed());
             }
         }
         if !current_row.is_empty() {
-            icon_rows.push(dir_row(current_row).spacing(6).into());
+            icon_rows.push(dir_row(current_row).spacing(6).boxed());
         }
 
         let icon_search = text_input(t("icon_search"), &self.icon_picker.icon_search)
@@ -101,9 +102,9 @@ impl Oryxis {
             .align_x(dir_align_x());
 
         let icon_grid: Element<'_, Message> = if icon_rows.is_empty() {
-            text(t("no_matches")).size(12).color(OryxisColors::t().text_muted).into()
+            text(t("no_matches")).size(12).color(OryxisColors::t().text_muted).boxed()
         } else {
-            column(icon_rows).spacing(6).into()
+            column(icon_rows).spacing(6).boxed()
         };
 
         let icons_block = column![
@@ -160,9 +161,9 @@ impl Oryxis {
             }).color(OryxisColors::t().text_secondary),
             Space::new().height(8),
             dir_row(vec![
-                swatch.into(),
-                Space::new().width(10).into(),
-                hex_input.into(),
+                swatch.boxed(),
+                Space::new().width(10).boxed(),
+                hex_input.boxed(),
             ]).align_y(iced::Alignment::Center),
         ];
 
@@ -170,9 +171,9 @@ impl Oryxis {
         // ── Footer actions ──
         let actions = dir_row(vec![
             styled_button(t("reset_to_auto"), Message::Tabs(TabsMessage::IconPickerResetAuto), OryxisColors::t().bg_selected),
-            Space::new().width(Length::Fill).into(),
+            Space::new().width(Length::Fill).boxed(),
             styled_button(t("cancel"), Message::Tabs(TabsMessage::HideIconPicker), OryxisColors::t().bg_hover),
-            Space::new().width(8).into(),
+            Space::new().width(8).boxed(),
             styled_button(t("save"), Message::Tabs(TabsMessage::IconPickerSave), OryxisColors::t().accent),
         ])
         .align_y(iced::Alignment::Center);
@@ -181,8 +182,8 @@ impl Oryxis {
         // icon grid + color palette scroll in between so the modal never
         // exceeds the viewport height.
         let header = dir_row(vec![
-            preview.into(),
-            Space::new().width(14).into(),
+            preview.boxed(),
+            Space::new().width(14).boxed(),
             column![
                 text(t("custom_icon")).size(16).font(iced::Font {
                     weight: iced::font::Weight::Bold,
@@ -191,7 +192,7 @@ impl Oryxis {
                 Space::new().height(4),
                 text(t("custom_icon_desc"))
                     .size(11).color(OryxisColors::t().text_muted),
-            ].into(),
+            ].boxed(),
         ])
         .align_y(iced::Alignment::Center);
 
@@ -241,7 +242,7 @@ impl Oryxis {
         // out and accidentally trip the scrim's HideIconPicker.
         let dialog_capture: Element<'_, Message> = MouseArea::new(dialog)
             .on_press(Message::NoOp)
-            .into();
+            .boxed();
 
         let centered = container(dialog_capture)
             .width(Length::Fill)
@@ -265,18 +266,18 @@ impl Oryxis {
                 }),
         )
         .on_press(Message::Tabs(TabsMessage::HideIconPicker))
-        .into();
+        .boxed();
 
         // The HSV color picker floats on top of the modal as a popover
         // anchored at the cursor, so the swatch acts like a context menu.
-        let mut stack = Stack::new()
+        let mut stack = Stack::<iced::Element<'_, _>>::new()
             .push(modal)
             .width(Length::Fill)
             .height(Length::Fill);
         if let Some(anchor) = self.icon_color_popover {
             stack = stack.push(self.icon_color_popover_view(anchor));
         }
-        iced::widget::opaque(stack)
+        iced::widget::opaque(stack).boxed()
     }
 
     /// The floating HSV picker shown when the background-color swatch is
@@ -317,7 +318,7 @@ impl Oryxis {
             ..Default::default()
         });
         let card_trap: Element<'_, Message> =
-            MouseArea::new(card).on_press(Message::NoOp).into();
+            MouseArea::new(card).on_press(Message::NoOp).boxed();
 
         // Picker box footprint, used to clamp it inside the window.
         const PW: f32 = 238.0;
@@ -333,14 +334,14 @@ impl Oryxis {
             container(Space::new()).width(Length::Fill).height(Length::Fill),
         )
         .on_press(Message::Tabs(TabsMessage::IconPickerCloseColorPopover))
-        .into();
+        .boxed();
 
-        Stack::new()
+        Stack::<iced::Element<'_, _>>::new()
             .push(pop_backdrop)
-            .push(positioned)
+            .push(positioned.boxed())
             .width(Length::Fill)
             .height(Length::Fill)
-            .into()
+            .boxed()
     }
 }
 
@@ -348,8 +349,8 @@ impl Oryxis {
 /// Mirrors the custom-theme color popover's grid; each swatch commits the
 /// color straight away via `IconPickerSelectColor`.
 fn preset_grid<'a>() -> Element<'a, Message> {
-    let mut rows = column![].spacing(5);
-    let mut current = row![].spacing(5);
+    let mut rows = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(5);
+    let mut current = iced::widget::Row::<iced::Element<'_, _>>::new().spacing(5);
     let mut n = 0;
     for hex in os_icon::PRESET_COLORS.iter() {
         let color = parse_hex_color(hex).unwrap_or(OryxisColors::t().accent);
@@ -367,17 +368,17 @@ fn preset_grid<'a>() -> Element<'a, Message> {
                     ..Default::default()
                 }
             });
-        current = current.push(sw);
+        current = current.push(sw.boxed());
         n += 1;
         if n % 9 == 0 {
-            rows = rows.push(current);
+            rows = rows.push(current.boxed());
             current = row![].spacing(5);
         }
     }
     if n % 9 != 0 {
-        rows = rows.push(current);
+        rows = rows.push(current.boxed());
     }
-    rows.into()
+    rows.boxed()
 }
 
 fn icon_cell<'a>(id: &'static str, is_selected: bool) -> Element<'a, Message> {
@@ -411,7 +412,7 @@ fn icon_cell<'a>(id: &'static str, is_selected: bool) -> Element<'a, Message> {
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }
 
 fn parse_hex_color(s: &str) -> Option<Color> {

@@ -10,6 +10,7 @@ mod dynamic_form;
 mod list;
 mod wizard_form;
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::button::Status as BtnStatus;
 use iced::widget::{button, row, text, Space};
@@ -64,7 +65,7 @@ pub(super) fn section_header<'a>(
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }
 
 // `CloudProviderChoice` and `CloudAuthChoice` need `Display` for

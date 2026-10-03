@@ -266,14 +266,14 @@ impl Oryxis {
                             iced_fonts::lucide::check()
                                 .size(14)
                                 .color(OryxisColors::t().accent)
-                                .into()
+                                .boxed()
                         } else {
                             iced_fonts::lucide::tag()
                                 .size(14)
                                 .color(OryxisColors::t().text_secondary)
-                                .into()
+                                .boxed()
                         },
-                        Space::new().width(8).into(),
+                        Space::new().width(8).boxed(),
                         text(label)
                             .size(12)
                             .color(if active {
@@ -281,7 +281,7 @@ impl Oryxis {
                             } else {
                                 OryxisColors::t().text_primary
                             })
-                            .into(),
+                            .boxed(),
                     ])
                     .align_y(iced::Alignment::Center),
                 )
@@ -302,7 +302,7 @@ impl Oryxis {
                     ..Default::default()
                 }
             })
-            .into();
+            .boxed();
             self.modal_nav_slot(crate::keynav::RowAction::activate(msg), 4.0, false, row)
         };
         let mut col = column![tag_row(
@@ -315,7 +315,7 @@ impl Oryxis {
             let active = selected.iter().any(|f| f.eq_ignore_ascii_case(&tg));
             col = col.push(tag_row(tg.clone(), active, mk_toggle(tg)));
         }
-        col.into()
+        col.boxed()
     }
 
     pub(crate) fn render_overlay_menu(&self, overlay: &OverlayState) -> Element<'_, Message> {
@@ -326,7 +326,7 @@ impl Oryxis {
             let w = self.overlay_menu_width(overlay);
             return container(self.vault_search_field())
                 .width(Length::Fixed(w))
-                .into();
+                .boxed();
         }
         // Keyboard rows are recorded by `menu_item` / `sort_row` / the
         // picker rows below, in render order. Plain row menus open
@@ -409,7 +409,7 @@ impl Oryxis {
             // same update the tab leaves, so it never renders.
             OverlayContent::TabActions(id) => match self.tab_index_by_id(*id) {
                 Some(idx) => self.build_menu_tab_actions(idx),
-                None => column![].into(),
+                None => iced::widget::Column::<iced::Element<'_, _>>::new().boxed(),
             },
             OverlayContent::SftpTabActions(idx) => self.build_menu_sftp_tab_actions(*idx),
             OverlayContent::SplitMenu => self.build_menu_split(),
@@ -420,7 +420,7 @@ impl Oryxis {
             }
             OverlayContent::GroupPicker(target) => self.build_menu_group_picker(overlay, *target),
             // Rendered above via early return (no popover chrome).
-            OverlayContent::ToolbarSearch => Space::new().into(),
+            OverlayContent::ToolbarSearch => Space::new().boxed(),
             OverlayContent::ToolbarOverflow => self.build_menu_toolbar_overflow(),
             OverlayContent::TerminalContextMenu(pane_id, selection) => {
                 self.build_menu_terminal_context(*pane_id, selection)
@@ -469,7 +469,7 @@ impl Oryxis {
                 },
                 ..Default::default()
             })
-            .into()
+            .boxed()
     }
 
     /// Overflow ("…") dropdown for the vault sub-nav: the destinations
@@ -484,7 +484,7 @@ impl Oryxis {
             Some(crate::keynav::NavItem::SubNav(v)) => Some(v),
             _ => None,
         };
-        let mut col = iced::widget::Column::new().width(Length::Fill).spacing(1);
+        let mut col = iced::widget::Column::<iced::Element<'_, _>>::new().width(Length::Fill).spacing(1);
         for (k, v) in overflow {
             let active = self.cur_view() == v;
             let kb = kb_sel == Some(v);
@@ -515,12 +515,12 @@ impl Oryxis {
                     ..Default::default()
                 }
             });
-            col = col.push(item);
+            col = col.push(item.boxed());
         }
         let panel = container(col)
             .width(Length::Fixed(200.0))
             .padding(Padding { top: 6.0, right: 6.0, bottom: 6.0, left: 6.0 })
-            .style(|_| container::Style {
+            .style(|_: &iced::Theme| container::Style {
                 background: Some(Background::Color(OryxisColors::t().bg_sidebar)),
                 border: Border {
                     radius: Radius::from(8.0),
@@ -548,7 +548,7 @@ impl Oryxis {
         let dots_x = (8.0 + strip_left + chip + inline_w)
             .min((self.cur_window_size().width - strip_right - 206.0).max(0.0));
         let side_hidden_bar = self.top_bar_hidden();
-        let pinned = container(panel)
+        let pinned = container::<_, iced::Theme>(panel)
             .width(Length::Fill)
             .height(Length::Fill)
             .align_x(iced::alignment::Horizontal::Left)
@@ -565,13 +565,13 @@ impl Oryxis {
                 .height(Length::Fill),
         )
         .on_press(Message::Tabs(TabsMessage::ToggleSubnavOverflow))
-        .into();
-        Stack::new()
+        .boxed();
+        Stack::<iced::Element<'_, _>>::new()
             .push(backdrop)
-            .push(pinned)
+            .push(pinned.boxed())
             .width(Length::Fill)
             .height(Length::Fill)
-            .into()
+            .boxed()
     }
 
     /// Burger menu overlay anchored to the top-left of the window.
@@ -592,19 +592,19 @@ impl Oryxis {
             let label_el: Element<'_, Message> = text(crate::i18n::t(label))
                 .size(13)
                 .color(OryxisColors::t().text_primary)
-                .into();
+                .boxed();
             let inner: Element<'_, Message> = if let Some(s) = shortcut {
                 let shortcut_el: Element<'_, Message> = text(s)
                     .size(11)
                     .color(OryxisColors::t().text_muted)
-                    .into();
+                    .boxed();
                 dir_row(vec![
                     label_el,
-                    Space::new().width(Length::Fill).into(),
+                    Space::new().width(Length::Fill).boxed(),
                     shortcut_el,
                 ])
                 .align_y(iced::Alignment::Center)
-                .into()
+                .boxed()
             } else {
                 label_el
             };
@@ -639,7 +639,7 @@ impl Oryxis {
                     ..Default::default()
                 }
             })
-            .into();
+            .boxed();
             self.modal_nav_slot(crate::keynav::RowAction::activate(msg), 6.0, false, btn)
         };
         // Resolve hotkey hints from the live bindings so user
@@ -675,7 +675,7 @@ impl Oryxis {
             Space::new().height(6),
         ]
         .width(Length::Fill)
-        .into();
+        .boxed();
         // "VAULT" section header + indented children: the flat list
         // read as if Hosts/Keychain/... sat outside the Vault (issue
         // #38 review feedback); mirroring the top strip's Vault tab
@@ -691,17 +691,17 @@ impl Oryxis {
                     ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
                 })
                 .color(OryxisColors::t().text_muted)
-                .into();
+                .boxed();
             let inner: Element<'_, Message> = if let Some(hint) = hint {
                 dir_row(vec![
                     label_el,
-                    Space::new().width(Length::Fill).into(),
+                    Space::new().width(Length::Fill).boxed(),
                     // Same size as the item hints so the badge column
                     // reads as one aligned rail.
-                    text(hint).size(11).color(OryxisColors::t().text_muted).into(),
+                    text(hint).size(11).color(OryxisColors::t().text_muted).boxed(),
                 ])
                 .align_y(iced::Alignment::Center)
-                .into()
+                .boxed()
             } else {
                 label_el
             };
@@ -709,10 +709,10 @@ impl Oryxis {
                 .padding(Padding { top: 8.0, right: 16.0, bottom: 2.0, left: 16.0 })
                 .width(Length::Fill)
                 .align_x(dir_align_x())
-                .into()
+                .boxed()
         };
         pub(crate) fn indent(inner: Element<'_, Message>) -> Element<'_, Message> {
-            dir_row(vec![Space::new().width(10).into(), inner]).into()
+            dir_row(vec![Space::new().width(10).boxed(), inner]).boxed()
         }
         let menu_col = column![
             section("vault", hk_hosts),
@@ -747,7 +747,7 @@ impl Oryxis {
                     self.hotkey_label_for_vault_slot(5)
                 ))
             } else {
-                Space::new().into()
+                Space::new().boxed()
             },
             indent(item(
                 "cloud_accounts",
@@ -771,7 +771,7 @@ impl Oryxis {
                     self.hotkey_label_for_vault_slot(9)
                 ))
             } else {
-                Space::new().into()
+                Space::new().boxed()
             },
             Space::new().height(4),
             // Mirror every sidebar nav entry here so Workspace mode
@@ -788,7 +788,7 @@ impl Oryxis {
                 // SFTP is a tab now: the menu opens a fresh SFTP browser tab.
                 item("sftp", Message::Sftp(SftpMessage::NewSftpTab), hk_sftp)
             } else {
-                Space::new().into()
+                Space::new().boxed()
             },
             item("settings", Message::Navigation(NavigationMessage::ChangeView(View::Settings)), hk_settings),
             // The network tools panel's only door, and it exists only
@@ -801,7 +801,7 @@ impl Oryxis {
                     None,
                 )
             } else {
-                Space::new().into()
+                Space::new().boxed()
             },
             sep,
             item("local_shell", Message::Settings(SettingsMessage::OpenLocalShell), hk_local_shell),
@@ -816,7 +816,7 @@ impl Oryxis {
                 // rather than committing directly.
                 item("lock_vault", Message::Vault(VaultMessage::LockVaultConfirm), None)
             } else {
-                Space::new().into()
+                Space::new().boxed()
             },
         ]
         .width(Length::Fill);
@@ -826,7 +826,7 @@ impl Oryxis {
         let menu_panel = container(menu_col)
             .width(Length::Fixed(300.0))
             .padding(Padding { top: 6.0, right: 6.0, bottom: 6.0, left: 6.0 })
-            .style(|_| container::Style {
+            .style(|_: &iced::Theme| container::Style {
                 background: Some(Background::Color(OryxisColors::t().bg_sidebar)),
                 border: Border {
                     radius: Radius::from(8.0),
@@ -879,7 +879,7 @@ impl Oryxis {
                 },
             )
         };
-        let pinned = container(menu_panel)
+        let pinned = container::<_, iced::Theme>(menu_panel)
             .width(Length::Fill)
             .height(Length::Fill)
             .align_x(align)
@@ -894,13 +894,13 @@ impl Oryxis {
                 .height(Length::Fill),
         )
         .on_press(Message::Tabs(TabsMessage::ToggleBurgerMenu))
-        .into();
-        Stack::new()
+        .boxed();
+        Stack::<iced::Element<'_, _>>::new()
             .push(backdrop)
-            .push(pinned)
+            .push(pinned.boxed())
             .width(Length::Fill)
             .height(Length::Fill)
-            .into()
+            .boxed()
     }
 }
 

@@ -5,6 +5,7 @@
 //! anything stored in the vault, and it is reached from the burger menu
 //! only while `network_tools_enabled` is on.
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::button::Status as BtnStatus;
 use iced::widget::{button, column, container, pick_list, scrollable, text, text_input, Space};
@@ -44,10 +45,10 @@ impl Oryxis {
         ]);
 
         let mut body: Vec<Element<'_, Message>> = vec![
-            header.into(),
-            Space::new().height(16).into(),
+            header.boxed(),
+            Space::new().height(16).boxed(),
             controls,
-            Space::new().height(16).into(),
+            Space::new().height(16).boxed(),
         ];
 
         if let Some(err) = &self.net_tools.error {
@@ -67,9 +68,9 @@ impl Oryxis {
                         },
                         ..Default::default()
                     })
-                    .into(),
+                    .boxed(),
             );
-            body.push(Space::new().height(12).into());
+            body.push(Space::new().height(12).boxed());
         }
 
         if running {
@@ -81,26 +82,26 @@ impl Oryxis {
                 ))
                 .size(12)
                 .color(OryxisColors::t().text_muted)
-                .into(),
+                .boxed(),
             );
-            body.push(Space::new().height(12).into());
+            body.push(Space::new().height(12).boxed());
         } else if let Some(heading) = &self.net_tools.last_run
             && !self.net_tools.cards.is_empty()
         {
             body.push(
-                text(heading.clone()).size(13).color(OryxisColors::t().text_secondary).into(),
+                text(heading.clone()).size(13).color(OryxisColors::t().text_secondary).boxed(),
             );
-            body.push(Space::new().height(8).into());
+            body.push(Space::new().height(8).boxed());
         }
 
         for (idx, card) in self.net_tools.cards.iter().enumerate() {
             body.push(self.result_card(idx, card));
-            body.push(Space::new().height(10).into());
+            body.push(Space::new().height(10).boxed());
         }
 
         if self.net_tools.cards.is_empty() && !running && self.net_tools.error.is_none() {
             body.push(
-                text(t("net_empty_hint")).size(12).color(OryxisColors::t().text_muted).into(),
+                text(t("net_empty_hint")).size(12).color(OryxisColors::t().text_muted).boxed(),
             );
         }
 
@@ -124,7 +125,7 @@ impl Oryxis {
             background: Some(Background::Color(OryxisColors::t().bg_primary)),
             ..Default::default()
         })
-        .into()
+        .boxed()
     }
 
     /// The tool selector. A `pick_list` rather than a pill row: seven
@@ -139,7 +140,7 @@ impl Oryxis {
             .on_select(|tool| Message::NetTools(NetToolsMessage::Select(tool)))
             .padding(10)
             .width(260)
-            .into();
+            .boxed();
         self.settings_nav_slot(
             RowAction::picker(prev, next),
             8.0,
@@ -164,10 +165,10 @@ impl Oryxis {
         let target = self.settings_nav_slot(
             RowAction::input(iced::widget::Id::new(TARGET_INPUT_ID)),
             8.0,
-            panel_field(t("net_target"), target.into()),
+            panel_field(t("net_target"), target.boxed()),
         );
 
-        let mut row: Vec<Element<'_, Message>> = vec![container(target).width(Length::Fill).into()];
+        let mut row: Vec<Element<'_, Message>> = vec![container(target).width(Length::Fill).boxed()];
 
         if tool.needs_ports() {
             let ports = text_input(t("net_ports_ph"), &self.net_tools.ports)
@@ -178,11 +179,11 @@ impl Oryxis {
                 .width(200)
                 .style(crate::widgets::rounded_input_style)
                 .align_x(dir_align_x());
-            row.push(Space::new().width(12).into());
+            row.push(Space::new().width(12).boxed());
             row.push(self.settings_nav_slot(
                 RowAction::input(iced::widget::Id::new("net-tools-ports")),
                 8.0,
-                panel_field(t("net_ports"), ports.into()),
+                panel_field(t("net_ports"), ports.boxed()),
             ));
         }
 
@@ -198,16 +199,16 @@ impl Oryxis {
             6.0,
             styled_button(label, Message::NetTools(msg), color),
         );
-        row.push(Space::new().width(12).into());
+        row.push(Space::new().width(12).boxed());
         // The button sits on the field row, so it needs the label's own
         // height above it to line up with the inputs beside it.
         row.push(
             column![Space::new().height(18), action]
                 .align_x(iced::Alignment::Start)
-                .into(),
+                .boxed(),
         );
 
-        dir_row(row).align_y(iced::Alignment::Start).into()
+        dir_row(row).align_y(iced::Alignment::Start).boxed()
     }
 
     /// One result card: a status-tinted left edge, the title, the lines,
@@ -216,23 +217,23 @@ impl Oryxis {
         let accent = status_color(card.status);
         let lines = card.lines.iter().fold(
             column![
-                text(card.title.clone()).size(13).color(OryxisColors::t().text_primary),
+                text::<iced::Theme>(card.title.clone()).size(13).color(OryxisColors::t().text_primary),
                 Space::new().height(6),
             ],
-            |col, line| {
+            |col: iced::widget::Column<Element<'a, Message>>, line| {
                 col.push(
-                    text(line.clone())
+                    text::<iced::Theme>(line.clone())
                         .size(12)
                         .font(iced::Font::MONOSPACE)
-                        .color(OryxisColors::t().text_secondary),
+                        .color(OryxisColors::t().text_secondary).boxed(),
                 )
-                .push(Space::new().height(2))
+                .push(Space::new().height(2).boxed())
             },
         );
-        let body = container(lines.width(Length::Fill).align_x(dir_align_x()))
+        let body = container::<_, iced::Theme>(lines.width(Length::Fill).align_x(dir_align_x()))
             .padding(Padding { top: 12.0, right: 14.0, bottom: 12.0, left: 14.0 })
             .width(Length::Fill)
-            .style(move |_| container::Style {
+            .style(move |_: &iced::Theme| container::Style {
                 background: Some(Background::Color(OryxisColors::t().bg_hover)),
                 border: Border { radius: Radius::from(8.0), color: accent, width: 1.0 },
                 ..Default::default()
@@ -257,17 +258,17 @@ impl Oryxis {
                 .width(Length::Fill)
                 .align_x(align)
                 .padding(Padding { top: 8.0, right, bottom: 0.0, left })
-                .into()
+                .boxed()
         } else {
-            Space::new().into()
+            Space::new().boxed()
         };
 
         iced::widget::MouseArea::new(
-            iced::widget::Stack::new().push(body).push(overlay).width(Length::Fill),
+            iced::widget::Stack::<iced::Element<'_, _>>::new().push(body.boxed()).push(overlay).width(Length::Fill),
         )
         .on_enter(Message::NetTools(NetToolsMessage::ResultHovered(idx)))
         .on_exit(Message::NetTools(NetToolsMessage::ResultUnhovered(idx)))
-        .into()
+        .boxed()
     }
 }
 
@@ -312,7 +313,7 @@ fn copy_button<'a>(idx: usize) -> Element<'a, Message> {
             }),
         iced::widget::tooltip::Position::Left,
     )
-    .into()
+    .boxed()
 }
 
 /// Border colour per verdict. Neutral cards take the ordinary border, so

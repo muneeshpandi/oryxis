@@ -6,6 +6,7 @@
 //! Also the one authority for WHO draws the window frame
 //! ([`NATIVE_FRAME`]) and the predicates every bar asks about it.
 
+use iced::Widget as _;
 use iced::widget::button::Status as BtnStatus;
 use iced::widget::{button, container, MouseArea, Space};
 use iced::{Background, Border, Color, Element, Length};
@@ -49,7 +50,7 @@ pub(crate) fn traffic_light_gutter<'a>(width: f32, height: f32) -> Element<'a, M
     )
     .on_press(Message::Tabs(TabsMessage::WindowDrag))
     .on_double_click(Message::Tabs(TabsMessage::WindowMaximizeToggle))
-    .into()
+    .boxed()
 }
 
 impl crate::app::Oryxis {
@@ -87,7 +88,7 @@ impl crate::app::Oryxis {
         }
         iced::widget::row![traffic_light_gutter(inset, height), bar]
             .align_y(iced::Alignment::Center)
-            .into()
+            .boxed()
     }
 
     /// Whether the side dock's "hide the top bar" is in effect: the
@@ -124,7 +125,7 @@ pub(crate) fn window_chrome_bar<'a>() -> Element<'a, Message> {
             .height(Length::Fixed(CHROME_HEIGHT)),
     )
     .on_press(Message::Tabs(TabsMessage::WindowDrag))
-    .into();
+    .boxed();
 
     // Lock screen doesn't know whether the window is currently maximized; the
     // toggle works either way, so we always show the maximize glyph here.
@@ -140,7 +141,7 @@ pub(crate) fn window_chrome_bar<'a>() -> Element<'a, Message> {
     };
     let controls: Element<'_, Message> = crate::widgets::dir_row(buttons)
     .align_y(iced::Alignment::Center)
-    .into();
+    .boxed();
 
     container(
         crate::widgets::dir_row(vec![drag_region, controls])
@@ -151,7 +152,7 @@ pub(crate) fn window_chrome_bar<'a>() -> Element<'a, Message> {
         background: Some(Background::Color(OryxisColors::t().bg_sidebar)),
         ..Default::default()
     })
-    .into()
+    .boxed()
 }
 
 fn chrome_btn<'a>(
@@ -181,5 +182,5 @@ fn chrome_btn<'a>(
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }

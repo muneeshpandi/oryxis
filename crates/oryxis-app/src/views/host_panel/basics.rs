@@ -15,7 +15,7 @@ impl Oryxis {
             text_input(t("my_server_placeholder"), &self.editor_form.label)
                 .id(iced::widget::Id::new("editor-label"))
                 .on_input(|v| Message::Editor(EditorMessage::EditorLabelChanged(v))).on_submit_maybe(self.hp_submit()).padding(10)
-                .style(crate::widgets::rounded_input_style).align_x(dir_align_x()).into(),
+                .style(crate::widgets::rounded_input_style).align_x(dir_align_x()).boxed(),
         );
         label_field
     }
@@ -52,7 +52,7 @@ impl Oryxis {
             .input_style(crate::widgets::rounded_input_style)
             .menu_style(crate::widgets::combo_menu_style)
             .width(Length::Fill)
-            .into(),
+            .boxed(),
         );
         parent_combo
     }
@@ -70,7 +70,7 @@ impl Oryxis {
                 .padding(10)
                 .style(crate::widgets::rounded_input_style)
                 .align_x(dir_align_x())
-                .into(),
+                .boxed(),
         );
         tags_field
     }
@@ -117,7 +117,7 @@ impl Oryxis {
                         ..Default::default()
                     }
                 })
-                .into(),
+                .boxed(),
             )
         } else {
             container(addr_glyph.view(18.0, Color::WHITE))
@@ -130,13 +130,13 @@ impl Oryxis {
                     border: Border { radius: Radius::from(8.0), ..Default::default() },
                     ..Default::default()
                 })
-                .into()
+                .boxed()
         };
 
         // Hostname row (Connection).
         let hostname_row: Element<'_, Message> = dir_row(vec![
             icon_element,
-            Space::new().width(10).into(),
+            Space::new().width(10).boxed(),
             self.panel_nav_slot(
                 crate::keynav::RowAction::input(iced::widget::Id::new("editor-hostname")),
                 10.0,
@@ -148,9 +148,9 @@ impl Oryxis {
                     .on_input(|v| Message::Editor(EditorMessage::EditorHostnameChanged(v)))
                     .on_submit_maybe(self.hp_submit())
                     .padding(10)
-                    .style(crate::widgets::rounded_input_style).align_x(dir_align_x()).into(),
+                    .style(crate::widgets::rounded_input_style).align_x(dir_align_x()).boxed(),
             ),
-        ]).align_y(iced::Alignment::Center).into();
+        ]).align_y(iced::Alignment::Center).boxed();
         hostname_row
     }
 
@@ -189,15 +189,14 @@ impl Oryxis {
                     .width(120)
                     .padding(10)
                     .style(crate::widgets::rounded_pick_list_style)
-                    .into(),
+                    .boxed(),
             );
             Some(
                 column![
                     text(t("protocol")).size(12).color(OryxisColors::t().text_muted),
                     Space::new().height(8),
                     picker,
-                ]
-                .into(),
+                ].boxed(),
             )
         };
         protocol_row
@@ -238,13 +237,13 @@ impl Oryxis {
                     .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                     .padding(10)
                     .style(crate::widgets::rounded_pick_list_style)
-                    .into(),
+                    .boxed(),
                 );
                 column![
                     text(t("cloud_dynamic_form_transport")).size(12).color(OryxisColors::t().text_muted),
                     Space::new().height(8),
                     picker,
-                ].into()
+                ].boxed()
             });
         cloud_transport_row
     }
@@ -276,7 +275,7 @@ impl Oryxis {
                     .on_submit_maybe(self.hp_submit())
                     .padding(6)
                     .width(56)
-                    .style(crate::widgets::rounded_input_style).align_x(dir_align_x()).into(),
+                    .style(crate::widgets::rounded_input_style).align_x(dir_align_x()).boxed(),
             )
         };
         port_input
@@ -320,10 +319,10 @@ impl Oryxis {
                 ),
             );
             col = col.push(insecure_row).push(
-                text(t("telnet_tls_insecure_desc")).size(11).color(OryxisColors::t().text_muted),
+                text(t("telnet_tls_insecure_desc")).size(11).color(OryxisColors::t().text_muted).boxed(),
             );
         }
-        col.into()
+        col.boxed()
     }
 
     /// One of the mosh text rows, recorded on the panel ring so the
@@ -345,7 +344,7 @@ impl Oryxis {
                 .padding(10)
                 .style(crate::widgets::rounded_input_style)
                 .align_x(dir_align_x())
-                .into(),
+                .boxed(),
         )
     }
 
@@ -377,13 +376,13 @@ impl Oryxis {
         if !on {
             return col
                 .push(
-                    text(t("mosh_enabled_desc")).size(11).color(OryxisColors::t().text_muted),
+                    text(t("mosh_enabled_desc")).size(11).color(OryxisColors::t().text_muted).boxed(),
                 )
-                .into();
+                .boxed();
         }
 
         col = col
-            .push(Space::new().height(ROW_GAP))
+            .push(Space::new().height(ROW_GAP).boxed())
             .push(panel_field(
                 t("mosh_server_path"),
                 self.hp_mosh_field(
@@ -393,7 +392,7 @@ impl Oryxis {
                     EditorMessage::EditorMoshServerPathChanged,
                 ),
             ))
-            .push(Space::new().height(ROW_GAP))
+            .push(Space::new().height(ROW_GAP).boxed())
             .push(panel_field(
                 t("mosh_port_range"),
                 self.hp_mosh_field(
@@ -404,9 +403,9 @@ impl Oryxis {
                 ),
             ))
             .push(
-                text(t("mosh_port_range_desc")).size(11).color(OryxisColors::t().text_muted),
+                text(t("mosh_port_range_desc")).size(11).color(OryxisColors::t().text_muted).boxed(),
             )
-            .push(Space::new().height(ROW_GAP))
+            .push(Space::new().height(ROW_GAP).boxed())
             .push(panel_field(
                 t("mosh_command"),
                 self.hp_mosh_field(
@@ -416,8 +415,8 @@ impl Oryxis {
                     EditorMessage::EditorMoshCommandChanged,
                 ),
             ))
-            .push(text(t("mosh_command_desc")).size(11).color(OryxisColors::t().text_muted));
-        col.into()
+            .push(text(t("mosh_command_desc")).size(11).color(OryxisColors::t().text_muted).boxed());
+        col.boxed()
     }
 
     /// Local-host rows: which curated terminal to spawn, and the folder
@@ -466,7 +465,7 @@ impl Oryxis {
                 })
                 .padding(10)
                 .style(crate::widgets::rounded_pick_list_style)
-                .into(),
+                .boxed(),
         );
         let cwd_field = self.panel_nav_slot(
             crate::keynav::RowAction::input(iced::widget::Id::new("editor-local-cwd")),
@@ -478,7 +477,7 @@ impl Oryxis {
                 .padding(10)
                 .style(crate::widgets::rounded_input_style)
                 .align_x(dir_align_x())
-                .into(),
+                .boxed(),
         );
         let mut col = column![
             panel_field(t("local_terminal"), picker),
@@ -486,13 +485,13 @@ impl Oryxis {
             panel_field(t("local_cwd"), cwd_field),
         ];
         if entries.is_empty() {
-            col = col.push(Space::new().height(ROW_GAP)).push(
+            col = col.push(Space::new().height(ROW_GAP).boxed()).push(
                 text(t("local_terminals_empty_hint"))
                     .size(11)
-                    .color(OryxisColors::t().text_muted),
+                    .color(OryxisColors::t().text_muted).boxed(),
             );
         }
-        col.into()
+        col.boxed()
     }
 }
 
@@ -518,5 +517,5 @@ pub(super) fn hp_toggle_button<'a>(on: bool, msg: Message) -> Element<'a, Messag
         text_color: fg,
         ..Default::default()
     })
-    .into()
+    .boxed()
 }

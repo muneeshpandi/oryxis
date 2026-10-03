@@ -1,5 +1,6 @@
 //! UI helper widgets: cards. Split out of widgets/mod.rs.
 
+use iced::Widget as _;
 use super::*;
 
 /// Opaque diagonal accent wash: `glow` at the top-left corner fading to
@@ -68,18 +69,20 @@ pub(crate) fn select_ring_opt_outset<'a>(
         outset: f32,
     }
 
+    impl iced::advanced::widget::Meta for SelectRing<'_> {}
+
     impl Widget<Message, Theme, iced::Renderer> for SelectRing<'_> {
         fn tag(&self) -> tree::Tag {
-            self.content.as_widget().tag()
+            self.content.tag()
         }
         fn state(&self) -> tree::State {
-            self.content.as_widget().state()
+            self.content.state()
         }
         fn diff(&mut self, tree: &mut Tree) {
-            self.content.as_widget_mut().diff(tree);
+            self.content.diff(tree);
         }
         fn size(&self) -> Size<L> {
-            self.content.as_widget().size()
+            self.content.size()
         }
         fn layout(
             &mut self,
@@ -87,7 +90,7 @@ pub(crate) fn select_ring_opt_outset<'a>(
             renderer: &iced::Renderer,
             limits: &layout::Limits,
         ) {
-            self.content.as_widget_mut().layout(tree, renderer, limits)
+            self.content.layout(tree, renderer, limits)
         }
         fn draw(
             &self,
@@ -100,7 +103,6 @@ pub(crate) fn select_ring_opt_outset<'a>(
             viewport: &Rectangle,
         ) {
             self.content
-                .as_widget()
                 .draw(tree, renderer, theme, style, layout, cursor, viewport);
             if let Some(color) = self.color {
                 let b = layout.bounds();
@@ -134,7 +136,6 @@ pub(crate) fn select_ring_opt_outset<'a>(
             operation: &mut dyn Operation,
         ) {
             self.content
-                .as_widget_mut()
                 .operate(tree, layout, viewport, renderer, operation);
         }
         fn update(
@@ -148,7 +149,6 @@ pub(crate) fn select_ring_opt_outset<'a>(
             viewport: &Rectangle,
         ) {
             self.content
-                .as_widget_mut()
                 .update(tree, event, layout, cursor, renderer, shell, viewport);
         }
         fn mouse_interaction(
@@ -160,7 +160,6 @@ pub(crate) fn select_ring_opt_outset<'a>(
             renderer: &iced::Renderer,
         ) -> mouse::Interaction {
             self.content
-                .as_widget()
                 .mouse_interaction(tree, layout, cursor, viewport, renderer)
         }
         fn overlay<'b>(
@@ -173,17 +172,16 @@ pub(crate) fn select_ring_opt_outset<'a>(
             window: Size,
         ) -> Vec<overlay::Element<'b, Message, Theme, iced::Renderer>> {
             self.content
-                .as_widget_mut()
                 .overlay(tree, layout, renderer, viewport, translation, window)
         }
     }
 
-    Element::new(SelectRing {
+    SelectRing {
         content: el,
         radius,
         color,
         outset,
-    })
+    }.boxed()
 }
 
 /// Soft left-to-right accent wash on a card: the card's own colour
@@ -199,7 +197,7 @@ pub(crate) fn card_accent_wash<'a>(card: Element<'a, Message>, color: Color) -> 
     let bg = OryxisColors::t().bg_surface;
     let tinted = crate::theme::tone_toward_surface(color, bg, 0.4);
     let wash = container(Space::new().width(Length::Fill).height(Length::Fill))
-        .style(move |_| container::Style {
+        .style(move |_: &iced::Theme| container::Style {
             background: Some(Background::Gradient(iced::Gradient::Linear(
                 // Angle points toward stop 1 (right), so stop 0 is the
                 // left edge: colour → transparent, left to right.
@@ -213,7 +211,7 @@ pub(crate) fn card_accent_wash<'a>(card: Element<'a, Message>, color: Color) -> 
             },
             ..Default::default()
         });
-    Stack::new().push(card).push(wash).into()
+    Stack::<iced::Element<'_, _>>::new().push(card).push(wash.boxed()).boxed()
 }
 
 /// Centered empty-state block: a rounded `bg_surface` icon tile, a
@@ -240,7 +238,7 @@ pub(crate) fn empty_state_icon<'a>(icon: Element<'a, Message>) -> Element<'a, Me
             },
             ..Default::default()
         })
-        .into()
+        .boxed()
 }
 
 pub(crate) fn empty_state<'a>(
@@ -251,27 +249,27 @@ pub(crate) fn empty_state<'a>(
 ) -> Element<'a, Message> {
     let mut items: Vec<Element<'a, Message>> = vec![
         empty_state_icon(icon),
-        Space::new().height(20).into(),
+        Space::new().height(20).boxed(),
         text(title)
             .size(20)
             .color(OryxisColors::t().text_primary)
-            .into(),
-        Space::new().height(8).into(),
+            .boxed(),
+        Space::new().height(8).boxed(),
         text(desc)
             .size(13)
             .color(OryxisColors::t().text_muted)
             .align_x(iced::alignment::Horizontal::Center)
-            .into(),
+            .boxed(),
     ];
     if let Some((label, msg)) = cta {
-        items.push(Space::new().height(24).into());
+        items.push(Space::new().height(24).boxed());
         items.push(cta_button(label, msg));
     }
     container(
         iced::widget::Column::with_children(items).align_x(iced::Alignment::Center),
     )
     .center(Length::Fill)
-    .into()
+    .boxed()
 }
 
 /// Visual swatch card for a terminal palette. Renders the theme's
@@ -300,7 +298,7 @@ pub(crate) fn theme_preview_card<'a>(
                     border: Border { radius: Radius::from(6.0), ..Default::default() },
                     ..Default::default()
                 })
-                .into()
+                .boxed()
         })
         .collect();
 
@@ -308,20 +306,20 @@ pub(crate) fn theme_preview_card<'a>(
     // foreground, faded: legible without competing with the name, and
     // visible on every surface that draws the card (issue #230).
     let mut leading: Vec<Element<'a, Message>> =
-        vec![text(name.to_owned()).size(13).color(fg).into()];
+        vec![text(name.to_owned()).size(13).color(fg).boxed()];
     if !tags.is_empty() {
-        leading.push(Space::new().width(8).into());
+        leading.push(Space::new().width(8).boxed());
         leading.push(
             text(tags.to_owned())
                 .size(10)
                 .color(Color { a: fg.a * 0.6, ..fg })
-                .into(),
+                .boxed(),
         );
     }
     let body = dir_row(vec![
-        dir_row(leading).align_y(iced::Alignment::Center).into(),
-        Space::new().width(Length::Fill).into(),
-        Row::with_children(dot_els).spacing(4).into(),
+        dir_row(leading).align_y(iced::Alignment::Center).boxed(),
+        Space::new().width(Length::Fill).boxed(),
+        Row::with_children(dot_els).spacing(4).boxed(),
     ])
     .align_y(iced::Alignment::Center);
 
@@ -354,7 +352,7 @@ pub(crate) fn theme_preview_card<'a>(
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }
 
 /// Fixed card height shared by theme cards and the "+ / Import" cards so
@@ -372,9 +370,9 @@ pub(crate) fn theme_outline_card<'a>(
     button(
         container(
             dir_row(vec![
-                icon.size(14).color(fg).into(),
-                Space::new().width(8).into(),
-                text(label).size(13).color(fg).into(),
+                icon.size(14).color(fg).boxed(),
+                Space::new().width(8).boxed(),
+                text(label).size(13).color(fg).boxed(),
             ])
             .align_y(iced::Alignment::Center),
         )
@@ -399,7 +397,7 @@ pub(crate) fn theme_outline_card<'a>(
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }
 
 pub(crate) fn terminal_theme_card<'a>(

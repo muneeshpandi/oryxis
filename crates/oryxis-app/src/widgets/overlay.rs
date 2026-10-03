@@ -1,5 +1,6 @@
 //! UI helper widgets: overlay. Split out of widgets/mod.rs.
 
+use iced::Widget as _;
 use super::*;
 /// Shared cell type for `bounds_reporter`. Single-threaded
 /// (`Rc<Cell<_>>`) is fine for iced's event loop in 0.13; bump to
@@ -36,18 +37,20 @@ pub(crate) fn bounds_reporter<'a, Message: 'a>(
         cell: BoundsCell,
     }
 
+    impl<Message> iced::advanced::widget::Meta for BoundsReporter<'_, Message> {}
+
     impl<Message> Widget<Message, Theme, iced::Renderer> for BoundsReporter<'_, Message> {
         fn tag(&self) -> tree::Tag {
-            self.content.as_widget().tag()
+            self.content.tag()
         }
         fn state(&self) -> tree::State {
-            self.content.as_widget().state()
+            self.content.state()
         }
         fn diff(&mut self, tree: &mut Tree) {
-            self.content.as_widget_mut().diff(tree);
+            self.content.diff(tree);
         }
         fn size(&self) -> Size<L> {
-            self.content.as_widget().size()
+            self.content.size()
         }
         fn layout(
             &mut self,
@@ -56,7 +59,6 @@ pub(crate) fn bounds_reporter<'a, Message: 'a>(
             limits: &layout::Limits,
         ) {
             self.content
-                .as_widget_mut()
                 .layout(tree, renderer, limits)
         }
         fn draw(
@@ -75,7 +77,6 @@ pub(crate) fn bounds_reporter<'a, Message: 'a>(
             // hit the correct on-screen coordinates.
             self.cell.set(layout.bounds());
             self.content
-                .as_widget()
                 .draw(tree, renderer, theme, style, layout, cursor, viewport);
         }
         fn operate(
@@ -87,7 +88,6 @@ pub(crate) fn bounds_reporter<'a, Message: 'a>(
             operation: &mut dyn Operation,
         ) {
             self.content
-                .as_widget_mut()
                 .operate(tree, layout, viewport, renderer, operation);
         }
         fn update(
@@ -100,7 +100,7 @@ pub(crate) fn bounds_reporter<'a, Message: 'a>(
             shell: &mut Shell<'_, Message>,
             viewport: &Rectangle,
         ) {
-            self.content.as_widget_mut().update(
+            self.content.update(
                 tree, event, layout, cursor, renderer, shell, viewport,
             );
         }
@@ -113,7 +113,6 @@ pub(crate) fn bounds_reporter<'a, Message: 'a>(
             renderer: &iced::Renderer,
         ) -> mouse::Interaction {
             self.content
-                .as_widget()
                 .mouse_interaction(tree, layout, cursor, viewport, renderer)
         }
         fn overlay<'b>(
@@ -125,7 +124,7 @@ pub(crate) fn bounds_reporter<'a, Message: 'a>(
             translation: Vector,
             window: Size,
         ) -> Vec<overlay::Element<'b, Message, Theme, iced::Renderer>> {
-            self.content.as_widget_mut().overlay(
+            self.content.overlay(
                 tree,
                 layout,
                 renderer,
@@ -136,10 +135,10 @@ pub(crate) fn bounds_reporter<'a, Message: 'a>(
         }
     }
 
-    Element::new(BoundsReporter {
+    BoundsReporter {
         content: content.into(),
         cell,
-    })
+    }.boxed()
 }
 
 /// Shared cell type for `press_hit_reporter`: holds the value of the
@@ -179,18 +178,20 @@ pub(crate) fn press_hit_reporter<'a, Message: 'a, T: Clone + 'a>(
         value: T,
     }
 
+    impl<Message, T: Clone> iced::advanced::widget::Meta for PressHitReporter<'_, Message, T> {}
+
     impl<Message, T: Clone> Widget<Message, Theme, iced::Renderer> for PressHitReporter<'_, Message, T> {
         fn tag(&self) -> tree::Tag {
-            self.content.as_widget().tag()
+            self.content.tag()
         }
         fn state(&self) -> tree::State {
-            self.content.as_widget().state()
+            self.content.state()
         }
         fn diff(&mut self, tree: &mut Tree) {
-            self.content.as_widget_mut().diff(tree);
+            self.content.diff(tree);
         }
         fn size(&self) -> Size<L> {
-            self.content.as_widget().size()
+            self.content.size()
         }
         fn layout(
             &mut self,
@@ -199,7 +200,6 @@ pub(crate) fn press_hit_reporter<'a, Message: 'a, T: Clone + 'a>(
             limits: &layout::Limits,
         ) {
             self.content
-                .as_widget_mut()
                 .layout(tree, renderer, limits)
         }
         fn draw(
@@ -213,7 +213,6 @@ pub(crate) fn press_hit_reporter<'a, Message: 'a, T: Clone + 'a>(
             viewport: &Rectangle,
         ) {
             self.content
-                .as_widget()
                 .draw(tree, renderer, theme, style, layout, cursor, viewport);
         }
         fn operate(
@@ -225,7 +224,6 @@ pub(crate) fn press_hit_reporter<'a, Message: 'a, T: Clone + 'a>(
             operation: &mut dyn Operation,
         ) {
             self.content
-                .as_widget_mut()
                 .operate(tree, layout, viewport, renderer, operation);
         }
         fn update(
@@ -248,7 +246,7 @@ pub(crate) fn press_hit_reporter<'a, Message: 'a, T: Clone + 'a>(
             {
                 *self.cell.borrow_mut() = Some(self.value.clone());
             }
-            self.content.as_widget_mut().update(
+            self.content.update(
                 tree, event, layout, cursor, renderer, shell, viewport,
             );
         }
@@ -261,7 +259,6 @@ pub(crate) fn press_hit_reporter<'a, Message: 'a, T: Clone + 'a>(
             renderer: &iced::Renderer,
         ) -> mouse::Interaction {
             self.content
-                .as_widget()
                 .mouse_interaction(tree, layout, cursor, viewport, renderer)
         }
         fn overlay<'b>(
@@ -273,7 +270,7 @@ pub(crate) fn press_hit_reporter<'a, Message: 'a, T: Clone + 'a>(
             translation: Vector,
             window: Size,
         ) -> Vec<overlay::Element<'b, Message, Theme, iced::Renderer>> {
-            self.content.as_widget_mut().overlay(
+            self.content.overlay(
                 tree,
                 layout,
                 renderer,
@@ -284,11 +281,11 @@ pub(crate) fn press_hit_reporter<'a, Message: 'a, T: Clone + 'a>(
         }
     }
 
-    Element::new(PressHitReporter {
+    PressHitReporter {
         content: content.into(),
         cell,
         value,
-    })
+    }.boxed()
 }
 
 /// Transparent decorator that announces its laid-out bounds under `id`
@@ -312,18 +309,20 @@ pub(crate) fn report_container_id<'a, Message: 'a>(
         id: &'static str,
     }
 
+    impl<Message> iced::advanced::widget::Meta for ReportId<'_, Message> {}
+
     impl<Message> Widget<Message, Theme, iced::Renderer> for ReportId<'_, Message> {
         fn tag(&self) -> tree::Tag {
-            self.content.as_widget().tag()
+            self.content.tag()
         }
         fn state(&self) -> tree::State {
-            self.content.as_widget().state()
+            self.content.state()
         }
         fn diff(&mut self, tree: &mut Tree) {
-            self.content.as_widget_mut().diff(tree);
+            self.content.diff(tree);
         }
         fn size(&self) -> Size<L> {
-            self.content.as_widget().size()
+            self.content.size()
         }
         fn layout(
             &mut self,
@@ -331,7 +330,7 @@ pub(crate) fn report_container_id<'a, Message: 'a>(
             renderer: &iced::Renderer,
             limits: &layout::Limits,
         ) {
-            self.content.as_widget_mut().layout(tree, renderer, limits)
+            self.content.layout(tree, renderer, limits)
         }
         fn draw(
             &self,
@@ -344,7 +343,6 @@ pub(crate) fn report_container_id<'a, Message: 'a>(
             viewport: &Rectangle,
         ) {
             self.content
-                .as_widget()
                 .draw(tree, renderer, theme, style, layout, cursor, viewport);
         }
         fn operate(
@@ -357,7 +355,6 @@ pub(crate) fn report_container_id<'a, Message: 'a>(
         ) {
             operation.container(Some(&Id::new(self.id)), layout.bounds(), viewport);
             self.content
-                .as_widget_mut()
                 .operate(tree, layout, viewport, renderer, operation);
         }
         fn update(
@@ -370,7 +367,7 @@ pub(crate) fn report_container_id<'a, Message: 'a>(
             shell: &mut Shell<'_, Message>,
             viewport: &Rectangle,
         ) {
-            self.content.as_widget_mut().update(
+            self.content.update(
                 tree, event, layout, cursor, renderer, shell, viewport,
             );
         }
@@ -383,7 +380,6 @@ pub(crate) fn report_container_id<'a, Message: 'a>(
             renderer: &iced::Renderer,
         ) -> mouse::Interaction {
             self.content
-                .as_widget()
                 .mouse_interaction(tree, layout, cursor, viewport, renderer)
         }
         fn overlay<'b>(
@@ -396,15 +392,14 @@ pub(crate) fn report_container_id<'a, Message: 'a>(
             window: Size,
         ) -> Vec<overlay::Element<'b, Message, Theme, iced::Renderer>> {
             self.content
-                .as_widget_mut()
                 .overlay(tree, layout, renderer, viewport, translation, window)
         }
     }
 
-    Element::new(ReportId {
+    ReportId {
         content: content.into(),
         id,
-    })
+    }.boxed()
 }
 
 /// Scroll the row marked with `target_id` (via [`report_container_id`])
@@ -544,18 +539,20 @@ pub(crate) fn ime_host<'a, Message: 'a>(
         font_weight: iced::font::Weight,
     }
 
+    impl<Message> iced::advanced::widget::Meta for ImeHost<'_, Message> {}
+
     impl<Message> Widget<Message, Theme, iced::Renderer> for ImeHost<'_, Message> {
         fn tag(&self) -> tree::Tag {
-            self.content.as_widget().tag()
+            self.content.tag()
         }
         fn state(&self) -> tree::State {
-            self.content.as_widget().state()
+            self.content.state()
         }
         fn diff(&mut self, tree: &mut Tree) {
-            self.content.as_widget_mut().diff(tree);
+            self.content.diff(tree);
         }
         fn size(&self) -> Size<L> {
-            self.content.as_widget().size()
+            self.content.size()
         }
         fn layout(
             &mut self,
@@ -563,7 +560,7 @@ pub(crate) fn ime_host<'a, Message: 'a>(
             renderer: &iced::Renderer,
             limits: &layout::Limits,
         ) {
-            self.content.as_widget_mut().layout(tree, renderer, limits)
+            self.content.layout(tree, renderer, limits)
         }
         fn draw(
             &self,
@@ -576,7 +573,6 @@ pub(crate) fn ime_host<'a, Message: 'a>(
             viewport: &Rectangle,
         ) {
             self.content
-                .as_widget()
                 .draw(tree, renderer, theme, style, layout, cursor, viewport);
         }
         fn operate(
@@ -588,7 +584,6 @@ pub(crate) fn ime_host<'a, Message: 'a>(
             operation: &mut dyn Operation,
         ) {
             self.content
-                .as_widget_mut()
                 .operate(tree, layout, viewport, renderer, operation);
         }
         fn update(
@@ -602,7 +597,6 @@ pub(crate) fn ime_host<'a, Message: 'a>(
             viewport: &Rectangle,
         ) {
             self.content
-                .as_widget_mut()
                 .update(tree, event, layout, cursor, renderer, shell, viewport);
 
             // The shell only honours an input-method request issued during a
@@ -656,7 +650,6 @@ pub(crate) fn ime_host<'a, Message: 'a>(
             renderer: &iced::Renderer,
         ) -> mouse::Interaction {
             self.content
-                .as_widget()
                 .mouse_interaction(tree, layout, cursor, viewport, renderer)
         }
         fn overlay<'b>(
@@ -669,19 +662,18 @@ pub(crate) fn ime_host<'a, Message: 'a>(
             window: Size,
         ) -> Vec<overlay::Element<'b, Message, Theme, iced::Renderer>> {
             self.content
-                .as_widget_mut()
                 .overlay(tree, layout, renderer, viewport, translation, window)
         }
     }
 
-    Element::new(ImeHost {
+    ImeHost {
         content: content.into(),
         enabled,
         terminal,
         font_size,
         font_name,
         font_weight,
-    })
+    }.boxed()
 }
 
 /// The single, canonical full-window modal overlay: `base` view, a scrim
@@ -731,13 +723,13 @@ pub(crate) fn modal_overlay_opt<'a>(
     use iced::widget::{column, MouseArea};
 
     let Some((card, on_scrim_click, top_reserve)) = modal else {
-        return Stack::new()
+        return Stack::<iced::Element<'_, _>>::new()
             .push(base)
-            .push(Space::new())
-            .push(Space::new())
+            .push(Space::new().boxed())
+            .push(Space::new().boxed())
             .width(Length::Fill)
             .height(Length::Fill)
-            .into();
+            .boxed();
     };
 
     let scrim_fill = container(Space::new())
@@ -751,29 +743,29 @@ pub(crate) fn modal_overlay_opt<'a>(
         column![Space::new().height(Length::Fixed(top_reserve)), scrim_fill]
             .width(Length::Fill)
             .height(Length::Fill)
-            .into()
+            .boxed()
     } else {
-        scrim_fill.into()
+        scrim_fill.boxed()
     };
 
     let scrim: Element<'a, Message> = MouseArea::new(scrim_body)
         .interaction(iced::mouse::Interaction::Idle)
         .on_press(on_scrim_click.unwrap_or(Message::NoOp))
-        .into();
+        .boxed();
 
     let card_trap: Element<'a, Message> =
-        MouseArea::new(card).on_press(Message::NoOp).into();
-    let centered = container(card_trap)
+        MouseArea::new(card).on_press(Message::NoOp).boxed();
+    let centered = container::<_, iced::Theme>(card_trap)
         .width(Length::Fill)
         .height(Length::Fill)
         .center_x(Length::Fill)
         .center_y(Length::Fill);
 
-    Stack::new()
+    Stack::<iced::Element<'_, _>>::new()
         .push(base)
         .push(scrim)
-        .push(centered)
+        .push(centered.boxed())
         .width(Length::Fill)
         .height(Length::Fill)
-        .into()
+        .boxed()
 }

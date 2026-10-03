@@ -14,6 +14,7 @@
 //! ever exposed one hop, even though the model and SSH engine already
 //! support arbitrary-length chains.
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::button::Status as BtnStatus;
 use iced::widget::{button, column, container, scrollable, text, text_input, Space};
@@ -56,7 +57,7 @@ impl Oryxis {
         // Bare card; `widgets::modal_overlay` (the caller) owns centering,
         // the absorbing scrim, and the click-trap. The caller also picks the
         // context-dependent scrim dismiss (pop the add sub-view vs close).
-        body.into()
+        body.boxed()
     }
 
     /// List mode: the ordered chain, the destination host, and the
@@ -66,8 +67,8 @@ impl Oryxis {
             text(t("host_chaining"))
                 .size(16)
                 .color(OryxisColors::t().text_primary)
-                .into(),
-            Space::new().width(Length::Fill).into(),
+                .boxed(),
+            Space::new().width(Length::Fill).boxed(),
             // The close X doubles as the "Done" action, so it is a
             // keyboard row too (Esc also closes, via close_topmost_modal).
             self.modal_nav_slot(
@@ -100,7 +101,7 @@ impl Oryxis {
                     left: 14.0,
                 })
                 .center_x(Length::Fill)
-                .into(),
+                .boxed(),
             );
         }
 
@@ -148,12 +149,12 @@ impl Oryxis {
                 iced_fonts::lucide::plus()
                     .size(14)
                     .color(OryxisColors::t().accent)
-                    .into(),
-                Space::new().width(8).into(),
+                    .boxed(),
+                Space::new().width(8).boxed(),
                 text(t("add_a_host"))
                     .size(13)
                     .color(OryxisColors::t().accent)
-                    .into(),
+                    .boxed(),
             ])
             .align_y(iced::Alignment::Center),
         )
@@ -186,9 +187,9 @@ impl Oryxis {
         // no hop row to default to, so this button takes the ring.
         let add_action = RowAction::activate(Message::Editor(EditorMessage::ChainEditorStartAdd));
         let add_btn: Element<'_, Message> = if total == 0 {
-            self.modal_nav_slot_default(add_action, 8.0, false, add_btn.into())
+            self.modal_nav_slot_default(add_action, 8.0, false, add_btn.boxed())
         } else {
-            self.modal_nav_slot(add_action, 8.0, false, add_btn.into())
+            self.modal_nav_slot(add_action, 8.0, false, add_btn.boxed())
         };
 
         column![
@@ -199,8 +200,7 @@ impl Oryxis {
             list,
             Space::new().height(12),
             add_btn,
-        ]
-        .into()
+        ].boxed()
     }
 
     /// Add mode: searchable host list whose selection appends a hop.
@@ -211,11 +211,11 @@ impl Oryxis {
                 Message::Editor(EditorMessage::ChainEditorCancelAdd),
                 false,
             ),
-            Space::new().width(10).into(),
+            Space::new().width(10).boxed(),
             text(t("add_a_host"))
                 .size(16)
                 .color(OryxisColors::t().text_primary)
-                .into(),
+                .boxed(),
         ])
         .align_y(iced::Alignment::Center);
 
@@ -313,7 +313,7 @@ impl Oryxis {
                     left: 16.0,
                 })
                 .center_x(Length::Fill)
-                .into(),
+                .boxed(),
             );
         }
 
@@ -327,7 +327,7 @@ impl Oryxis {
         )
         .height(Length::Fill);
 
-        column![header, Space::new().height(16), search, Space::new().height(12), list].into()
+        column![header, Space::new().height(16), search, Space::new().height(12), list].boxed()
     }
 
     /// "Personal / Group" breadcrumb for a connection, or just
@@ -382,7 +382,7 @@ impl Oryxis {
                 let glyph_el: Element<'a, Message> = iced_fonts::lucide::server()
                     .size(13)
                     .color(Color::WHITE)
-                    .into();
+                    .boxed();
                 crate::widgets::host_icon(
                     HostIconStyle::Circular,
                     OryxisColors::t().text_muted,
@@ -420,9 +420,9 @@ impl Oryxis {
 
         let controls = dir_row(vec![
             opt_icon_button(iced_fonts::lucide::chevron_up(), up_msg.clone()),
-            Space::new().width(2).into(),
+            Space::new().width(2).boxed(),
             opt_icon_button(iced_fonts::lucide::chevron_down(), down_msg.clone()),
-            Space::new().width(2).into(),
+            Space::new().width(2).boxed(),
             chain_icon_button(
                 iced_fonts::lucide::trash(),
                 Message::Editor(EditorMessage::ChainEditorRemoveHop(idx)),
@@ -433,10 +433,10 @@ impl Oryxis {
 
         let row = dir_row(vec![
             badge,
-            Space::new().width(12).into(),
-            info.into(),
-            Space::new().width(Length::Fill).into(),
-            controls.into(),
+            Space::new().width(12).boxed(),
+            info.boxed(),
+            Space::new().width(Length::Fill).boxed(),
+            controls.boxed(),
         ])
         .align_y(iced::Alignment::Center);
 
@@ -457,7 +457,7 @@ impl Oryxis {
                 },
                 ..Default::default()
             })
-            .into();
+            .boxed();
 
         // Keyboard row: the card itself is not clickable, so Enter and
         // Space fire the remove button (its primary action) and
@@ -485,7 +485,7 @@ impl Oryxis {
 fn destination_card<'a>(badge: Element<'a, Message>, label: String) -> Element<'a, Message> {
     let row = dir_row(vec![
         badge,
-        Space::new().width(12).into(),
+        Space::new().width(12).boxed(),
         text(label)
             .size(13)
             .font(iced::Font {
@@ -493,7 +493,7 @@ fn destination_card<'a>(badge: Element<'a, Message>, label: String) -> Element<'
                 ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
             })
             .color(OryxisColors::t().text_primary)
-            .into(),
+            .boxed(),
     ])
     .align_y(iced::Alignment::Center);
 
@@ -514,7 +514,7 @@ fn destination_card<'a>(badge: Element<'a, Message>, label: String) -> Element<'
             },
             ..Default::default()
         })
-        .into()
+        .boxed()
 }
 
 /// The downward arrow drawn between chain nodes.
@@ -531,7 +531,7 @@ fn chain_connector<'a>() -> Element<'a, Message> {
         left: 0.0,
     })
     .center_x(Length::Fill)
-    .into()
+    .boxed()
 }
 
 /// Selectable host row used by the add-a-hop list.
@@ -544,7 +544,7 @@ fn pick_row<'a>(
 ) -> Element<'a, Message> {
     let inner = dir_row(vec![
         badge,
-        Space::new().width(12).into(),
+        Space::new().width(12).boxed(),
         text(label.to_string())
             .size(13)
             .font(iced::Font {
@@ -552,12 +552,12 @@ fn pick_row<'a>(
                 ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
             })
             .color(OryxisColors::t().text_primary)
-            .into(),
-        Space::new().width(Length::Fill).into(),
+            .boxed(),
+        Space::new().width(Length::Fill).boxed(),
         text(breadcrumb)
             .size(12)
             .color(OryxisColors::t().accent)
-            .into(),
+            .boxed(),
     ])
     .align_y(iced::Alignment::Center);
 
@@ -587,7 +587,7 @@ fn pick_row<'a>(
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }
 
 /// Small square icon button. `danger` tints the glyph in the error
@@ -619,7 +619,7 @@ fn chain_icon_button<'a>(
                 ..Default::default()
             }
         })
-        .into()
+        .boxed()
 }
 
 /// Reorder arrow button: interactive when `on_press` is `Some`,
@@ -632,6 +632,6 @@ fn opt_icon_button<'a>(
         Some(msg) => chain_icon_button(icon, msg, false),
         None => container(icon.size(14).color(OryxisColors::t().border))
             .padding(6)
-            .into(),
+            .boxed(),
     }
 }

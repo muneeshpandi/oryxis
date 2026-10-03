@@ -45,7 +45,7 @@ impl Oryxis {
             .input_style(crate::widgets::rounded_input_style)
             .menu_style(crate::widgets::combo_menu_style)
             .width(Length::Fill)
-            .into(),
+            .boxed(),
         );
 
         let mut block = column![
@@ -61,7 +61,7 @@ impl Oryxis {
         ];
 
         if let Some(draft) = &self.editor_form.login_script_draft {
-            block = block.push(Space::new().height(ROW_GAP)).push(
+            block = block.push(Space::new().height(ROW_GAP).boxed()).push(
                 self.hp_login_script_draft(draft),
             );
         } else {
@@ -74,7 +74,7 @@ impl Oryxis {
                 .login_script_id
                 .and_then(|id| self.login_scripts.iter().find(|s| s.id == id))
             {
-                let mut steps = column![].spacing(2);
+                let mut steps = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(2);
                 for (i, step) in script.steps.iter().enumerate() {
                     use oryxis_core::login_script::{ExpectPattern, SendPayload};
                     let expect = match &step.expect {
@@ -100,7 +100,7 @@ impl Oryxis {
                         text(line)
                             .size(11)
                             .font(iced::Font::MONOSPACE)
-                            .color(OryxisColors::t().text_muted),
+                            .color(OryxisColors::t().text_muted).boxed(),
                     );
                 }
                 let edit_msg = Message::Settings(
@@ -116,9 +116,9 @@ impl Oryxis {
                     ),
                 );
                 block = block
-                    .push(Space::new().height(ROW_GAP))
-                    .push(steps)
-                    .push(Space::new().height(8))
+                    .push(Space::new().height(ROW_GAP).boxed())
+                    .push(steps.boxed())
+                    .push(Space::new().height(8).boxed())
                     .push(edit_btn);
             }
             for (name, value) in self.login_script_variables() {
@@ -149,7 +149,7 @@ impl Oryxis {
                         .style(crate::widgets::rounded_input_style),
                 ]
                 .width(Length::Fill);
-                block = block.push(Space::new().height(ROW_GAP)).push(row);
+                block = block.push(Space::new().height(ROW_GAP).boxed()).push(row.boxed());
             }
 
             if self.login_script_uses_target_password() {
@@ -164,7 +164,7 @@ impl Oryxis {
                 };
                 let id = iced::widget::Id::new("editor-target-password");
                 self.panel_nav_record(crate::keynav::RowAction::input(id.clone()));
-                block = block.push(Space::new().height(ROW_GAP)).push(panel_field(
+                block = block.push(Space::new().height(ROW_GAP).boxed()).push(panel_field(
                     t("target_password"),
                     crate::widgets::password_input_with_eye_nav(
                         placeholder,
@@ -189,7 +189,7 @@ impl Oryxis {
             }
         }
 
-        block.into()
+        block.boxed()
     }
 
     /// The inline "new script" sub-form: pick a template, name it, and
@@ -222,7 +222,7 @@ impl Oryxis {
             .input_style(crate::widgets::rounded_input_style)
             .menu_style(crate::widgets::combo_menu_style)
             .width(Length::Fill)
-            .into(),
+            .boxed(),
         );
 
         // One helper for the four text rows: same shape, same keynav
@@ -245,7 +245,7 @@ impl Oryxis {
                     .on_input(on_input)
                     .padding(10)
                     .style(crate::widgets::rounded_input_style)
-                    .into(),
+                    .boxed(),
             )
         };
 
@@ -261,7 +261,7 @@ impl Oryxis {
                     OryxisColors::t().accent,
                 ),
             ),
-            Space::new().width(8).into(),
+            Space::new().width(8).boxed(),
             self.panel_nav_slot(
                 crate::keynav::RowAction::activate(Message::Editor(
                     EditorMessage::EditorScriptDraftCancel,
@@ -341,6 +341,6 @@ impl Oryxis {
             },
             ..Default::default()
         })
-        .into()
+        .boxed()
     }
 }

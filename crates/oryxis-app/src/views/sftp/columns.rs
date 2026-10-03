@@ -173,7 +173,7 @@ pub(crate) fn col_drag_ghost<'a>(label: &str) -> Element<'a, Message> {
         },
         ..Default::default()
     })
-    .into()
+    .boxed()
 }
 
 /// A resize handle: a centered 1px divider line inside a wider grab zone,
@@ -200,7 +200,7 @@ pub(crate) fn col_resize_handle<'a>(
     .on_press(Message::Sftp(SftpMessage::SftpColResizeStart(side, target)))
     .on_double_click(Message::Sftp(SftpMessage::SftpColAutoFit(side, target)))
     .interaction(iced::mouse::Interaction::ResizingHorizontally)
-    .into()
+    .boxed()
 }
 
 /// A small bordered tooltip chip carrying `tip`, matching the snippet-action
@@ -217,7 +217,7 @@ pub(crate) fn tooltip_chip<'a>(tip: &'a str) -> Element<'a, Message> {
             },
             ..Default::default()
         })
-        .into()
+        .boxed()
 }
 
 /// One column header: an ellipsised, draggable label with a trailing (right-
@@ -255,7 +255,7 @@ pub(crate) fn header_cell<'a>(
     // header stays uncluttered. It gets a pointer cursor + tooltip; with no
     // press handler of its own, the drag/sort press falls through to the
     // header MouseArea below.
-    let mut label_children: Vec<Element<'a, Message>> = vec![label.into()];
+    let mut label_children: Vec<Element<'a, Message>> = vec![label.boxed()];
     if active_sort {
         let glyph = if sort.ascending {
             iced_fonts::lucide::chevron_up()
@@ -282,8 +282,8 @@ pub(crate) fn header_cell<'a>(
         // it sits exactly on the label's optical line.
         .padding(Padding { bottom: 2.0, ..Padding::ZERO })
         .center_y(Length::Fill);
-        label_children.push(Space::new().width(4).into());
-        label_children.push(arrow.into());
+        label_children.push(Space::new().width(4).boxed());
+        label_children.push(arrow.boxed());
     }
     let label_row = crate::widgets::dir_row(label_children)
         .height(Length::Fill)
@@ -295,9 +295,9 @@ pub(crate) fn header_cell<'a>(
         row![Space::new().width(Length::Fixed(ICON_COL_W)), label_row]
             .height(Length::Fill)
             .align_y(iced::Alignment::Center)
-            .into()
+            .boxed()
     } else {
-        label_row.into()
+        label_row.boxed()
     };
 
     let label_area = MouseArea::new(
@@ -333,9 +333,9 @@ pub(crate) fn header_cell<'a>(
                 background: Some(Background::Color(OryxisColors::t().accent)),
                 ..Default::default()
             });
-        iced::widget::stack![cell, bar].into()
+        iced::widget::stack![cell, bar].boxed()
     } else {
-        cell.into()
+        cell.boxed()
     }
 }
 
@@ -385,5 +385,5 @@ pub(crate) fn column_headers<'a>(
         },
         ..Default::default()
     })
-    .into()
+    .boxed()
 }

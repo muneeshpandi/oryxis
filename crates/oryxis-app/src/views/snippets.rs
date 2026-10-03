@@ -1,5 +1,6 @@
 //! Snippets (saved commands) list and editor panel.
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::{
     button, column, container, scrollable, text, text_editor, text_input, MouseArea, Space,
@@ -29,12 +30,12 @@ impl Oryxis {
                         text("+").size(13).font(iced::Font {
                             weight: iced::font::Weight::Bold,
                             ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
-                        }).color(fg).into(),
-                        Space::new().width(4).into(),
+                        }).color(fg).boxed(),
+                        Space::new().width(4).boxed(),
                         text(t("snippet_btn")).size(11).font(iced::Font {
                             weight: iced::font::Weight::Bold,
                             ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
-                        }).color(fg).into(),
+                        }).color(fg).boxed(),
                     ]).align_y(iced::Alignment::Center),
                 )
                 .center_y(Length::Fixed(24.0))
@@ -51,7 +52,7 @@ impl Oryxis {
                     border: Border { radius: Radius::from(6.0), ..Default::default() },
                     ..Default::default()
                 }
-            }).into()
+            }).boxed()
         };
         // Responsive collapse: search yields first, then folds to an
         // icon; when the buttons can't fit they all move into a `…` menu.
@@ -68,8 +69,8 @@ impl Oryxis {
                     iced_fonts::lucide::folder()
                         .size(16)
                         .color(OryxisColors::t().accent)
-                        .into(),
-                    Space::new().width(6).into(),
+                        .boxed(),
+                    Space::new().width(6).boxed(),
                     button(
                         text(t("snippets"))
                             .size(16)
@@ -83,20 +84,20 @@ impl Oryxis {
                         border: Border::default(),
                         ..Default::default()
                     })
-                    .into(),
-                    Space::new().width(6).into(),
-                    text("/").size(16).color(OryxisColors::t().text_muted).into(),
-                    Space::new().width(6).into(),
+                    .boxed(),
+                    Space::new().width(6).boxed(),
+                    text("/").size(16).color(OryxisColors::t().text_muted).boxed(),
+                    Space::new().width(6).boxed(),
                     text(open_group.clone())
                         .size(16)
                         .wrapping(iced::widget::text::Wrapping::None)
                         .color(OryxisColors::t().text_primary)
-                        .into(),
+                        .boxed(),
                 ])
                 .align_y(iced::Alignment::Center)
-                .into(),
+                .boxed(),
             );
-            row_items.push(Space::new().width(12).into());
+            row_items.push(Space::new().width(12).boxed());
         }
         let search_slot = self.vault_search_slot(search_collapsed);
         row_items.push(if search_collapsed {
@@ -104,7 +105,7 @@ impl Oryxis {
         } else {
             search_slot
         });
-        row_items.push(Space::new().width(10).into());
+        row_items.push(Space::new().width(10).boxed());
         let show_tag_filter = !self.distinct_snippet_tags().is_empty()
             || !self.snippet_filter_tags.is_empty();
         if buttons_overflow {
@@ -135,10 +136,10 @@ impl Oryxis {
                         self.snippet_tag_filter_btn_bounds.clone(),
                     ),
                 ));
-                row_items.push(Space::new().width(6).into());
+                row_items.push(Space::new().width(6).boxed());
             }
             row_items.push(self.keynav_toolbar_slot(crate::keynav::ToolbarItem::Sort, sort_btn));
-            row_items.push(Space::new().width(8).into());
+            row_items.push(Space::new().width(8).boxed());
             row_items.push(self.keynav_toolbar_slot(crate::keynav::ToolbarItem::Primary, primary));
         }
         let toolbar = container(dir_row(row_items).align_y(iced::Alignment::Center))
@@ -146,10 +147,10 @@ impl Oryxis {
             .width(Length::Fill);
 
         let status: Element<'_, Message> = if let Some(err) = &self.snippet_form.error {
-            container(Element::from(text(err.clone()).size(12).color(OryxisColors::t().error)))
-                .padding(Padding { top: 0.0, right: 24.0, bottom: 8.0, left: 24.0 }).into()
+            container(text(err.clone()).size(12).color(OryxisColors::t().error).boxed())
+                .padding(Padding { top: 0.0, right: 24.0, bottom: 8.0, left: 24.0 }).boxed()
         } else {
-            Space::new().into()
+            Space::new().boxed()
         };
 
         if self.snippets.is_empty() {
@@ -157,7 +158,7 @@ impl Oryxis {
                 iced_fonts::lucide::code()
                     .size(32)
                     .color(OryxisColors::t().text_muted)
-                    .into(),
+                    .boxed(),
                 crate::i18n::t("create_snippet_title").to_string(),
                 crate::i18n::t("create_snippet_desc").to_string(),
                 Some((
@@ -176,7 +177,7 @@ impl Oryxis {
             let main_content = column![status, empty_state]
                 .width(Length::Fill)
                 .height(Length::Fill);
-            return main_content.into();
+            return main_content.boxed();
         }
 
         let snippet_needle = self.snippet_search.to_lowercase();
@@ -316,7 +317,7 @@ impl Oryxis {
                 .map(|nav| nav.chunks(cols.max(1)).map(|c| c.to_vec()).collect())
                 .collect(),
         );
-        let mut grid_col = column![].spacing(12);
+        let mut grid_col = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(12);
         for (header_key, cards) in section_blocks {
             if let Some(key) = header_key {
                 // Same section-header treatment as the keychain's
@@ -331,7 +332,7 @@ impl Oryxis {
                         .width(Length::Fill)
                         .align_x(dir_align_x()),
                     )
-                    .padding(Padding { top: 4.0, right: 0.0, bottom: 8.0, left: 0.0 }),
+                    .padding(Padding { top: 4.0, right: 0.0, bottom: 8.0, left: 0.0 }).boxed(),
                 );
             }
             grid_col = grid_col.push(distribute_card_grid(cards, cols, 12.0, 12.0));
@@ -350,13 +351,13 @@ impl Oryxis {
         // Workspace so we don't render the input twice.
         // Search now lives in the toolbar (`vault_search_field`); the
         // legacy below-toolbar search bar collapses to nothing.
-        let search_bar: Element<'_, Message> = Space::new().into();
+        let search_bar: Element<'_, Message> = Space::new().boxed();
 
         // Side panel hoisted to `view_main` (active_side_panel).
         column![toolbar, search_bar, status, grid]
             .width(Length::Fill)
             .height(Length::Fill)
-            .into()
+            .boxed()
     }
 
     /// Shortcut recorder row shared by both snippet editors: the
@@ -369,8 +370,8 @@ impl Oryxis {
             Some(b) => text(b.badges().join(" + "))
                 .size(12)
                 .color(c.text_primary)
-                .into(),
-            None => text("\u{2014}").size(12).color(c.text_muted).into(),
+                .boxed(),
+            None => text("\u{2014}").size(12).color(c.text_muted).boxed(),
         };
         let record_label = if self.snippet_form.hotkey_capturing {
             t("hotkey_press_a_key")
@@ -397,7 +398,7 @@ impl Oryxis {
                 ..Default::default()
             }
         })
-        .into();
+        .boxed();
         let record_btn = if panel {
             self.panel_nav_slot(
                 crate::keynav::RowAction::activate(Message::Snippet(SnippetMessage::SnippetHotkeyCaptureStart)),
@@ -409,7 +410,7 @@ impl Oryxis {
         };
         let mut items: Vec<Element<'_, Message>> = vec![
             current,
-            Space::new().width(Length::Fill).into(),
+            Space::new().width(Length::Fill).boxed(),
             record_btn,
         ];
         if self.snippet_form.hotkey.is_some() {
@@ -429,7 +430,7 @@ impl Oryxis {
                     ..Default::default()
                 }
             })
-            .into();
+            .boxed();
             let clear = if panel {
                 self.panel_nav_slot(
                     crate::keynav::RowAction::activate(Message::Snippet(SnippetMessage::SnippetHotkeyClear)),
@@ -439,10 +440,10 @@ impl Oryxis {
             } else {
                 clear
             };
-            items.push(Space::new().width(4).into());
+            items.push(Space::new().width(4).boxed());
             items.push(clear);
         }
-        dir_row(items).align_y(iced::Alignment::Center).into()
+        dir_row(items).align_y(iced::Alignment::Center).boxed()
     }
 
     /// One snippet card for the vault grid (badge + label + preview +
@@ -467,7 +468,7 @@ impl Oryxis {
                 .size(14)
                 .line_height(1.0)
                 .color(Color::WHITE)
-                .into();
+                .boxed();
             let icon_box = crate::widgets::host_icon(
                 snip_style,
                 OryxisColors::t().accent,
@@ -492,12 +493,12 @@ impl Oryxis {
                     true,
                     Message::Snippet(SnippetMessage::ShowSnippetMenu(idx)),
                 )
-                .into()
+                .boxed()
             } else {
                 Space::new()
                     .width(Length::Fixed(SNIP_DOTS_SLOT_W))
                     .height(Length::Fixed(22.0))
-                    .into()
+                    .boxed()
             };
 
             let cmd_preview = if snip.command.len() > 30 {
@@ -524,11 +525,11 @@ impl Oryxis {
             // "installed here" state lives on the terminal sidebar rows,
             // which know which host is focused.
             if snip.install {
-                info_col = info_col.push(Space::new().height(2)).push(
+                info_col = info_col.push(Space::new().height(2).boxed()).push(
                     text(t("snippet_install_badge"))
                         .size(10)
                         .color(OryxisColors::t().warning)
-                        .wrapping(iced::widget::text::Wrapping::None),
+                        .wrapping(iced::widget::text::Wrapping::None).boxed(),
                 );
             }
             if !snip.tags.is_empty() {
@@ -538,11 +539,11 @@ impl Oryxis {
                     .map(|tg| format!("#{tg}"))
                     .collect::<Vec<_>>()
                     .join(" ");
-                info_col = info_col.push(Space::new().height(2)).push(
+                info_col = info_col.push(Space::new().height(2).boxed()).push(
                     text(hashtags)
                         .size(10)
                         .color(Color { a: 0.8, ..OryxisColors::t().accent })
-                        .wrapping(iced::widget::text::Wrapping::None),
+                        .wrapping(iced::widget::text::Wrapping::None).boxed(),
                 );
             }
             if let Some(binding) = snip
@@ -550,11 +551,11 @@ impl Oryxis {
                 .as_deref()
                 .and_then(crate::hotkeys::HotkeyBinding::parse)
             {
-                info_col = info_col.push(Space::new().height(2)).push(
+                info_col = info_col.push(Space::new().height(2).boxed()).push(
                     text(binding.badges().join(" + "))
                         .size(10)
                         .color(OryxisColors::t().text_muted)
-                        .wrapping(iced::widget::text::Wrapping::None),
+                        .wrapping(iced::widget::text::Wrapping::None).boxed(),
                 );
             }
 
@@ -562,8 +563,8 @@ impl Oryxis {
                 container(
                     dir_row(vec![
                         icon_box,
-                        Space::new().width(8).into(),
-                        info_col.width(Length::Fill).into(),
+                        Space::new().width(8).boxed(),
+                        info_col.width(Length::Fill).boxed(),
                         edit_btn,
                     ]).align_y(iced::Alignment::Center),
                 )
@@ -595,9 +596,9 @@ impl Oryxis {
                 .on_enter(Message::Tabs(TabsMessage::SnippetCardHovered(idx)))
                 .on_exit(Message::Tabs(TabsMessage::SnippetCardUnhovered(idx)))
                 .on_right_press(Message::Snippet(SnippetMessage::ShowSnippetMenu(idx)))
-                .into();
+                .boxed();
             let card_el: Element<'_, Message> =
-                container(wrapped).width(Length::Fill).clip(true).into();
+                container(wrapped).width(Length::Fill).clip(true).boxed();
             let card_el = self.card_wash(card_el, OryxisColors::t().accent);
 self.keynav_ring_content(kb_selected, card_el)
     }
@@ -616,7 +617,7 @@ self.keynav_ring_content(kb_selected, card_el)
             .size(16)
             .line_height(1.0)
             .color(Color::WHITE)
-            .into();
+            .boxed();
         let icon_box = crate::widgets::host_icon(
             style,
             OryxisColors::t().accent,
@@ -628,7 +629,7 @@ self.keynav_ring_content(kb_selected, card_el)
             container(
                 dir_row(vec![
                     icon_box,
-                    Space::new().width(8).into(),
+                    Space::new().width(8).boxed(),
                     column![
                         text(name.to_string())
                             .size(13)
@@ -641,11 +642,11 @@ self.keynav_ring_content(kb_selected, card_el)
                             .wrapping(iced::widget::text::Wrapping::None),
                     ]
                     .width(Length::Fill)
-                    .into(),
+                    .boxed(),
                     iced_fonts::lucide::chevron_right()
                         .size(14)
                         .color(OryxisColors::t().text_muted)
-                        .into(),
+                        .boxed(),
                 ])
                 .align_y(iced::Alignment::Center),
             )
@@ -666,7 +667,7 @@ self.keynav_ring_content(kb_selected, card_el)
             }
         });
         let card_el: Element<'_, Message> =
-            container(card_btn).width(Length::Fill).clip(true).into();
+            container(card_btn).width(Length::Fill).clip(true).boxed();
         let card_el = self.card_wash(card_el, OryxisColors::t().accent);
         self.keynav_ring_content(kb_selected, card_el)
     }
@@ -679,8 +680,8 @@ self.keynav_ring_content(kb_selected, card_el)
 
         let panel_header = container(
             dir_row(vec![
-                text(title).size(18).color(OryxisColors::t().text_primary).into(),
-                Space::new().width(Length::Fill).into(),
+                text(title).size(18).color(OryxisColors::t().text_primary).boxed(),
+                Space::new().width(Length::Fill).boxed(),
                 button(text("\u{00D7}").size(14).color(OryxisColors::t().text_muted))
                     .on_press(Message::Snippet(SnippetMessage::HideSnippetPanel))
                     .padding(Padding { top: 4.0, right: 8.0, bottom: 4.0, left: 8.0 })
@@ -688,7 +689,7 @@ self.keynav_ring_content(kb_selected, card_el)
                         background: Some(Background::Color(OryxisColors::t().bg_surface)),
                         border: Border { radius: Radius::from(6.0), ..Default::default() },
                         ..Default::default()
-                    }).into(),
+                    }).boxed(),
             ]).align_y(iced::Alignment::Center),
         )
         .padding(Padding { top: 20.0, right: 20.0, bottom: 16.0, left: 20.0 });
@@ -704,7 +705,7 @@ self.keynav_ring_content(kb_selected, card_el)
                     .on_input(|v| Message::Snippet(SnippetMessage::SnippetLabelChanged(v)))
                     .padding(10)
                     .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
             ),
             Space::new().height(14),
             text(t("group")).size(12).color(OryxisColors::t().text_secondary),
@@ -736,7 +737,7 @@ self.keynav_ring_content(kb_selected, card_el)
                     .input_style(crate::widgets::rounded_input_style)
                     .menu_style(crate::widgets::combo_menu_style)
                     .width(Length::Fill)
-                    .into(),
+                    .boxed(),
                 )
             },
             Space::new().height(14),
@@ -750,7 +751,7 @@ self.keynav_ring_content(kb_selected, card_el)
                     .on_input(|v| Message::Snippet(SnippetMessage::SnippetTagsChanged(v)))
                     .padding(10)
                     .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
             ),
             Space::new().height(14),
             text(t("snippet_hotkey")).size(12).color(OryxisColors::t().text_secondary),
@@ -791,7 +792,7 @@ self.keynav_ring_content(kb_selected, card_el)
                         .style(crate::widgets::rounded_editor_style),
                 )
                 .height(Length::Shrink.max(240.0))
-                .into(),
+                .boxed(),
             ),
         ]
         .width(Length::Fill)
@@ -828,6 +829,6 @@ self.keynav_ring_content(kb_selected, card_el)
             footer,
         ].height(Length::Fill);
 
-        crate::widgets::side_panel_frame(panel_content.into(), OryxisColors::t().bg_sidebar, self.panel_width)
+        crate::widgets::side_panel_frame(panel_content.boxed(), OryxisColors::t().bg_sidebar, self.panel_width)
     }
 }

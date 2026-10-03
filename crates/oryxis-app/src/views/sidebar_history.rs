@@ -3,6 +3,7 @@
 //! hover-revealed floating row actions as the Snippets tab (Paste / Run /
 //! Delete). Rows re-insert like snippets: click = paste without Enter.
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::{column, container, text, MouseArea, Space};
 use iced::{Background, Border, Element, Length, Padding};
@@ -40,7 +41,7 @@ impl Oryxis {
                 .padding(8)
                 .size(13)
                 .style(crate::widgets::rounded_input_style)
-                .into(),
+                .boxed(),
         );
         // Export the captured commands to a plain-text file (offline
         // reference / support sharing). Recorded after the search,
@@ -56,14 +57,14 @@ impl Oryxis {
             ),
         );
         let header = container(
-            dir_row(vec![search, Space::new().width(6).into(), export_btn])
+            dir_row(vec![search, Space::new().width(6).boxed(), export_btn])
                 .align_y(iced::Alignment::Center),
         )
         .padding(Padding { top: 10.0, right: 12.0, bottom: 8.0, left: 12.0 })
         .width(Length::Fill);
 
         let needle = self.cmd_history_search.to_lowercase();
-        let mut list = column![]
+        let mut list = iced::widget::Column::<iced::Element<'_, _>>::new()
             .spacing(6)
             .padding(Padding { top: 0.0, right: 12.0, bottom: 12.0, left: 12.0 });
 
@@ -117,7 +118,7 @@ impl Oryxis {
         column![header, body]
             .width(Length::Fill)
             .height(Length::Fill)
-            .into()
+            .boxed()
     }
 
     /// One history row, recorded into the sidebar keynav layer. The
@@ -158,7 +159,7 @@ fn section_label(label: &str) -> Element<'_, Message> {
             .color(OryxisColors::t().text_muted),
     )
     .padding(Padding { top: 4.0, right: 0.0, bottom: 2.0, left: 2.0 })
-    .into()
+    .boxed()
 }
 
 /// Centered muted text for an empty History tab state.
@@ -167,7 +168,7 @@ fn sidebar_placeholder(label: &str) -> Element<'_, Message> {
         .center_x(Length::Fill)
         .padding(Padding { top: 40.0, right: 12.0, bottom: 0.0, left: 12.0 })
         .width(Length::Fill)
-        .into()
+        .boxed()
 }
 
 /// An icon action with a tooltip (same chrome as the snippet-row actions).
@@ -191,7 +192,7 @@ fn action_btn<'a>(
             }),
         iced::widget::tooltip::Position::Top,
     )
-    .into()
+    .boxed()
 }
 
 /// One history row: the command (first line, ellipsized) with a muted use
@@ -219,15 +220,15 @@ fn history_row<'a>(
             .font(iced::Font::MONOSPACE)
             .color(c.text_primary)
             .width(Length::Fill)
-            .into(),
+            .boxed(),
     ];
     if entry.use_count > 1 {
-        info_row.push(Space::new().width(6).into());
+        info_row.push(Space::new().width(6).boxed());
         info_row.push(
             text(format!("\u{00d7}{}", entry.use_count))
                 .size(11)
                 .color(c.text_muted)
-                .into(),
+                .boxed(),
         );
     }
     let card = container(dir_row(info_row).align_y(iced::Alignment::Center))
@@ -262,25 +263,25 @@ fn history_row<'a>(
             .align_y(iced::Alignment::Center),
         )
         .padding(Padding { top: 3.0, right: 5.0, bottom: 3.0, left: 5.0 })
-        .style(|_| container::Style {
+        .style(|_: &iced::Theme| container::Style {
             background: Some(Background::Color(OryxisColors::t().bg_selected)),
             border: Border { radius: Radius::from(8.0), ..Default::default() },
             ..Default::default()
         });
-        let overlay = container(actions)
+        let overlay = container::<_, iced::Theme>(actions)
             .width(Length::Fill)
             .height(Length::Fill)
             .align_x(iced::alignment::Horizontal::Right)
             .align_y(iced::alignment::Vertical::Center)
             .padding(Padding { top: 0.0, right: 6.0, bottom: 0.0, left: 0.0 });
-        iced::widget::Stack::new().push(card).push(overlay).into()
+        iced::widget::Stack::<iced::Element<'_, _>>::new().push(card.boxed()).push(overlay.boxed()).boxed()
     } else {
-        card.into()
+        card.boxed()
     };
 
     MouseArea::new(row_el)
         .on_enter(Message::CommandHistory(CommandHistoryMessage::HistoryCardHovered(pos)))
         .on_exit(Message::CommandHistory(CommandHistoryMessage::HistoryCardUnhovered(pos)))
         .on_press(Message::CommandHistory(CommandHistoryMessage::PasteHistoryCommand(entry.id)))
-        .into()
+        .boxed()
 }

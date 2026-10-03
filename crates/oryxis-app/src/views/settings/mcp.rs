@@ -44,8 +44,8 @@ impl Oryxis {
             ),
             Space::new().height(12),
             dir_row(vec![
-                text(crate::i18n::t("mcp_server_desc")).size(11).color(OryxisColors::t().text_muted).into(),
-                Space::new().width(Length::Fill).into(),
+                text(crate::i18n::t("mcp_server_desc")).size(11).color(OryxisColors::t().text_muted).boxed(),
+                Space::new().width(Length::Fill).boxed(),
                 self.settings_nav_slot_labeled(
                     crate::i18n::t("mcp_setup_guide"),
                     crate::keynav::RowAction::activate(if self.mcp.show_info {
@@ -54,13 +54,13 @@ impl Oryxis {
                         Message::Mcp(McpMessage::ShowMcpInfo)
                     }),
                     6.0,
-                    mcp_guide_btn.into(),
+                    mcp_guide_btn.boxed(),
                 ),
             ]).align_y(iced::Alignment::Center),
         ];
         if self.mcp.show_info {
             mcp_col = mcp_col
-                .push(Space::new().height(12))
+                .push(Space::new().height(12).boxed())
                 .push(mcp_info_panel(self));
         }
 
@@ -80,7 +80,7 @@ impl Oryxis {
         .id(iced::widget::Id::new("settings-mcp-scroll"))
         .on_scroll(|s| Message::Settings(SettingsMessage::SectionScrolled(s.viewport.relative_offset().y)))
         .height(Length::Fill)
-        .into()
+        .boxed()
     }
 }
 
@@ -115,7 +115,7 @@ fn code_block<'a>(content: &str) -> Element<'a, Message> {
         border: Border { radius: Radius::from(6.0), color: OryxisColors::t().border, width: 1.0 },
         ..Default::default()
     })
-    .into()
+    .boxed()
 }
 
 /// The expandable MCP info panel shown inside the MCP Server settings.
@@ -253,7 +253,7 @@ fn mcp_info_panel(app: &crate::app::Oryxis) -> Element<'_, Message> {
                 ..Default::default()
             }
         })
-        .into()
+        .boxed()
     }
 
     let mut info_col = column![
@@ -293,21 +293,21 @@ fn mcp_info_panel(app: &crate::app::Oryxis) -> Element<'_, Message> {
                     ..Default::default()
                 }
             })
-            .into()
+            .boxed()
         }
 
         let target_row = crate::widgets::dir_row(vec![
             text(crate::i18n::t("mcp_target_label"))
                 .size(11)
                 .color(OryxisColors::t().text_muted)
-                .into(),
-            Space::new().width(8).into(),
+                .boxed(),
+            Space::new().width(8).boxed(),
             app.settings_nav_slot(
                 crate::keynav::RowAction::activate(Message::Mcp(McpMessage::SetMcpTarget(false))),
                 6.0,
                 target_btn(crate::i18n::t("mcp_target_native"), !target_wsl, Message::Mcp(McpMessage::SetMcpTarget(false))),
             ),
-            Space::new().width(6).into(),
+            Space::new().width(6).boxed(),
             app.settings_nav_slot(
                 crate::keynav::RowAction::activate(Message::Mcp(McpMessage::SetMcpTarget(true))),
                 6.0,
@@ -316,7 +316,7 @@ fn mcp_info_panel(app: &crate::app::Oryxis) -> Element<'_, Message> {
         ])
         .align_y(iced::Alignment::Center);
 
-        info_col = info_col.push(Space::new().height(12)).push(target_row);
+        info_col = info_col.push(Space::new().height(12).boxed()).push(target_row.boxed());
     }
 
     // Token row, built after the target row so the keynav slots the
@@ -325,8 +325,8 @@ fn mcp_info_panel(app: &crate::app::Oryxis) -> Element<'_, Message> {
         text(crate::i18n::t("mcp_token_label"))
             .size(11)
             .color(OryxisColors::t().text_muted)
-            .into(),
-        Space::new().width(8).into(),
+            .boxed(),
+        Space::new().width(8).boxed(),
         container(
             text(token_display)
                 .size(11)
@@ -340,14 +340,14 @@ fn mcp_info_panel(app: &crate::app::Oryxis) -> Element<'_, Message> {
             border: Border { radius: Radius::from(4.0), ..Default::default() },
             ..Default::default()
         })
-        .into(),
+        .boxed(),
     ];
     // The reveal is offered whenever the panel holds a secret at all: a
     // vault whose auth token is unset can still carry an embedded master
     // password in the snippet, and a masked value with no way back would
     // be worse than showing it.
     if !token.is_empty() || vault_pw.is_some() {
-        token_items.push(Space::new().width(8).into());
+        token_items.push(Space::new().width(8).boxed());
         token_items.push(app.settings_nav_slot(
             crate::keynav::RowAction::activate(Message::Mcp(McpMessage::ToggleMcpTokenVisibility)),
             6.0,
@@ -359,7 +359,7 @@ fn mcp_info_panel(app: &crate::app::Oryxis) -> Element<'_, Message> {
         ));
     }
     if !token.is_empty() {
-        token_items.push(Space::new().width(6).into());
+        token_items.push(Space::new().width(6).boxed());
         token_items.push(app.settings_nav_slot(
             crate::keynav::RowAction::activate(Message::Mcp(McpMessage::CopyMcpToken)),
             6.0,
@@ -370,7 +370,7 @@ fn mcp_info_panel(app: &crate::app::Oryxis) -> Element<'_, Message> {
             ),
         ));
     }
-    token_items.push(Space::new().width(6).into());
+    token_items.push(Space::new().width(6).boxed());
     token_items.push(app.settings_nav_slot_labeled(
         crate::i18n::t("mcp_token_regenerate"),
         crate::keynav::RowAction::activate(Message::Mcp(McpMessage::RegenerateMcpToken)),
@@ -385,21 +385,21 @@ fn mcp_info_panel(app: &crate::app::Oryxis) -> Element<'_, Message> {
         .align_y(iced::Alignment::Center);
 
     info_col = info_col
-        .push(Space::new().height(12))
-        .push(token_row)
-        .push(Space::new().height(4))
+        .push(Space::new().height(12).boxed())
+        .push(token_row.boxed())
+        .push(Space::new().height(4).boxed())
         .push(
             text(crate::i18n::t("mcp_token_desc"))
                 .size(10)
-                .color(OryxisColors::t().text_muted),
+                .color(OryxisColors::t().text_muted).boxed(),
         )
-        .push(Space::new().height(12))
+        .push(Space::new().height(12).boxed())
         .push(code_block(&json_text))
-        .push(Space::new().height(8))
+        .push(Space::new().height(8).boxed())
         .push(
             text(format!("{} {}", crate::i18n::t("mcp_info_path_label"), path_hint))
                 .size(11)
-                .color(OryxisColors::t().text_muted),
+                .color(OryxisColors::t().text_muted).boxed(),
         );
 
     // Explain that the WSL snippet targets a client living inside the
@@ -407,11 +407,11 @@ fn mcp_info_panel(app: &crate::app::Oryxis) -> Element<'_, Message> {
     #[cfg(target_os = "windows")]
     if target_wsl {
         info_col = info_col
-            .push(Space::new().height(8))
+            .push(Space::new().height(8).boxed())
             .push(
                 text(crate::i18n::t("mcp_info_note_wsl"))
                     .size(11)
-                    .color(OryxisColors::t().warning),
+                    .color(OryxisColors::t().warning).boxed(),
             );
     }
 
@@ -419,17 +419,17 @@ fn mcp_info_panel(app: &crate::app::Oryxis) -> Element<'_, Message> {
     // is always there: pushed only once it landed, it shifted the vault
     // password block below and dropped the focus of its typed
     // confirmation.
-    let mut install_slot = column![];
+    let mut install_slot = iced::widget::Column::<iced::Element<'_, _>>::new();
     if let Some(Err(e)) = install_status {
         install_slot = install_slot
-            .push(Space::new().height(4))
-            .push(text(e.clone()).size(11).color(OryxisColors::t().error));
+            .push(Space::new().height(4).boxed())
+            .push(text(e.clone()).size(11).color(OryxisColors::t().error).boxed());
     } else if let Some(Ok(path)) = install_status {
         install_slot = install_slot
-            .push(Space::new().height(4))
-            .push(text(format!("{} {path}", crate::i18n::t("mcp_installed_to"))).size(11).color(OryxisColors::t().success));
+            .push(Space::new().height(4).boxed())
+            .push(text(format!("{} {path}", crate::i18n::t("mcp_installed_to"))).size(11).color(OryxisColors::t().success).boxed());
     }
-    info_col = info_col.push(install_slot);
+    info_col = info_col.push(install_slot.boxed());
 
     // ── Vault password (ORYXIS_VAULT_PASSWORD) ──
     // A password-protected vault makes the MCP server exit at startup
@@ -438,12 +438,12 @@ fn mcp_info_panel(app: &crate::app::Oryxis) -> Element<'_, Message> {
     // offer to embed the password after an explicit typed confirmation;
     // without a master password the static note still explains the
     // variable for users who add one later.
-    info_col = info_col.push(Space::new().height(8));
+    info_col = info_col.push(Space::new().height(8).boxed());
     if !app.vault_ui.has_user_password {
         info_col = info_col.push(
             text(crate::i18n::t("mcp_info_vault_password_note"))
                 .size(11)
-                .color(OryxisColors::t().text_muted),
+                .color(OryxisColors::t().text_muted).boxed(),
         );
     } else if app.mcp.include_vault_password {
         info_col = info_col
@@ -452,8 +452,8 @@ fn mcp_info_panel(app: &crate::app::Oryxis) -> Element<'_, Message> {
                     text(crate::i18n::t("mcp_vault_pw_included"))
                         .size(11)
                         .color(OryxisColors::t().success)
-                        .into(),
-                    Space::new().width(8).into(),
+                        .boxed(),
+                    Space::new().width(8).boxed(),
                     app.settings_nav_slot(
                         crate::keynav::RowAction::activate(Message::Mcp(McpMessage::McpVaultPwRemove)),
                         6.0,
@@ -464,13 +464,13 @@ fn mcp_info_panel(app: &crate::app::Oryxis) -> Element<'_, Message> {
                         ),
                     ),
                 ])
-                .align_y(iced::Alignment::Center),
+                .align_y(iced::Alignment::Center).boxed(),
             )
-            .push(Space::new().height(4))
+            .push(Space::new().height(4).boxed())
             .push(
                 text(crate::i18n::t("mcp_vault_pw_plaintext_warning"))
                     .size(10)
-                    .color(OryxisColors::t().warning),
+                    .color(OryxisColors::t().warning).boxed(),
             );
     } else if let Some(typed) = &app.mcp.vault_pw_prompt {
         // Typed confirmation: embedding only happens after the user
@@ -489,19 +489,19 @@ fn mcp_info_panel(app: &crate::app::Oryxis) -> Element<'_, Message> {
                 .size(12)
                 .width(240)
                 .style(crate::widgets::rounded_input_style)
-                .into(),
+                .boxed(),
         );
         info_col = info_col
             .push(
                 text(crate::i18n::t("mcp_vault_pw_confirm_prompt"))
                     .size(11)
-                    .color(OryxisColors::t().text_secondary),
+                    .color(OryxisColors::t().text_secondary).boxed(),
             )
-            .push(Space::new().height(6))
+            .push(Space::new().height(6).boxed())
             .push(
                 crate::widgets::dir_row(vec![
                     pw_input,
-                    Space::new().width(6).into(),
+                    Space::new().width(6).boxed(),
                     app.settings_nav_slot(
                         crate::keynav::RowAction::activate(Message::Mcp(McpMessage::McpVaultPwConfirm)),
                         6.0,
@@ -511,7 +511,7 @@ fn mcp_info_panel(app: &crate::app::Oryxis) -> Element<'_, Message> {
                             Message::Mcp(McpMessage::McpVaultPwConfirm),
                         ),
                     ),
-                    Space::new().width(6).into(),
+                    Space::new().width(6).boxed(),
                     app.settings_nav_slot(
                         crate::keynav::RowAction::activate(Message::Mcp(McpMessage::McpVaultPwPromptCancel)),
                         6.0,
@@ -522,28 +522,28 @@ fn mcp_info_panel(app: &crate::app::Oryxis) -> Element<'_, Message> {
                         ),
                     ),
                 ])
-                .align_y(iced::Alignment::Center),
+                .align_y(iced::Alignment::Center).boxed(),
             );
         if app.mcp.vault_pw_error {
-            info_col = info_col.push(Space::new().height(4)).push(
+            info_col = info_col.push(Space::new().height(4).boxed()).push(
                 text(crate::i18n::t("mcp_vault_pw_wrong"))
                     .size(11)
-                    .color(OryxisColors::t().error),
+                    .color(OryxisColors::t().error).boxed(),
             );
         }
-        info_col = info_col.push(Space::new().height(4)).push(
+        info_col = info_col.push(Space::new().height(4).boxed()).push(
             text(crate::i18n::t("mcp_vault_pw_plaintext_warning"))
                 .size(10)
-                .color(OryxisColors::t().text_muted),
+                .color(OryxisColors::t().text_muted).boxed(),
         );
     } else {
         info_col = info_col
             .push(
                 text(crate::i18n::t("mcp_vault_pw_note"))
                     .size(11)
-                    .color(OryxisColors::t().warning),
+                    .color(OryxisColors::t().warning).boxed(),
             )
-            .push(Space::new().height(6))
+            .push(Space::new().height(6).boxed())
             .push(app.settings_nav_slot(
                 crate::keynav::RowAction::activate(Message::Mcp(McpMessage::McpVaultPwPromptOpen)),
                 6.0,
@@ -558,20 +558,20 @@ fn mcp_info_panel(app: &crate::app::Oryxis) -> Element<'_, Message> {
         // it lingers on disk.
         match &app.mcp.vault_pw_strip_status {
             Some(Ok(())) => {
-                info_col = info_col.push(Space::new().height(6)).push(
+                info_col = info_col.push(Space::new().height(6).boxed()).push(
                     text(crate::i18n::t("mcp_vault_pw_removed"))
                         .size(10)
-                        .color(OryxisColors::t().text_muted),
+                        .color(OryxisColors::t().text_muted).boxed(),
                 );
             }
             Some(Err(e)) => {
-                info_col = info_col.push(Space::new().height(6)).push(
+                info_col = info_col.push(Space::new().height(6).boxed()).push(
                     text(format!(
                         "{} {e}",
                         crate::i18n::t("mcp_vault_pw_remove_failed")
                     ))
                     .size(10)
-                    .color(OryxisColors::t().error),
+                    .color(OryxisColors::t().error).boxed(),
                 );
             }
             None => {}
@@ -579,27 +579,27 @@ fn mcp_info_panel(app: &crate::app::Oryxis) -> Element<'_, Message> {
     }
 
     info_col = info_col
-        .push(Space::new().height(12))
+        .push(Space::new().height(12).boxed())
         .push(crate::widgets::dir_row(vec![
             app.settings_nav_slot_labeled(
                 crate::i18n::t("mcp_install_claude"),
                 crate::keynav::RowAction::activate(Message::Mcp(McpMessage::InstallMcpConfig)),
                 6.0,
-                install_btn.into(),
+                install_btn.boxed(),
             ),
-            Space::new().width(8).into(),
+            Space::new().width(8).boxed(),
             app.settings_nav_slot(
                 crate::keynav::RowAction::activate(Message::Mcp(McpMessage::CopyMcpConfig)),
                 6.0,
-                copy_btn.into(),
+                copy_btn.boxed(),
             ),
-            Space::new().width(8).into(),
+            Space::new().width(8).boxed(),
             app.settings_nav_slot(
                 crate::keynav::RowAction::activate(Message::Mcp(McpMessage::HideMcpInfo)),
                 6.0,
-                close_btn.into(),
+                close_btn.boxed(),
             ),
-        ]));
+        ]).boxed());
 
     container(info_col)
         .padding(16)
@@ -609,5 +609,5 @@ fn mcp_info_panel(app: &crate::app::Oryxis) -> Element<'_, Message> {
             border: Border { radius: Radius::from(8.0), color: OryxisColors::t().accent, width: 1.0 },
             ..Default::default()
         })
-        .into()
+        .boxed()
 }

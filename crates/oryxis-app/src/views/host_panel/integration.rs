@@ -12,10 +12,10 @@ impl Oryxis {
             8.0,
             container(
                 dir_row(vec![
-                    iced_fonts::lucide::plug().size(14).color(OryxisColors::t().text_muted).into(),
-                    Space::new().width(10).into(),
-                    text(t("expose_to_mcp")).size(13).color(OryxisColors::t().text_secondary).into(),
-                    Space::new().width(Length::Fill).into(),
+                    iced_fonts::lucide::plug().size(14).color(OryxisColors::t().text_muted).boxed(),
+                    Space::new().width(10).boxed(),
+                    text(t("expose_to_mcp")).size(13).color(OryxisColors::t().text_secondary).boxed(),
+                    Space::new().width(Length::Fill).boxed(),
                     {
                         let on = self.editor_form.mcp_enabled;
                         let bg = if on { OryxisColors::t().success } else { OryxisColors::t().bg_hover };
@@ -28,11 +28,11 @@ impl Oryxis {
                                 text_color: fg,
                                 ..Default::default()
                             })
-                            .into()
+                            .boxed()
                     },
                 ]).align_y(iced::Alignment::Center)
             )
-            .padding(Padding { top: 8.0, right: 0.0, bottom: 8.0, left: 0.0 }).into(),
+            .padding(Padding { top: 8.0, right: 0.0, bottom: 8.0, left: 0.0 }).boxed(),
             )
         } else {
             empty()
@@ -57,12 +57,12 @@ impl Oryxis {
                     iced_fonts::lucide::folder_open()
                         .size(14)
                         .color(OryxisColors::t().text_muted)
-                        .into(),
-                    Space::new().width(10).into(),
+                        .boxed(),
+                    Space::new().width(10).boxed(),
                     text(t("host_sftp_initial_path"))
                         .size(13)
                         .color(OryxisColors::t().text_secondary)
-                        .into(),
+                        .boxed(),
                 ])
                 .align_y(iced::Alignment::Center),
                 Space::new().height(2),
@@ -86,13 +86,13 @@ impl Oryxis {
                     .width(Length::Fill)
                     .style(crate::widgets::rounded_input_style)
                     .align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
                 ),
             ]
             .width(Length::Fill),
         )
         .padding(Padding { top: 8.0, right: 0.0, bottom: 8.0, left: 0.0 })
-        .into()
+        .boxed()
     }
 
     /// Per-host drop-transport flag (SSH > Integration): drag-and-drop
@@ -131,7 +131,7 @@ impl Oryxis {
         // `panel_option_row` carries 4 of its own, so the row keeps the
         // 8px the sibling toggles sit on.
         .padding(Padding { top: 4.0, right: 0.0, bottom: 8.0, left: 0.0 })
-        .into()
+        .boxed()
     }
 
     /// Per-host agentless monitoring opt-in (SSH > Integration, issue
@@ -180,7 +180,7 @@ impl Oryxis {
             if !locked {
                 btn = btn.on_press(Message::Editor(EditorMessage::EditorToggleMonitorEnabled));
             }
-            btn.into()
+            btn.boxed()
         };
 
         let label_text = if locked {
@@ -193,13 +193,13 @@ impl Oryxis {
                 iced_fonts::lucide::activity()
                     .size(14)
                     .color(OryxisColors::t().text_muted)
-                    .into(),
-                Space::new().width(10).into(),
+                    .boxed(),
+                Space::new().width(10).boxed(),
                 text(label_text)
                     .size(13)
                     .color(OryxisColors::t().text_secondary)
-                    .into(),
-                Space::new().width(Length::Fill).into(),
+                    .boxed(),
+                Space::new().width(Length::Fill).boxed(),
                 toggle,
             ])
             .align_y(iced::Alignment::Center),
@@ -209,14 +209,14 @@ impl Oryxis {
         // A locked row is not a keyboard stop (nothing to activate);
         // otherwise it records as usual.
         if locked {
-            row.into()
+            row.boxed()
         } else {
             self.panel_nav_slot(
                 crate::keynav::RowAction::activate(Message::Editor(
                     EditorMessage::EditorToggleMonitorEnabled,
                 )),
                 8.0,
-                row.into(),
+                row.boxed(),
             )
         }
     }
@@ -259,13 +259,13 @@ impl Oryxis {
                 .width(120)
                 .padding(10)
                 .style(crate::widgets::rounded_pick_list_style)
-                .into(),
+                .boxed(),
         );
         // The "+" only exists under Custom: adding a row while the host
         // is on Auto would build a list nothing reads.
         let add: Element<'_, Message> = if custom {
             dir_row(vec![
-                Space::new().width(8).into(),
+                Space::new().width(8).boxed(),
                 self.panel_nav_slot(
                     crate::keynav::RowAction::activate(Message::Editor(
                         EditorMessage::EditorAddMonitorDisk,
@@ -285,10 +285,10 @@ impl Oryxis {
                             ..Default::default()
                         })
                         .padding(Padding { top: 2.0, right: 8.0, bottom: 2.0, left: 8.0 })
-                        .into(),
+                        .boxed(),
                 ),
             ])
-            .into()
+            .boxed()
         } else {
             empty()
         };
@@ -298,16 +298,16 @@ impl Oryxis {
                 iced_fonts::lucide::hard_drive()
                     .size(14)
                     .color(OryxisColors::t().text_muted)
-                    .into(),
-                Space::new().width(10).into(),
+                    .boxed(),
+                Space::new().width(10).boxed(),
                 column![
                     text(t("monitor_disks")).size(13).color(OryxisColors::t().text_secondary),
                     Space::new().height(2),
                     text(t("monitor_disks_desc")).size(11).color(OryxisColors::t().text_muted),
                 ]
                 .width(Length::Fill)
-                .into(),
-                Space::new().width(8).into(),
+                .boxed(),
+                Space::new().width(8).boxed(),
                 picker,
                 add,
             ])
@@ -320,7 +320,7 @@ impl Oryxis {
             // button is the row's keyboard stop.
             for (i, mount) in self.editor_form.monitor_disks.iter().enumerate() {
                 let idx = i;
-                block = block.push(Space::new().height(8));
+                block = block.push(Space::new().height(8).boxed());
                 block = block.push(
                     dir_row(vec![
                         text_input("/data", mount)
@@ -331,7 +331,7 @@ impl Oryxis {
                             .width(Length::Fill)
                             .style(crate::widgets::rounded_input_style)
                             .align_x(dir_align_x())
-                            .into(),
+                            .boxed(),
                         self.panel_nav_slot(
                             crate::keynav::RowAction::activate(Message::Editor(
                                 EditorMessage::EditorRemoveMonitorDisk(idx),
@@ -356,18 +356,18 @@ impl Oryxis {
                                     ..Default::default()
                                 })
                                 .padding(Padding { top: 2.0, right: 4.0, bottom: 2.0, left: 4.0 })
-                                .into(),
+                                .boxed(),
                         ),
                     ])
                     .align_y(iced::Alignment::Center)
-                    .spacing(4),
+                    .spacing(4).boxed(),
                 );
             }
         }
 
         container(block)
             .padding(Padding { top: 8.0, right: 0.0, bottom: 8.0, left: 0.0 })
-            .into()
+            .boxed()
     }
 
     pub(super) fn hp_rd_block(&self, is_rd: bool) -> Element<'_, Message> {
@@ -396,7 +396,7 @@ impl Oryxis {
                     .width(120)
                     .padding(10)
                     .style(crate::widgets::rounded_pick_list_style)
-                    .into(),
+                    .boxed(),
                 ),
             );
             // Gateway: `None` = Direct, else an SSH host to tunnel through.
@@ -437,7 +437,7 @@ impl Oryxis {
                     .width(200)
                     .padding(10)
                     .style(crate::widgets::rounded_pick_list_style)
-                    .into(),
+                    .boxed(),
                 ),
             );
             // Wake-on-LAN MAC: waking the workstation before an RDP/VNC
@@ -450,8 +450,7 @@ impl Oryxis {
                 gw_row,
                 Space::new().height(ROW_GAP),
                 mac_row
-            ]
-            .into()
+            ].boxed()
         } else {
             empty()
         };
@@ -463,14 +462,14 @@ impl Oryxis {
         let env_items: Element<'_, Message> = if is_ssh {
         let mut env_items = column![
             dir_row(vec![
-                iced_fonts::lucide::variable().size(14).color(OryxisColors::t().text_muted).into(),
-                Space::new().width(10).into(),
+                iced_fonts::lucide::variable().size(14).color(OryxisColors::t().text_muted).boxed(),
+                Space::new().width(10).boxed(),
                 column![
                     text(t("env_vars")).size(13).color(OryxisColors::t().text_secondary),
                     Space::new().height(2),
                     text(t("env_vars_desc")).size(11).color(OryxisColors::t().text_muted),
-                ].width(Length::Fill).into(),
-                Space::new().width(8).into(),
+                ].width(Length::Fill).boxed(),
+                Space::new().width(8).boxed(),
                 self.panel_nav_slot(
                     crate::keynav::RowAction::activate(Message::Editor(EditorMessage::EditorAddEnvVar)),
                     4.0,
@@ -483,14 +482,14 @@ impl Oryxis {
                             ..Default::default()
                         })
                         .padding(Padding { top: 2.0, right: 8.0, bottom: 2.0, left: 8.0 })
-                        .into(),
+                        .boxed(),
                 ),
             ]).align_y(iced::Alignment::Center),
         ];
 
         for (i, e) in self.editor_form.env_vars.iter().enumerate() {
             let idx = i;
-            env_items = env_items.push(Space::new().height(8));
+            env_items = env_items.push(Space::new().height(8).boxed());
             // Same static-id limitation as the port-forward rows: the
             // key/value inputs stay mouse-only, the remove button is
             // the keyboard row.
@@ -501,14 +500,14 @@ impl Oryxis {
                         .padding(6)
                         .width(Length::FillPortion(2))
                         .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
-                        .into(),
-                    text("=").size(12).color(OryxisColors::t().text_muted).into(),
+                        .boxed(),
+                    text("=").size(12).color(OryxisColors::t().text_muted).boxed(),
                     text_input(crate::i18n::t("env_value_placeholder"), &e.value)
                         .on_input(move |v| Message::Editor(EditorMessage::EditorEnvVarValueChanged(idx, v)))
                         .padding(6)
                         .width(Length::FillPortion(3))
                         .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
-                        .into(),
+                        .boxed(),
                     self.panel_nav_slot(
                         crate::keynav::RowAction::activate(Message::Editor(EditorMessage::EditorRemoveEnvVar(idx))),
                         4.0,
@@ -521,12 +520,12 @@ impl Oryxis {
                                 ..Default::default()
                             })
                             .padding(Padding { top: 2.0, right: 4.0, bottom: 2.0, left: 4.0 })
-                            .into(),
+                            .boxed(),
                     ),
-                ]).align_y(iced::Alignment::Center).spacing(4),
+                ]).align_y(iced::Alignment::Center).spacing(4).boxed(),
             );
         }
-        env_items.into()
+        env_items.boxed()
         } else {
             empty()
         };
@@ -568,7 +567,7 @@ impl Oryxis {
             .input_style(crate::widgets::rounded_input_style)
             .menu_style(crate::widgets::combo_menu_style)
             .width(Length::Fill)
-            .into(),
+            .boxed(),
         );
 
         let mut startup_block = column![
@@ -579,7 +578,7 @@ impl Oryxis {
             startup_picker,
         ];
         if matches!(self.editor_startup_choice, crate::state::StartupChoice::Custom) {
-            startup_block = startup_block.push(Space::new().height(8)).push(
+            startup_block = startup_block.push(Space::new().height(8).boxed()).push(
                 // Multi-line, auto-grows with content; container caps the
                 // height (~8 lines) and then it scrolls internally. Supports
                 // multi-command scripts (one command per line).
@@ -596,11 +595,11 @@ impl Oryxis {
                             .style(crate::widgets::rounded_editor_style),
                     )
                     .height(Length::Shrink.max(200.0))
-                    .into(),
+                    .boxed(),
                 ),
             );
         }
-        startup_block.into()
+        startup_block.boxed()
         } else {
             empty()
         };

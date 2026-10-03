@@ -27,7 +27,7 @@ impl Oryxis {
         include_play: bool,
     ) -> Element<'_, Message> {
         let log_id = self.session_logs.get(idx).map(|e| e.id);
-        let mut col = column![].spacing(2);
+        let mut col = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(2);
         if let Some(log_id) = log_id {
             // Replay actions (in-app player, .cast export) pair with
             // full-detail recording; with simple logs they are hidden
@@ -84,9 +84,9 @@ impl Oryxis {
                     .color(OryxisColors::t().text_muted),
             )
             .padding(Padding { top: 4.0, right: 12.0, bottom: 2.0, left: 12.0 })
-            .width(Length::Fill),
+            .width(Length::Fill).boxed(),
         );
-        col.into()
+        col.boxed()
     }
 
     /// Kebab of a saved AI conversation row. Deliberately short: a saved
@@ -96,7 +96,7 @@ impl Oryxis {
         &self,
         idx: usize,
     ) -> Element<'_, Message> {
-        let mut col = column![].spacing(2);
+        let mut col = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(2);
         if let Some(id) = self.chat_ui.conversations.get(idx).map(|c| c.id) {
             col = col.push(self.menu_item(
                 iced_fonts::lucide::bot(),
@@ -111,7 +111,7 @@ impl Oryxis {
             Message::History(HistoryMessage::RequestDeleteChatConversation(idx)),
             OryxisColors::t().error,
         ));
-        col.into()
+        col.boxed()
     }
 
     pub(crate) fn build_menu_host_actions(&self, id: uuid::Uuid) -> Element<'_, Message> {
@@ -230,8 +230,7 @@ impl Oryxis {
                     Message::Tabs(TabsMessage::SelectionDelete),
                     OryxisColors::t().error,
                 ),
-            ]
-            .into();
+            ].boxed();
         }
         // The menu is anchored to the HOST, so the index every
         // index-taking action still needs is resolved here, per render,
@@ -342,7 +341,7 @@ impl Oryxis {
             ));
         }
         if !dashboard {
-            return items.into();
+            return items.boxed();
         }
         // Orphan hosts get a "Forget" label (semantically
         // closer to "this resource is gone upstream, drop my
@@ -355,7 +354,7 @@ impl Oryxis {
         };
         items
             .push(self.menu_item(remove_icon, remove_label, by_idx(|i| Message::Editor(EditorMessage::RequestDeleteConnection(i))), OryxisColors::t().error))
-            .into()
+            .boxed()
     }
 
     pub(crate) fn build_menu_session_group_actions(&self, idx: usize) -> Element<'_, Message> {
@@ -364,8 +363,7 @@ impl Oryxis {
             self.menu_item(iced_fonts::lucide::pencil(), crate::i18n::t("edit"), Message::SessionGroup(SessionGroupMessage::EditSessionGroup(idx)), OryxisColors::t().text_secondary),
             self.menu_item(iced_fonts::lucide::copy(), crate::i18n::t("duplicate"), Message::SessionGroup(SessionGroupMessage::DuplicateSessionGroup(idx)), OryxisColors::t().text_secondary),
             self.menu_item(iced_fonts::lucide::trash(), crate::i18n::t("remove"), Message::SessionGroup(SessionGroupMessage::RequestDeleteSessionGroup(idx)), OryxisColors::t().error),
-        ]
-        .into()
+        ].boxed()
     }
 
     pub(crate) fn build_menu_key_actions(&self, idx: usize) -> Element<'_, Message> {
@@ -412,21 +410,21 @@ impl Oryxis {
             ));
         }
         items = items.push(self.menu_item(iced_fonts::lucide::trash(), crate::i18n::t("remove"), Message::Keys(KeysMessage::RequestDeleteKey(idx)), OryxisColors::t().error));
-        items.into()
+        items.boxed()
     }
 
     pub(crate) fn build_menu_identity_actions(&self, idx: usize) -> Element<'_, Message> {
         column![
             self.menu_item(iced_fonts::lucide::pencil(), crate::i18n::t("edit"), Message::Keys(KeysMessage::EditIdentity(idx)), OryxisColors::t().text_secondary),
             self.menu_item(iced_fonts::lucide::trash(), crate::i18n::t("remove"), Message::Keys(KeysMessage::RequestDeleteIdentity(idx)), OryxisColors::t().error),
-        ].into()
+        ].boxed()
     }
 
     pub(crate) fn build_menu_snippet_actions(&self, idx: usize) -> Element<'_, Message> {
         column![
             self.menu_item(iced_fonts::lucide::pencil(), crate::i18n::t("edit"), Message::Snippet(SnippetMessage::EditSnippet(idx)), OryxisColors::t().text_secondary),
             self.menu_item(iced_fonts::lucide::trash(), crate::i18n::t("delete"), Message::Snippet(SnippetMessage::RequestDeleteSnippet(idx)), OryxisColors::t().error),
-        ].into()
+        ].boxed()
     }
 
     /// Kebab menu on a port-forward rule card. Edit is here even though
@@ -436,18 +434,18 @@ impl Oryxis {
         column![
             self.menu_item(iced_fonts::lucide::pencil(), crate::i18n::t("edit"), Message::PortForward(PortForwardMessage::EditPortForwardRule(idx)), OryxisColors::t().text_secondary),
             self.menu_item(iced_fonts::lucide::trash(), crate::i18n::t("delete"), Message::PortForward(PortForwardMessage::RequestDeletePortForwardRule(idx)), OryxisColors::t().error),
-        ].into()
+        ].boxed()
     }
 
     pub(crate) fn build_menu_keychain_add(&self) -> Element<'_, Message> {
         // The "+ ADD ▾" keychain menu: one row per entry of the shared
         // add catalog (`views::add_actions`), which the empty keychain
         // renders as buttons from the same list.
-        let mut items = column![];
+        let mut items = iced::widget::Column::<iced::Element<'_, _>>::new();
         for action in self.add_key_actions() {
             items = items.push(self.menu_item(action.icon, action.label, action.msg, action.color));
         }
-        items.into()
+        items.boxed()
     }
 
     pub(crate) fn build_menu_folder_actions(&self, gid: uuid::Uuid) -> Element<'_, Message> {
@@ -462,7 +460,7 @@ impl Oryxis {
             self.menu_item(iced_fonts::lucide::pencil(), crate::i18n::t("edit"), Message::Tabs(TabsMessage::EditGroup(gid)), OryxisColors::t().accent),
             self.menu_item(iced_fonts::lucide::folder_plus(), crate::i18n::t("new_subgroup"), Message::Tabs(TabsMessage::NewSubgroup(gid)), OryxisColors::t().text_secondary),
             self.menu_item(iced_fonts::lucide::trash(), crate::i18n::t("delete"), Message::Tabs(TabsMessage::StartDeleteFolder(gid)), OryxisColors::t().error),
-        ].into()
+        ].boxed()
     }
 
     pub(crate) fn build_menu_dynamic_group_actions(&self, id: uuid::Uuid) -> Element<'_, Message> {
@@ -475,7 +473,7 @@ impl Oryxis {
             // original ECS path.
             self.menu_item(iced_fonts::lucide::text_cursor_input(), crate::i18n::t("rename"), Message::Tabs(TabsMessage::StartRenameFolder(id)), OryxisColors::t().text_secondary),
             self.menu_item(iced_fonts::lucide::trash(), crate::i18n::t("delete"), Message::Cloud(CloudMessage::DeleteDynamicGroup(id)), OryxisColors::t().error),
-        ].into()
+        ].boxed()
     }
 
     pub(crate) fn build_menu_cloud_profile_actions(&self, id: uuid::Uuid) -> Element<'_, Message> {
@@ -483,7 +481,7 @@ impl Oryxis {
             self.menu_item(iced_fonts::lucide::pencil(), crate::i18n::t("edit"), Message::Cloud(CloudMessage::ShowCloudForm(Some(id))), OryxisColors::t().text_secondary),
             self.menu_item(iced_fonts::lucide::refresh_cw(), crate::i18n::t("cloud_profile_sync"), Message::Cloud(CloudMessage::CloudProfileSync(id)), OryxisColors::t().accent),
             self.menu_item(iced_fonts::lucide::trash(), crate::i18n::t("delete"), Message::Cloud(CloudMessage::DeleteCloudProfile(id)), OryxisColors::t().error),
-        ].into()
+        ].boxed()
     }
 
     /// Plugin-row kebab: the secondary actions the compact row doesn't
@@ -493,10 +491,10 @@ impl Oryxis {
     pub(crate) fn build_menu_plugin_actions(&self, provider_id: &str) -> Element<'_, Message> {
         use crate::state::PluginUiStatus;
         let Some(entry) = self.plugins.iter().find(|p| p.provider_id == provider_id) else {
-            return column![].into();
+            return iced::widget::Column::<iced::Element<'_, _>>::new().boxed();
         };
         let id = entry.provider_id.clone();
-        let mut items = column![];
+        let mut items = iced::widget::Column::<iced::Element<'_, _>>::new();
         match &entry.status {
             PluginUiStatus::DevBuild if entry.cached_install => {
                 items = items.push(self.menu_item(
@@ -541,17 +539,17 @@ impl Oryxis {
             // or not-installed row that somehow opens it gets nothing.
             _ => {}
         }
-        items.into()
+        items.boxed()
     }
 
     pub(crate) fn build_menu_cloud_provider_picker(&self) -> Element<'_, Message> {
         // The "+ Host ▾" add menu: one row per entry of the shared add
         // catalog (`views::add_actions`), which the first-run empty
         // state renders as buttons from the same list.
-        let mut items = column![];
+        let mut items = iced::widget::Column::<iced::Element<'_, _>>::new();
         for action in self.add_host_actions() {
             items = items.push(self.menu_item(action.icon, action.label, action.msg, action.color));
         }
-        items.into()
+        items.boxed()
     }
 }

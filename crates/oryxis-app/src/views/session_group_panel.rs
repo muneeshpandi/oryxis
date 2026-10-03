@@ -8,6 +8,7 @@
 //! widget-tree quirk (the chat sidebar hit the same thing, see
 //! `view_terminal.rs::sidebar_tab_btn`). `MouseArea` sidesteps it.
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::{column, container, scrollable, text, text_input, MouseArea, Space};
 use iced::{Background, Border, Color, Element, Length, Padding};
@@ -21,10 +22,10 @@ use crate::widgets::{bounds_reporter, dir_align_x, dir_row, panel_field, panel_s
 /// A pressable element built on `MouseArea` (see module docs for why not
 /// `button`). The pointer cursor matches the rest of the chrome.
 fn press<'a>(content: impl Into<Element<'a, Message>>, msg: Message) -> Element<'a, Message> {
-    MouseArea::new(content)
+    MouseArea::new(content.into())
         .on_press(msg)
         .interaction(iced::mouse::Interaction::Pointer)
-        .into()
+        .boxed()
 }
 
 impl Oryxis {
@@ -49,7 +50,7 @@ impl Oryxis {
                     .size(20)
                     .color(OryxisColors::t().text_muted),
             )
-            .padding(Padding { top: 4.0, right: 8.0, bottom: 4.0, left: 8.0 }),
+            .padding(Padding { top: 4.0, right: 8.0, bottom: 4.0, left: 8.0 }).boxed(),
             Message::SessionGroup(SessionGroupMessage::SessionGroupFormCancel),
         );
         let panel_header = container(
@@ -57,8 +58,8 @@ impl Oryxis {
                 text(title)
                     .size(16)
                     .color(OryxisColors::t().text_primary)
-                    .into(),
-                Space::new().width(Length::Fill).into(),
+                    .boxed(),
+                Space::new().width(Length::Fill).boxed(),
                 close_btn,
             ])
             .align_y(iced::Alignment::Center),
@@ -78,7 +79,7 @@ impl Oryxis {
                 .padding(10)
                 .style(crate::widgets::rounded_input_style)
                 .align_x(dir_align_x())
-                .into(),
+                .boxed(),
         );
 
         // ── Parent-group combo: typeable text input (creates a new group on
@@ -109,7 +110,7 @@ impl Oryxis {
                     width: 1.0,
                 },
                 ..Default::default()
-            }),
+            }).boxed(),
             Message::Navigation(NavigationMessage::ToggleGroupPicker(crate::state::GroupPickerTarget::SessionGroupFolder)),
         );
         let folder_combo: Element<'_, Message> = bounds_reporter(
@@ -122,9 +123,9 @@ impl Oryxis {
                     container(folder_input)
                         .width(Length::Fill)
                         .height(Length::Fixed(COMBO_HEIGHT))
-                        .into(),
+                        .boxed(),
                 ),
-                Space::new().width(6).into(),
+                Space::new().width(6).boxed(),
                 // The chevron is its own keyboard row: Enter opens the
                 // group-picker popover, same as a click.
                 self.panel_nav_slot(
@@ -134,10 +135,10 @@ impl Oryxis {
                     6.0,
                     container(folder_chevron)
                         .height(Length::Fixed(COMBO_HEIGHT))
-                        .into(),
+                        .boxed(),
                 ),
             ])
-            .align_y(iced::Alignment::Center),
+            .align_y(iced::Alignment::Center).boxed(),
             self.session_group_folder_combo_bounds.clone(),
         );
 
@@ -167,7 +168,7 @@ impl Oryxis {
                         background: Some(Background::Color(badge_bg)),
                         border: Border { radius: Radius::from(8.0), ..Default::default() },
                         ..Default::default()
-                    }),
+                    }).boxed(),
                 Message::SessionGroup(SessionGroupMessage::ShowSessionGroupIconPicker),
             ),
         );
@@ -183,7 +184,7 @@ impl Oryxis {
 
         // ── Section: Panes (one pane shown at a time; chevrons step) ──
         let panes_section: Element<'_, Message> = if form.pane_rows.is_empty() {
-            Space::new().into()
+            Space::new().boxed()
         } else {
             let total = form.pane_rows.len();
             let cur = form.current_pane.min(total - 1);
@@ -209,10 +210,10 @@ impl Oryxis {
                     self.panel_nav_slot(
                         crate::keynav::RowAction::activate(msg.clone()),
                         6.0,
-                        press(inner, msg),
+                        press(inner.boxed(), msg),
                     )
                 } else {
-                    inner.into()
+                    inner.boxed()
                 }
             };
 
@@ -235,7 +236,7 @@ impl Oryxis {
                     cur > 0,
                     Message::SessionGroup(SessionGroupMessage::SessionGroupPaneNav(false)),
                 ),
-                counter.into(),
+                counter.boxed(),
                 nav(
                     iced_fonts::lucide::chevron_right(),
                     cur + 1 < total,
@@ -260,7 +261,7 @@ impl Oryxis {
                         .style(crate::widgets::rounded_editor_style),
                 )
                 .height(Length::Shrink.max(200.0))
-                .into(),
+                .boxed(),
             );
 
             panel_section(
@@ -284,13 +285,11 @@ impl Oryxis {
 
         // ── Error ──
         let panel_error: Element<'_, Message> = if let Some(err) = &self.session_group_panel_error {
-            container(Element::from(
-                text(err.clone()).size(11).color(OryxisColors::t().error),
-            ))
+            container(text(err.clone()).size(11).color(OryxisColors::t().error))
             .padding(Padding { top: 4.0, right: 16.0, bottom: 4.0, left: 16.0 })
-            .into()
+            .boxed()
         } else {
-            Space::new().into()
+            Space::new().boxed()
         };
 
         // ── Bottom actions ──
@@ -315,7 +314,7 @@ impl Oryxis {
                     background: Some(Background::Color(save_btn_bg)),
                     border: Border { radius: Radius::from(8.0), ..Default::default() },
                     ..Default::default()
-                }),
+                }).boxed(),
                 Message::SessionGroup(SessionGroupMessage::SessionGroupFormSave),
             ),
         );
@@ -342,6 +341,6 @@ impl Oryxis {
         ]
         .height(Length::Fill);
 
-        crate::widgets::side_panel_frame(panel_content.into(), OryxisColors::t().bg_surface, self.panel_width)
+        crate::widgets::side_panel_frame(panel_content.boxed(), OryxisColors::t().bg_surface, self.panel_width)
     }
 }

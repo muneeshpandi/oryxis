@@ -9,6 +9,7 @@
 //! one, because "no value" is a real choice here and has to be
 //! selectable, not just typeable.
 
+use iced::Widget as _;
 use iced::widget::{button, column, container, pick_list, text, text_input, Space};
 use iced::{Background, Border, Color, Element, Length, Padding};
 
@@ -24,7 +25,7 @@ impl Oryxis {
     pub(crate) fn group_defaults_section(&self) -> Element<'_, Message> {
         let mut col = column![self.group_defaults_header()].spacing(10);
         if !self.group_edit.defaults_open {
-            return col.into();
+            return col.boxed();
         }
 
         col = col.push(
@@ -33,7 +34,7 @@ impl Oryxis {
                     .size(11)
                     .color(OryxisColors::t().text_muted),
             )
-            .padding(Padding { top: 0.0, right: 4.0, bottom: 2.0, left: 4.0 }),
+            .padding(Padding { top: 0.0, right: 4.0, bottom: 2.0, left: 4.0 }).boxed(),
         );
 
         // Username, plain text like the host's own field. The secret
@@ -49,7 +50,7 @@ impl Oryxis {
                     .padding(10)
                     .style(crate::widgets::rounded_input_style)
                     .align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
             ),
         ));
 
@@ -106,7 +107,7 @@ impl Oryxis {
                     .padding(10)
                     .style(crate::widgets::rounded_input_style)
                     .align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
             ),
         ));
         col = col.push(
@@ -115,11 +116,11 @@ impl Oryxis {
                     .size(10)
                     .color(OryxisColors::t().text_muted),
             )
-            .padding(Padding { top: 0.0, right: 4.0, bottom: 4.0, left: 4.0 }),
+            .padding(Padding { top: 0.0, right: 4.0, bottom: 4.0, left: 4.0 }).boxed(),
         );
 
         col = col.push(self.group_default_env_vars());
-        col.into()
+        col.boxed()
     }
 
     /// Disclosure header. Shows a count when the section is collapsed
@@ -136,19 +137,19 @@ impl Oryxis {
         };
         let set_count = self.group_edit_defaults().map(count_set).unwrap_or(0);
         let mut label = dir_row(vec![
-            chevron.size(12).color(OryxisColors::t().text_muted).into(),
-            Space::new().width(6).into(),
+            chevron.size(12).color(OryxisColors::t().text_muted).boxed(),
+            Space::new().width(6).boxed(),
             text(t("group_defaults_title"))
                 .size(12)
                 .color(OryxisColors::t().text_secondary)
-                .into(),
+                .boxed(),
         ]);
         if !open && set_count > 0 {
-            label = label.push(Space::new().width(6));
+            label = label.push(Space::new().width(6).boxed());
             label = label.push(
                 text(format!("({set_count})"))
                     .size(11)
-                    .color(OryxisColors::t().accent),
+                    .color(OryxisColors::t().accent).boxed(),
             );
         }
         self.panel_nav_slot(
@@ -173,7 +174,7 @@ impl Oryxis {
                         ..Default::default()
                     }
                 })
-                .into(),
+                .boxed(),
         )
     }
 
@@ -213,7 +214,7 @@ impl Oryxis {
                     .width(200)
                     .padding(10)
                     .style(crate::widgets::rounded_pick_list_style)
-                    .into(),
+                    .boxed(),
             ),
         )
     }
@@ -246,16 +247,16 @@ impl Oryxis {
                         .width(Length::FillPortion(2))
                         .style(crate::widgets::rounded_input_style)
                         .align_x(dir_align_x())
-                        .into(),
-                    Space::new().width(6).into(),
+                        .boxed(),
+                    Space::new().width(6).boxed(),
                     text_input(t("env_value_placeholder"), &var.value)
                         .on_input(move |v| Message::Tabs(TabsMessage::GroupEditEnvValue(idx, v)))
                         .padding(8)
                         .width(Length::FillPortion(3))
                         .style(crate::widgets::rounded_input_style)
                         .align_x(dir_align_x())
-                        .into(),
-                    Space::new().width(4).into(),
+                        .boxed(),
+                    Space::new().width(4).boxed(),
                     self.panel_nav_slot(
                         crate::keynav::RowAction::activate(Message::Tabs(
                             TabsMessage::GroupEditEnvRemove(idx),
@@ -283,10 +284,10 @@ impl Oryxis {
                                 ..Default::default()
                             }
                         })
-                        .into(),
+                        .boxed(),
                     ),
                 ])
-                .align_y(iced::Alignment::Center),
+                .align_y(iced::Alignment::Center).boxed(),
             );
         }
 
@@ -298,9 +299,9 @@ impl Oryxis {
                     iced_fonts::lucide::plus()
                         .size(12)
                         .color(OryxisColors::t().accent)
-                        .into(),
-                    Space::new().width(6).into(),
-                    text(t("add")).size(11).color(OryxisColors::t().accent).into(),
+                        .boxed(),
+                    Space::new().width(6).boxed(),
+                    text(t("add")).size(11).color(OryxisColors::t().accent).boxed(),
                 ])
                 .align_y(iced::Alignment::Center),
             )
@@ -321,9 +322,9 @@ impl Oryxis {
                     ..Default::default()
                 }
             })
-            .into(),
+            .boxed(),
         ));
-        col.into()
+        col.boxed()
     }
 }
 

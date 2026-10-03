@@ -31,7 +31,7 @@ impl Oryxis {
                     .width(240)
                     .style(crate::widgets::rounded_input_style)
                     .align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
             ),
         ];
 
@@ -62,7 +62,7 @@ impl Oryxis {
                         .width(240)
                         .style(crate::widgets::rounded_input_style)
                         .align_x(dir_align_x())
-                        .into(),
+                        .boxed(),
                 ),
             ]
         };
@@ -70,7 +70,7 @@ impl Oryxis {
         // Enable/disable lives on the Plugins screen now; this
         // section only renders while SFTP is enabled, showing its
         // tuning knobs (parallelism, timeouts).
-        let mut content_col: iced::widget::Column<'_, Message> = column![]
+        let mut content_col: iced::widget::Column<iced::Element<'_, Message>> = column![]
             .width(Length::Fill)
             .align_x(dir_align_x());
 
@@ -80,38 +80,38 @@ impl Oryxis {
             // keeps its 13 px sub-title, 16 px between blocks).
             let tuning_section = panel_section(
                 build_concurrency_block()
-                    .push(Space::new().height(16))
+                    .push(Space::new().height(16).boxed())
                     .push(timeout_input(
                         t("connect_timeout"),
                         t("connect_timeout_desc"),
                         &self.prefs.sftp_connect_timeout,
                         "set-sftp-connect-timeout",
                         |v| Message::Settings(SettingsMessage::SettingSftpConnectTimeoutChanged(v)),
-                    ))
-                    .push(Space::new().height(16))
+                    ).boxed())
+                    .push(Space::new().height(16).boxed())
                     .push(timeout_input(
                         t("auth_timeout"),
                         t("auth_timeout_desc"),
                         &self.prefs.sftp_auth_timeout,
                         "set-sftp-auth-timeout",
                         |v| Message::Settings(SettingsMessage::SettingSftpAuthTimeoutChanged(v)),
-                    ))
-                    .push(Space::new().height(16))
+                    ).boxed())
+                    .push(Space::new().height(16).boxed())
                     .push(timeout_input(
                         t("channel_open_timeout"),
                         t("channel_open_timeout_desc"),
                         &self.prefs.sftp_session_timeout,
                         "set-sftp-session-timeout",
                         |v| Message::Settings(SettingsMessage::SettingSftpSessionTimeoutChanged(v)),
-                    ))
-                    .push(Space::new().height(16))
+                    ).boxed())
+                    .push(Space::new().height(16).boxed())
                     .push(timeout_input(
                         t("operation_timeout"),
                         t("operation_timeout_desc"),
                         &self.prefs.sftp_op_timeout,
                         "set-sftp-op-timeout",
                         |v| Message::Settings(SettingsMessage::SettingSftpOpTimeoutChanged(v)),
-                    )),
+                    ).boxed()),
             );
             // External editor (issue #84): the single application the
             // remote "Open with default text editor" action spawns, plus
@@ -138,9 +138,9 @@ impl Oryxis {
                             .width(Length::Fill)
                             .style(crate::widgets::rounded_input_style)
                             .align_x(dir_align_x())
-                            .into(),
+                            .boxed(),
                     ),
-                    Space::new().width(8).into(),
+                    Space::new().width(8).boxed(),
                     self.settings_nav_slot(
                         crate::keynav::RowAction::activate(Message::Settings(
                             SettingsMessage::SettingSftpDefaultEditorBrowse,
@@ -230,14 +230,14 @@ impl Oryxis {
             ]);
             content_col = content_col
                 .push(console_section)
-                .push(Space::new().height(12))
+                .push(Space::new().height(12).boxed())
                 .push(download_section)
-                .push(Space::new().height(12))
+                .push(Space::new().height(12).boxed())
                 .push(editor_section)
-                .push(Space::new().height(12))
+                .push(Space::new().height(12).boxed())
                 .push(tuning_section);
         }
-        content_col = content_col.push(Space::new().height(24));
+        content_col = content_col.push(Space::new().height(24).boxed());
 
         scrollable(
             container(content_col)
@@ -248,7 +248,7 @@ impl Oryxis {
         .id(iced::widget::Id::new("settings-sftp-scroll"))
         .on_scroll(|s| Message::Settings(SettingsMessage::SectionScrolled(s.viewport.relative_offset().y)))
         .height(Length::Fill)
-        .into()
+        .boxed()
     }
 
     pub(super) fn default_download_dir_row(&self) -> Element<'_, Message> {
@@ -281,8 +281,8 @@ impl Oryxis {
                     .color(crate::theme::OryxisColors::t().text_muted),
             ]
             .width(Length::Fill)
-            .into(),
-            Space::new().width(10).into(),
+            .boxed(),
+            Space::new().width(10).boxed(),
             browse,
         ]);
         // Reset-to-default only when a custom folder is set.
@@ -296,11 +296,11 @@ impl Oryxis {
                     crate::theme::OryxisColors::t().text_muted,
                 ),
             );
-            row = row.push(Space::new().width(8)).push(reset);
+            row = row.push(Space::new().width(8).boxed()).push(reset);
         }
         container(row.align_y(iced::Alignment::Center))
             .padding(Padding { top: 8.0, ..Padding::ZERO })
             .width(Length::Fill)
-            .into()
+            .boxed()
     }
 }

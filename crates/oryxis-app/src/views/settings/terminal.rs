@@ -50,8 +50,7 @@ impl Oryxis {
             text(crate::i18n::t("sidebar_default_tab_desc"))
                 .size(11)
                 .color(OryxisColors::t().text_muted),
-        ]
-        .into()
+        ].boxed()
     }
 
     /// Per-tab placement pickers (issue #102): every sidebar tab
@@ -109,12 +108,12 @@ impl Oryxis {
                 },
             ));
         }
-        col.into()
+        col.boxed()
     }
 
     fn smart_tabs_threshold_row(&self) -> Element<'_, Message> {
         if !self.prefs.smart_tabs {
-            return Space::new().into();
+            return Space::new().boxed();
         }
         column![
             Space::new().height(10),
@@ -129,8 +128,7 @@ impl Oryxis {
                 200.0,
                 |v| Message::Settings(SettingsMessage::SmartTabsThresholdChanged(v)),
             ),
-        ]
-        .into()
+        ].boxed()
     }
 
     /// Sub-row for the shell-integration key: what it is for, the Copy
@@ -142,7 +140,7 @@ impl Oryxis {
     /// cannot matter yet is noise. Nested like the command-log folder row.
     fn shell_integration_row(&self) -> Element<'_, Message> {
         if !self.prefs.command_history {
-            return Space::new().into();
+            return Space::new().boxed();
         }
         let indent = if crate::i18n::is_rtl_layout() {
             Padding { right: 22.0, ..Padding::ZERO }
@@ -181,9 +179,9 @@ impl Oryxis {
                     .width(Length::Fill),
                 Space::new().height(6),
                 crate::widgets::dir_row(vec![
-                    Space::new().width(Length::Fill).into(),
+                    Space::new().width(Length::Fill).boxed(),
                     copy,
-                    Space::new().width(8).into(),
+                    Space::new().width(8).boxed(),
                     rotate,
                 ])
                 .align_y(iced::Alignment::Center),
@@ -192,7 +190,7 @@ impl Oryxis {
         )
         .padding(Padding { top: 8.0, ..indent })
         .width(Length::Fill)
-        .into()
+        .boxed()
     }
 
     /// Row for the terminal background picture: its label, the chosen
@@ -227,17 +225,17 @@ impl Oryxis {
             text(crate::i18n::t("terminal_bg_image"))
                 .size(13)
                 .color(crate::theme::OryxisColors::t().text_primary)
-                .into(),
-            Space::new().width(Length::Fill).into(),
+                .boxed(),
+            Space::new().width(Length::Fill).boxed(),
             text(current)
                 .size(12)
                 .color(crate::theme::OryxisColors::t().text_muted)
-                .into(),
-            Space::new().width(10).into(),
+                .boxed(),
+            Space::new().width(10).boxed(),
             browse,
         ];
         if !path.is_empty() {
-            row.push(Space::new().width(8).into());
+            row.push(Space::new().width(8).boxed());
             row.push(self.settings_nav_slot(
                 crate::keynav::RowAction::activate(Message::Settings(
                     SettingsMessage::TerminalBgImageCleared,
@@ -253,7 +251,7 @@ impl Oryxis {
         crate::widgets::dir_row(row)
             .align_y(iced::Alignment::Center)
             .width(Length::Fill)
-            .into()
+            .boxed()
     }
 
     /// Sub-row for the command-log folder, shown only while the
@@ -263,7 +261,7 @@ impl Oryxis {
     /// sub-options.
     fn command_history_dir_row(&self) -> Element<'_, Message> {
         if !self.prefs.command_history_file {
-            return Space::new().into();
+            return Space::new().boxed();
         }
         let indent = if crate::i18n::is_rtl_layout() {
             Padding { right: 22.0, ..Padding::ZERO }
@@ -285,8 +283,8 @@ impl Oryxis {
                 .size(12)
                 .color(crate::theme::OryxisColors::t().text_muted)
                 .width(Length::Fill)
-                .into(),
-            Space::new().width(10).into(),
+                .boxed(),
+            Space::new().width(10).boxed(),
             change,
         ]);
         // Reset-to-default only when a custom folder is set.
@@ -300,12 +298,12 @@ impl Oryxis {
                     crate::theme::OryxisColors::t().text_muted,
                 ),
             );
-            row = row.push(Space::new().width(8)).push(reset);
+            row = row.push(Space::new().width(8).boxed()).push(reset);
         }
         container(row.align_y(iced::Alignment::Center))
             .padding(Padding { top: 8.0, ..indent })
             .width(Length::Fill)
-            .into()
+            .boxed()
     }
 
     /// Row for the ZMODEM download folder: the resolved path (default or
@@ -464,13 +462,13 @@ impl Oryxis {
         // with every custom theme, which is exactly why it stopped being
         // inline.
         let footer: Element<'_, Message> = crate::widgets::dir_row(vec![
-            Space::new().width(Length::Fill).into(),
+            Space::new().width(Length::Fill).boxed(),
             crate::widgets::form_cancel_button(Message::Settings(
                 SettingsMessage::CloseTerminalThemeGallery,
             )),
         ])
         .align_y(iced::Alignment::Center)
-        .into();
+        .boxed();
         let filter_input = self.settings_nav_ring_at(
             filter_idx,
             10.0,
@@ -482,7 +480,7 @@ impl Oryxis {
                 .padding(10)
                 .size(13)
                 .style(crate::widgets::rounded_input_style)
-                .into(),
+                .boxed(),
         );
         let card = container(
             column![
@@ -517,7 +515,7 @@ impl Oryxis {
             },
             ..Default::default()
         });
-        card.into()
+        card.boxed()
     }
 
     pub(crate) fn view_settings_terminal(&self) -> Element<'_, Message> {
@@ -526,14 +524,14 @@ impl Oryxis {
         // (recording happens at construction), so keep any new section
         // in its on-screen position.
         self.keynav_settings_reset();
-        let mut toggles_col: iced::widget::Column<'_, Message> = column![
+        let mut toggles_col: iced::widget::Column<iced::Element<'_, Message>> = column![
             self.nav_toggle_row(crate::i18n::t("copy_on_select"), self.prefs.copy_on_select, Message::Settings(SettingsMessage::ToggleCopyOnSelect)),
         ];
         // Right-click scheme (PuTTY's Context menu / Paste / Extend). The
         // single authority for the gesture.
         let rc_is_paste =
             self.prefs.terminal_right_click == crate::util::RightClickMode::Paste;
-        toggles_col = toggles_col.push(Space::new().height(10)).push(self.nav_pick_row(
+        toggles_col = toggles_col.push(Space::new().height(10).boxed()).push(self.nav_pick_row(
             crate::i18n::t("terminal_right_click"),
             crate::util::RightClickMode::ALL
                 .iter()
@@ -554,14 +552,14 @@ impl Oryxis {
                 Padding { left: 22.0, ..Padding::ZERO }
             };
             toggles_col = toggles_col
-                .push(Space::new().height(8))
+                .push(Space::new().height(8).boxed())
                 .push(
                     container(self.nav_toggle_row(
                         crate::i18n::t("copy_requires_right_click"),
                         self.prefs.right_click_copy,
                         Message::Settings(SettingsMessage::ToggleRightClickCopy),
                     ))
-                    .padding(indent),
+                    .padding(indent).boxed(),
                 );
         }
         // X11-style middle-click paste (xterm / PuTTY tradition). Its own
@@ -573,7 +571,7 @@ impl Oryxis {
         // IS a chord on `TerminalPasteSelection`, editable in Settings >
         // Shortcuts like any other, and this toggle adds / removes it.
         toggles_col = toggles_col
-            .push(Space::new().height(10))
+            .push(Space::new().height(10).boxed())
             .push(self.nav_toggle_row(
                 crate::i18n::t("middle_click_paste"),
                 self.middle_click_pastes(),
@@ -583,39 +581,39 @@ impl Oryxis {
         // before anything reaches the session). Default on; the toggle is
         // the power-user opt-out.
         toggles_col = toggles_col
-            .push(Space::new().height(10))
+            .push(Space::new().height(10).boxed())
             .push(self.nav_toggle_row(
                 crate::i18n::t("careful_paste_label"),
                 self.prefs.careful_paste,
                 Message::Settings(SettingsMessage::ToggleCarefulPaste),
             ))
-            .push(Space::new().height(4))
+            .push(Space::new().height(4).boxed())
             .push(
                 text(crate::i18n::t("careful_paste_desc"))
                     .size(11)
-                    .color(OryxisColors::t().text_muted),
+                    .color(OryxisColors::t().text_muted).boxed(),
             );
         // Content heuristics (bidi/invisible, control bytes, curl|sh,
         // homographs): its own switch so the multi-line check and the
         // suspicious-content check opt in/out independently.
         toggles_col = toggles_col
-            .push(Space::new().height(10))
+            .push(Space::new().height(10).boxed())
             .push(self.nav_toggle_row(
                 crate::i18n::t("paste_guard_label"),
                 self.prefs.paste_guard,
                 Message::Settings(SettingsMessage::TogglePasteGuard),
             ))
-            .push(Space::new().height(4))
+            .push(Space::new().height(4).boxed())
             .push(
                 text(crate::i18n::t("paste_guard_desc"))
                     .size(11)
-                    .color(OryxisColors::t().text_muted),
+                    .color(OryxisColors::t().text_muted).boxed(),
             );
         // The whole Behavior group shares one card: selection /
         // clipboard toggles, then the word-delimiter and scrollback
         // sub-blocks (each keeps its 13 px sub-title). Constructed
         // in visual order so the keyboard rows record in order.
-        let toggles_col = toggles_col.push(Space::new().height(16));
+        let toggles_col = toggles_col.push(Space::new().height(16).boxed());
         let word_delimiters_block = column![
             text(crate::i18n::t("word_delimiters")).size(13).color(OryxisColors::t().text_primary),
             Space::new().height(4),
@@ -634,9 +632,9 @@ impl Oryxis {
                         .width(240)
                         .style(crate::widgets::rounded_input_style)
                         .align_x(dir_align_x())
-                        .into(),
+                        .boxed(),
                 ),
-                Space::new().width(8).into(),
+                Space::new().width(8).boxed(),
                 self.settings_nav_slot(
                     crate::keynav::RowAction::activate(Message::Settings(SettingsMessage::SettingResetWordDelimiters)),
                     6.0,
@@ -665,7 +663,7 @@ impl Oryxis {
                     .padding(10)
                     .width(240)
                     .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
             ),
             // PuTTY's two "jump back to the live edge" behaviors, so a user
             // stranded deep in history returns without reaching for the
@@ -729,9 +727,9 @@ impl Oryxis {
         // folder anyone had already configured.
         let behavior_section = panel_section(
             toggles_col
-                .push(word_delimiters_block)
-                .push(Space::new().height(16))
-                .push(scrollback_block),
+                .push(word_delimiters_block.boxed())
+                .push(Space::new().height(16).boxed())
+                .push(scrollback_block.boxed()),
         );
 
         // Settings > Terminal used to have one "Appearance" card holding
@@ -771,17 +769,17 @@ impl Oryxis {
         // should not be on screen.
         let has_bg_image = !self.prefs.terminal_bg_image.trim().is_empty();
         appearance_col = appearance_col
-            .push(Space::new().height(10))
+            .push(Space::new().height(10).boxed())
             .push(self.terminal_bg_image_row())
-            .push(Space::new().height(4))
+            .push(Space::new().height(4).boxed())
             .push(
                 text(crate::i18n::t("terminal_bg_image_desc"))
                     .size(11)
-                    .color(OryxisColors::t().text_muted),
+                    .color(OryxisColors::t().text_muted).boxed(),
             );
         if has_bg_image {
             appearance_col = appearance_col
-                .push(Space::new().height(10))
+                .push(Space::new().height(10).boxed())
                 .push(self.nav_pick_row(
                     crate::i18n::t("terminal_bg_fit"),
                     oryxis_terminal::BgFit::ALL
@@ -799,7 +797,7 @@ impl Oryxis {
                     160.0,
                     |v| Message::Settings(SettingsMessage::TerminalBgFitChanged(v)),
                 ))
-                .push(Space::new().height(10))
+                .push(Space::new().height(10).boxed())
                 .push(self.nav_pick_row(
                     crate::i18n::t("terminal_bg_dim"),
                     crate::terminal_appearance::DIM_STEPS
@@ -811,11 +809,11 @@ impl Oryxis {
                     120.0,
                     |v| Message::Settings(SettingsMessage::TerminalBgDimChanged(v)),
                 ))
-                .push(Space::new().height(4))
+                .push(Space::new().height(4).boxed())
                 .push(
                     text(crate::i18n::t("terminal_bg_dim_desc"))
                         .size(11)
-                        .color(OryxisColors::t().text_muted),
+                        .color(OryxisColors::t().text_muted).boxed(),
                 );
         }
 
@@ -908,8 +906,8 @@ impl Oryxis {
                 ),
                 8.0,
                 dir_row(vec![
-                text(crate::i18n::t("terminal_font_size")).size(13).color(OryxisColors::t().text_primary).into(),
-                Space::new().width(Length::Fill).into(),
+                text(crate::i18n::t("terminal_font_size")).size(13).color(OryxisColors::t().text_primary).boxed(),
+                Space::new().width(Length::Fill).boxed(),
                 button(
                     container(text("\u{2212}").size(14).color(OryxisColors::t().text_primary))
                         .padding(Padding { top: 4.0, right: 10.0, bottom: 4.0, left: 10.0 }),
@@ -925,10 +923,10 @@ impl Oryxis {
                         border: Border { radius: Radius::from(4.0), ..Default::default() },
                         ..Default::default()
                     }
-                }).into(),
-                Space::new().width(8).into(),
-                text(format!("{:.0}", self.terminal_font_size)).size(13).color(OryxisColors::t().text_primary).into(),
-                Space::new().width(8).into(),
+                }).boxed(),
+                Space::new().width(8).boxed(),
+                text(format!("{:.0}", self.terminal_font_size)).size(13).color(OryxisColors::t().text_primary).boxed(),
+                Space::new().width(8).boxed(),
                 button(
                     container(text("+").size(14).color(OryxisColors::t().text_primary))
                         .padding(Padding { top: 4.0, right: 10.0, bottom: 4.0, left: 10.0 }),
@@ -944,8 +942,8 @@ impl Oryxis {
                         border: Border { radius: Radius::from(4.0), ..Default::default() },
                         ..Default::default()
                     }
-                }).into(),
-                ]).align_y(iced::Alignment::Center).into(),
+                }).boxed(),
+                ]).align_y(iced::Alignment::Center).boxed(),
             ),
         ];
         // The stepper edits the PREFERENCE; the zoom chords add a
@@ -953,13 +951,13 @@ impl Oryxis {
         // in effect the terminal is not drawing the number above, so
         // say so here rather than let the row look wrong.
         let font_size_block = if self.terminal_font_zoom != 0.0 {
-            font_size_block.push(Space::new().height(4)).push(
+            font_size_block.push(Space::new().height(4).boxed()).push(
                 text(
                     crate::i18n::t("terminal_font_zoomed")
                         .replace("{n}", &format!("{:.0}", self.terminal_font_px())),
                 )
                 .size(11)
-                .color(OryxisColors::t().text_muted),
+                .color(OryxisColors::t().text_muted).boxed(),
             )
         } else {
             font_size_block
@@ -970,17 +968,17 @@ impl Oryxis {
         // editable in Settings > Shortcuts, and this toggle adds /
         // removes them, the same shape as the middle-click paste toggle.
         let font_size_block = font_size_block
-            .push(Space::new().height(10))
+            .push(Space::new().height(10).boxed())
             .push(self.nav_toggle_row(
                 crate::i18n::t("wheel_zoom"),
                 self.wheel_zoom_bound(),
                 Message::Settings(SettingsMessage::ToggleWheelZoom),
             ))
-            .push(Space::new().height(4))
+            .push(Space::new().height(4).boxed())
             .push(
                 text(crate::i18n::t("wheel_zoom_desc"))
                     .size(11)
-                    .color(OryxisColors::t().text_muted),
+                    .color(OryxisColors::t().text_muted).boxed(),
             );
 
         // Font picker. The list comes from a fontdb scan of
@@ -1026,13 +1024,13 @@ impl Oryxis {
                     .font(preview_font).size(fs).color(fg),
                 Space::new().height(4),
                 dir_row(vec![
-                    text("user").font(preview_font).size(fs).color(c_green).into(),
-                    text("@").font(preview_font).size(fs).color(fg).into(),
-                    text("host").font(preview_font).size(fs).color(c_blue).into(),
-                    text(":").font(preview_font).size(fs).color(fg).into(),
-                    text("~/dev").font(preview_font).size(fs).color(c_cyan).into(),
-                    text("$ ").font(preview_font).size(fs).color(fg).into(),
-                    text("git status").font(preview_font).size(fs).color(c_yellow).into(),
+                    text("user").font(preview_font).size(fs).color(c_green).boxed(),
+                    text("@").font(preview_font).size(fs).color(fg).boxed(),
+                    text("host").font(preview_font).size(fs).color(c_blue).boxed(),
+                    text(":").font(preview_font).size(fs).color(fg).boxed(),
+                    text("~/dev").font(preview_font).size(fs).color(c_cyan).boxed(),
+                    text("$ ").font(preview_font).size(fs).color(fg).boxed(),
+                    text("git status").font(preview_font).size(fs).color(c_yellow).boxed(),
                 ]),
                 Space::new().height(4),
                 // Nerd Font glyphs (branch, powerline, home, folder,
@@ -1081,7 +1079,7 @@ impl Oryxis {
                 .on_open(Message::Navigation(NavigationMessage::PickOpenChanged(true)))
                 .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                 .width(260).padding(10).style(crate::widgets::rounded_pick_list_style)
-                .into(),
+                .boxed(),
             ),
         ];
         // Font pack affordance (issue #109): the pick_list can't
@@ -1099,14 +1097,14 @@ impl Oryxis {
             .map(|p| p.family)
             .collect();
         if !pack_missing.is_empty() {
-            font_picker_block = font_picker_block.push(Space::new().height(6)).push(
+            font_picker_block = font_picker_block.push(Space::new().height(6).boxed()).push(
                 text(format!(
                     "{} {}",
                     t("font_pack_available"),
                     pack_missing.join(", ")
                 ))
                 .size(11)
-                .color(OryxisColors::t().text_muted),
+                .color(OryxisColors::t().text_muted).boxed(),
             );
         }
         // Font weight (issue #155). Sits under the family because it
@@ -1121,13 +1119,13 @@ impl Oryxis {
             |w| Message::Settings(SettingsMessage::TerminalFontWeightChanged(w)),
         );
         let font_picker_block = font_picker_block
-            .push(Space::new().height(14))
+            .push(Space::new().height(14).boxed())
             .push(
                 text(t("terminal_font_weight"))
                     .size(13)
-                    .color(OryxisColors::t().text_primary),
+                    .color(OryxisColors::t().text_primary).boxed(),
             )
-            .push(Space::new().height(8))
+            .push(Space::new().height(8).boxed())
             .push(self.settings_nav_slot_labeled(
                 t("terminal_font_weight"),
                 crate::keynav::RowAction::picker(weight_prev, weight_next),
@@ -1143,7 +1141,7 @@ impl Oryxis {
                 .on_open(Message::Navigation(NavigationMessage::PickOpenChanged(true)))
                 .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                 .width(260).padding(10).style(crate::widgets::rounded_pick_list_style)
-                .into(),
+                .boxed(),
             ));
         // The weight's honesty line, right under the picker it is about.
         let font_picker_block = if crate::app::terminal_font_serves_weight(
@@ -1152,10 +1150,10 @@ impl Oryxis {
         ) {
             font_picker_block
         } else {
-            font_picker_block.push(Space::new().height(6)).push(
+            font_picker_block.push(Space::new().height(6).boxed()).push(
                 text(t("font_weight_unavailable"))
                     .size(11)
-                    .color(OryxisColors::t().text_muted),
+                    .color(OryxisColors::t().text_muted).boxed(),
             )
         };
 
@@ -1171,19 +1169,19 @@ impl Oryxis {
             |t| Message::Settings(SettingsMessage::TerminalTextThicknessChanged(t)),
         );
         let font_picker_block = font_picker_block
-            .push(Space::new().height(14))
+            .push(Space::new().height(14).boxed())
             .push(
                 text(t("terminal_text_thickness"))
                     .size(13)
-                    .color(OryxisColors::t().text_primary),
+                    .color(OryxisColors::t().text_primary).boxed(),
             )
-            .push(Space::new().height(4))
+            .push(Space::new().height(4).boxed())
             .push(
                 text(t("setting_text_thickness_desc"))
                     .size(11)
-                    .color(OryxisColors::t().text_muted),
+                    .color(OryxisColors::t().text_muted).boxed(),
             )
-            .push(Space::new().height(8))
+            .push(Space::new().height(8).boxed())
             .push(self.settings_nav_slot_labeled(
                 t("terminal_text_thickness"),
                 crate::keynav::RowAction::picker(thick_prev, thick_next),
@@ -1199,11 +1197,11 @@ impl Oryxis {
                 .on_open(Message::Navigation(NavigationMessage::PickOpenChanged(true)))
                 .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                 .width(260).padding(10).style(crate::widgets::rounded_pick_list_style)
-                .into(),
+                .boxed(),
             ));
         let font_picker_block = font_picker_block
-            .push(Space::new().height(12))
-            .push(font_preview);
+            .push(Space::new().height(12).boxed())
+            .push(font_preview.boxed());
         // One Appearance card: rendering toggles, then the font
         // size stepper and the font picker + live sample. The
         // terminal-theme gallery keeps its own card below (its own
@@ -1211,10 +1209,10 @@ impl Oryxis {
         // separately).
         let appearance_section = panel_section(
             appearance_col
-                .push(Space::new().height(16))
-                .push(font_size_block)
-                .push(Space::new().height(16))
-                .push(font_picker_block),
+                .push(Space::new().height(16).boxed())
+                .push(font_size_block.boxed())
+                .push(Space::new().height(16).boxed())
+                .push(font_picker_block.boxed()),
         );
 
         // Terminal theme picker. First card is the "follow
@@ -1378,6 +1376,6 @@ impl Oryxis {
         .id(iced::widget::Id::new("settings-terminal-scroll"))
         .on_scroll(|s| Message::Settings(SettingsMessage::SectionScrolled(s.viewport.relative_offset().y)))
         .height(Length::Fill)
-        .into()
+        .boxed()
     }
 }

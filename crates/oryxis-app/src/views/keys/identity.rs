@@ -1,5 +1,6 @@
 //! Identity editor side panel. Split out of views/keys.rs.
 
+use iced::Widget as _;
 use super::*;
 use iced::widget::column;
 
@@ -12,8 +13,8 @@ impl Oryxis {
         // Panel header
         let panel_header = container(
             dir_row(vec![
-                text(panel_title).size(18).color(OryxisColors::t().text_primary).into(),
-                Space::new().width(Length::Fill).into(),
+                text(panel_title).size(18).color(OryxisColors::t().text_primary).boxed(),
+                Space::new().width(Length::Fill).boxed(),
                 button(text("\u{00D7}").size(14).color(OryxisColors::t().text_muted))
                     .on_press(Message::Keys(KeysMessage::HideIdentityPanel))
                     .padding(Padding { top: 4.0, right: 8.0, bottom: 4.0, left: 8.0 })
@@ -21,7 +22,7 @@ impl Oryxis {
                         background: Some(Background::Color(OryxisColors::t().bg_surface)),
                         border: Border { radius: Radius::from(6.0), ..Default::default() },
                         ..Default::default()
-                    }).into(),
+                    }).boxed(),
             ])
             .align_y(iced::Alignment::Center),
         )
@@ -39,7 +40,7 @@ impl Oryxis {
                     .on_input(|v| Message::Keys(KeysMessage::IdentityLabelChanged(v)))
                     .padding(10)
                     .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
             ),
         ]
         .width(Length::Fill)
@@ -50,8 +51,8 @@ impl Oryxis {
             text(t("username")).size(12).color(OryxisColors::t().text_secondary),
             Space::new().height(6),
             dir_row(vec![
-                iced_fonts::lucide::user().size(13).color(OryxisColors::t().text_muted).into(),
-                Space::new().width(10).into(),
+                iced_fonts::lucide::user().size(13).color(OryxisColors::t().text_muted).boxed(),
+                Space::new().width(10).boxed(),
                 self.panel_nav_slot(
                     crate::keynav::RowAction::input(iced::widget::Id::new("panel-identity-username")),
                     10.0,
@@ -60,7 +61,7 @@ impl Oryxis {
                         .on_input(|v| Message::Keys(KeysMessage::IdentityUsernameChanged(v)))
                         .padding(10)
                         .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
-                        .into(),
+                        .boxed(),
                 ),
             ]).align_y(iced::Alignment::Center),
         ]
@@ -84,8 +85,8 @@ impl Oryxis {
             text(t("password")).size(12).color(OryxisColors::t().text_secondary),
             Space::new().height(6),
             dir_row(vec![
-                iced_fonts::lucide::keyboard().size(13).color(OryxisColors::t().text_muted).into(),
-                Space::new().width(10).into(),
+                iced_fonts::lucide::keyboard().size(13).color(OryxisColors::t().text_muted).boxed(),
+                Space::new().width(10).boxed(),
                 crate::widgets::password_input_with_eye_nav(
                     identity_pw_placeholder,
                     self.identity_form.password.as_str(),
@@ -120,8 +121,8 @@ impl Oryxis {
             text(t("ssh_key")).size(12).color(OryxisColors::t().text_secondary),
             Space::new().height(6),
             dir_row(vec![
-                text(t("add_key_btn")).size(12).color(OryxisColors::t().accent).into(),
-                Space::new().width(16).into(),
+                text(t("add_key_btn")).size(12).color(OryxisColors::t().accent).boxed(),
+                Space::new().width(16).boxed(),
                 self.panel_nav_slot(
                     crate::keynav::RowAction::input(iced::widget::Id::new("identity-pick-key")),
                     10.0,
@@ -135,7 +136,7 @@ impl Oryxis {
                     .on_open(Message::Navigation(NavigationMessage::PickOpenChanged(true)))
                     .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                     .padding(10).style(crate::widgets::rounded_pick_list_style)
-                    .into(),
+                    .boxed(),
                 ),
             ]).align_y(iced::Alignment::Center),
         ]
@@ -153,30 +154,30 @@ impl Oryxis {
                     text(t("linked_to")).size(12).color(OryxisColors::t().text_muted),
                     Space::new().height(4),
                     text(t("no_connections_identity")).size(11).color(OryxisColors::t().text_muted),
-                ].into()
+                ].boxed()
             } else {
                 let mut items: Vec<Element<'_, Message>> = vec![
-                    Space::new().height(16).into(),
-                    Element::from(text(t("linked_to")).size(12).color(OryxisColors::t().text_muted)),
-                    Space::new().height(4).into(),
+                    Space::new().height(16).boxed(),
+                    text(t("linked_to")).size(12).color(OryxisColors::t().text_muted).boxed(),
+                    Space::new().height(4).boxed(),
                 ];
                 for conn in linked {
                     items.push(
                         container(
                             dir_row(vec![
-                                iced_fonts::lucide::server().size(11).color(OryxisColors::t().text_muted).into(),
-                                Space::new().width(8).into(),
-                                text(&conn.label).size(12).color(OryxisColors::t().text_secondary).into(),
+                                iced_fonts::lucide::server().size(11).color(OryxisColors::t().text_muted).boxed(),
+                                Space::new().width(8).boxed(),
+                                text(&conn.label).size(12).color(OryxisColors::t().text_secondary).boxed(),
                             ]).align_y(iced::Alignment::Center),
                         )
                         .padding(Padding { top: 4.0, right: 0.0, bottom: 4.0, left: 0.0 })
-                        .into()
+                        .boxed()
                     );
                 }
-                column(items).into()
+                column(items).boxed()
             }
         } else {
-            Space::new().into()
+            Space::new().boxed()
         };
 
         // Shared form footer: disabled Save while the label is empty
@@ -222,6 +223,6 @@ impl Oryxis {
         ]
         .height(Length::Fill);
 
-        crate::widgets::side_panel_frame(panel_content.into(), OryxisColors::t().bg_sidebar, self.panel_width)
+        crate::widgets::side_panel_frame(panel_content.boxed(), OryxisColors::t().bg_sidebar, self.panel_width)
     }
 }

@@ -79,15 +79,15 @@ impl Oryxis {
                 .width(width)
                 .padding(10)
                 .style(crate::widgets::rounded_pick_list_style)
-                .into(),
+                .boxed(),
         );
         dir_row(vec![
-            text(label).size(13).color(OryxisColors::t().text_primary).into(),
-            Space::new().width(Length::Fill).into(),
+            text(label).size(13).color(OryxisColors::t().text_primary).boxed(),
+            Space::new().width(Length::Fill).boxed(),
             picker,
         ])
         .align_y(iced::Alignment::Center)
-        .into()
+        .boxed()
     }
 
     /// The list + editor, shared by Settings (the global rules) and the
@@ -97,7 +97,7 @@ impl Oryxis {
         &'a self,
         scope: RuleScope,
         rules: &'a [HighlightRule],
-    ) -> iced::widget::Column<'a, Message> {
+    ) -> iced::widget::Column<iced::Element<'a, Message>> {
         let host = scope == RuleScope::Host;
         let add_button = self.hl_nav_slot(
             scope,
@@ -129,14 +129,14 @@ impl Oryxis {
             column![
                 heading,
                 Space::new().height(10),
-                dir_row(vec![add_button, Space::new().width(Length::Fill).into()]),
+                dir_row(vec![add_button, Space::new().width(Length::Fill).boxed()]),
                 Space::new().height(12),
             ]
         } else {
             column![
                 dir_row(vec![
-                    heading.into(),
-                    Space::new().width(Length::Fill).into(),
+                    heading.boxed(),
+                    Space::new().width(Length::Fill).boxed(),
                     add_button,
                 ])
                 .align_y(iced::Alignment::Center),
@@ -165,7 +165,7 @@ impl Oryxis {
                     220.0,
                     |l| Message::Settings(SettingsMessage::HighlightRuleHostModeChanged(l)),
                 ))
-                .push(Space::new().height(10));
+                .push(Space::new().height(10).boxed());
         }
 
         // A rule being created or changed lives in the modal, so the list
@@ -175,7 +175,7 @@ impl Oryxis {
             return col.push(
                 text(t("hl_rule_empty"))
                     .size(12)
-                    .color(OryxisColors::t().text_muted),
+                    .color(OryxisColors::t().text_muted).boxed(),
             );
         }
 
@@ -205,8 +205,8 @@ impl Oryxis {
                         },
                         ..Default::default()
                     })
-                    .into(),
-                Space::new().width(10).into(),
+                    .boxed(),
+                Space::new().width(10).boxed(),
                 column![
                     text(label)
                         .size(13)
@@ -218,9 +218,8 @@ impl Oryxis {
                     text(rule_summary(rule))
                         .size(11)
                         .color(OryxisColors::t().text_muted),
-                ]
-                .into(),
-                Space::new().width(Length::Fill).into(),
+                ].boxed(),
+                Space::new().width(Length::Fill).boxed(),
             ])
             .align_y(iced::Alignment::Center);
 
@@ -239,13 +238,13 @@ impl Oryxis {
                             ))
                         })
                         .size(16)
-                        .into(),
+                        .boxed(),
                 ),
-                Space::new().width(8).into(),
+                Space::new().width(8).boxed(),
                 self.hl_move_button(scope, rules.len(), idx, true),
-                Space::new().width(4).into(),
+                Space::new().width(4).boxed(),
                 self.hl_move_button(scope, rules.len(), idx, false),
-                Space::new().width(8).into(),
+                Space::new().width(8).boxed(),
                 self.hl_nav_slot(
                     scope,
                     t("edit"),
@@ -259,7 +258,7 @@ impl Oryxis {
                         OryxisColors::t().bg_hover,
                     ),
                 ),
-                Space::new().width(8).into(),
+                Space::new().width(8).boxed(),
                 self.hl_nav_slot(
                     scope,
                     t("delete"),
@@ -279,22 +278,22 @@ impl Oryxis {
             col = if host {
                 // Controls on their own line, reading left to right
                 // like every other label in the panel.
-                col.push(identity).push(Space::new().height(6)).push(controls)
+                col.push(identity.boxed()).push(Space::new().height(6).boxed()).push(controls.boxed())
             } else {
                 col.push(
-                    dir_row(vec![identity.into(), controls.into()])
-                        .align_y(iced::Alignment::Center),
+                    dir_row(vec![identity.boxed(), controls.boxed()])
+                        .align_y(iced::Alignment::Center).boxed(),
                 )
             };
 
             if confirming {
-                col = col.push(Space::new().height(8)).push(
+                col = col.push(Space::new().height(8).boxed()).push(
                     dir_row(vec![
                         text(t("hl_rule_delete_confirm"))
                             .size(11)
                             .color(OryxisColors::t().warning)
-                            .into(),
-                        Space::new().width(Length::Fill).into(),
+                            .boxed(),
+                        Space::new().width(Length::Fill).boxed(),
                         self.hl_nav_slot(
                             scope,
                             t("delete"),
@@ -308,7 +307,7 @@ impl Oryxis {
                                 OryxisColors::t().error,
                             ),
                         ),
-                        Space::new().width(8).into(),
+                        Space::new().width(8).boxed(),
                         self.hl_nav_slot(
                             scope,
                             t("cancel"),
@@ -323,11 +322,11 @@ impl Oryxis {
                             ),
                         ),
                     ])
-                    .align_y(iced::Alignment::Center),
+                    .align_y(iced::Alignment::Center).boxed(),
                 );
             }
 
-            col = col.push(Space::new().height(14));
+            col = col.push(Space::new().height(14).boxed());
         }
 
         col

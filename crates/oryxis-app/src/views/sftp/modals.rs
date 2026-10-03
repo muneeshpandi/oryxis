@@ -31,7 +31,7 @@ pub(crate) fn delete_confirm_modal<'a>(
         .padding(24)
         .width(420),
     )
-    .style(|_| container::Style {
+    .style(|_: &iced::Theme| container::Style {
         background: Some(Background::Color(OryxisColors::t().bg_surface)),
         border: Border {
             radius: Radius::from(12.0),
@@ -51,23 +51,23 @@ pub(crate) fn delete_confirm_modal<'a>(
             }),
     )
     .on_press(Message::Sftp(SftpMessage::SftpCancelDelete))
-    .into();
+    .boxed();
 
     // Wrap the dialog in a MouseArea that swallows clicks via `NoOp`,
     // otherwise events fall through the Stack to the scrim underneath
     // and the modal closes on every click inside the dialog body.
-    let centered = container(MouseArea::new(dialog).on_press(Message::NoOp))
+    let centered = container::<_, iced::Theme>(MouseArea::new(dialog).on_press(Message::NoOp))
         .width(Length::Fill)
         .height(Length::Fill)
         .center_x(Length::Fill)
         .center_y(Length::Fill);
 
-    iced::widget::Stack::new()
+    iced::widget::Stack::<iced::Element<'_, _>>::new()
         .push(scrim)
-        .push(centered)
+        .push(centered.boxed())
         .width(Length::Fill)
         .height(Length::Fill)
-        .into()
+        .boxed()
 }
 
 /// Close-guard modal: shown when the user tries to close an SFTP tab that has
@@ -97,7 +97,7 @@ pub(crate) fn close_guard_modal<'a>() -> Element<'a, Message> {
         .padding(24)
         .width(420),
     )
-    .style(|_| container::Style {
+    .style(|_: &iced::Theme| container::Style {
         background: Some(Background::Color(OryxisColors::t().bg_surface)),
         border: Border {
             radius: Radius::from(12.0),
@@ -116,18 +116,18 @@ pub(crate) fn close_guard_modal<'a>() -> Element<'a, Message> {
             }),
     )
     .on_press(Message::Sftp(SftpMessage::CancelCloseSftpTab))
-    .into();
-    let centered = container(MouseArea::new(dialog).on_press(Message::NoOp))
+    .boxed();
+    let centered = container::<_, iced::Theme>(MouseArea::new(dialog).on_press(Message::NoOp))
         .width(Length::Fill)
         .height(Length::Fill)
         .center_x(Length::Fill)
         .center_y(Length::Fill);
-    iced::widget::Stack::new()
+    iced::widget::Stack::<iced::Element<'_, _>>::new()
         .push(scrim)
-        .push(centered)
+        .push(centered.boxed())
         .width(Length::Fill)
         .height(Length::Fill)
-        .into()
+        .boxed()
 }
 
 /// Widget id of the new-entry name input, focused when the modal opens.
@@ -173,7 +173,7 @@ pub(crate) fn new_entry_modal<'a>(entry: &'a crate::state::SftpNewEntry) -> Elem
         .padding(24)
         .width(380),
     )
-    .style(|_| container::Style {
+    .style(|_: &iced::Theme| container::Style {
         background: Some(Background::Color(OryxisColors::t().bg_surface)),
         border: Border {
             radius: Radius::from(12.0),
@@ -193,23 +193,23 @@ pub(crate) fn new_entry_modal<'a>(entry: &'a crate::state::SftpNewEntry) -> Elem
             }),
     )
     .on_press(Message::Sftp(SftpMessage::SftpNewEntryCancel))
-    .into();
+    .boxed();
 
     // Wrap the dialog in a MouseArea that swallows clicks via `NoOp`,
     // otherwise events fall through the Stack to the scrim underneath
     // and the modal closes on every click inside the dialog body.
-    let centered = container(MouseArea::new(dialog).on_press(Message::NoOp))
+    let centered = container::<_, iced::Theme>(MouseArea::new(dialog).on_press(Message::NoOp))
         .width(Length::Fill)
         .height(Length::Fill)
         .center_x(Length::Fill)
         .center_y(Length::Fill);
 
-    iced::widget::Stack::new()
+    iced::widget::Stack::<iced::Element<'_, _>>::new()
         .push(scrim)
-        .push(centered)
+        .push(centered.boxed())
         .width(Length::Fill)
         .height(Length::Fill)
-        .into()
+        .boxed()
 }
 
 /// Reopen-or-redownload dialog: the user asked to open a remote file that
@@ -246,10 +246,10 @@ pub(crate) fn edit_reopen_modal<'a>(
     // Only warn about losing work when there actually is a save pending:
     // an unmodified copy costs nothing to re-download.
     if prompt.pending_save {
-        body = body.push(Space::new().height(8)).push(
+        body = body.push(Space::new().height(8).boxed()).push(
             text(t("sftp_edit_reopen_pending"))
                 .size(11)
-                .color(OryxisColors::t().accent),
+                .color(OryxisColors::t().accent).boxed(),
         );
     }
 
@@ -261,14 +261,14 @@ pub(crate) fn edit_reopen_modal<'a>(
             false,
             ghost_button(t("cancel"), choice(C::Cancel)),
         ),
-        Space::new().width(Length::Fill).into(),
+        Space::new().width(Length::Fill).boxed(),
         app.modal_nav_slot(
             crate::keynav::RowAction::activate(choice(C::Fresh)),
             8.0,
             false,
             outlined_button(t("sftp_edit_reopen_fresh"), choice(C::Fresh)),
         ),
-        Space::new().width(8).into(),
+        Space::new().width(8).boxed(),
         app.modal_nav_slot_default(
             crate::keynav::RowAction::activate(choice(C::Reopen)),
             8.0,
@@ -282,9 +282,9 @@ pub(crate) fn edit_reopen_modal<'a>(
     ])
     .align_y(iced::Alignment::Center);
 
-    let content = body.push(Space::new().height(18)).push(buttons);
+    let content = body.push(Space::new().height(18).boxed()).push(buttons.boxed());
     let dialog = container(content.padding(22).width(560))
-        .style(|_| container::Style {
+        .style(|_: &iced::Theme| container::Style {
             background: Some(Background::Color(OryxisColors::t().bg_surface)),
             border: Border {
                 radius: Radius::from(12.0),
@@ -301,18 +301,18 @@ pub(crate) fn edit_reopen_modal<'a>(
             background: Some(Background::Color(Color::from_rgba(0.0, 0.0, 0.0, 0.5))),
             ..Default::default()
         })
-        .into();
-    let centered = container(MouseArea::new(dialog).on_press(Message::NoOp))
+        .boxed();
+    let centered = container::<_, iced::Theme>(MouseArea::new(dialog).on_press(Message::NoOp))
         .width(Length::Fill)
         .height(Length::Fill)
         .center_x(Length::Fill)
         .center_y(Length::Fill);
-    iced::widget::Stack::new()
+    iced::widget::Stack::<iced::Element<'_, _>>::new()
         .push(scrim)
-        .push(centered)
+        .push(centered.boxed())
         .width(Length::Fill)
         .height(Length::Fill)
-        .into()
+        .boxed()
 }
 
 /// Floating preview shown next to the cursor while a row is being
@@ -354,7 +354,7 @@ pub(crate) fn drag_ghost_with_icon<'a>(
         },
         ..Default::default()
     })
-    .into()
+    .boxed()
 }
 
 /// Properties dialog, shows the standard file metadata (path, size,
@@ -391,14 +391,14 @@ pub(crate) fn properties_modal<'a>(
             text(value).size(12).color(OryxisColors::t().text_primary),
         ]
         .align_y(iced::Alignment::Center)
-        .into()
+        .boxed()
     };
 
     let header_row = |label: &str| -> Element<'a, Message> {
         text(label.to_string())
             .size(11)
             .color(OryxisColors::t().text_muted)
-            .into()
+            .boxed()
     };
 
     let perm_check = |checked: bool, bit: crate::state::PermBit| -> Element<'a, Message> {
@@ -425,7 +425,7 @@ pub(crate) fn properties_modal<'a>(
                     ..Default::default()
                 }
             })
-            .into()
+            .boxed()
     };
 
     let perm_row = |label: &str, r: (bool, crate::state::PermBit), w: (bool, crate::state::PermBit), x: (bool, crate::state::PermBit)| -> Element<'a, Message> {
@@ -441,7 +441,7 @@ pub(crate) fn properties_modal<'a>(
             perm_check(x.0, x.1),
         ]
         .align_y(iced::Alignment::Center)
-        .into()
+        .boxed()
     };
 
     // Column header for the R / W / X permission grid. Rendered in the
@@ -459,7 +459,7 @@ pub(crate) fn properties_modal<'a>(
         )
         .width(Length::Fixed(26.0))
         .center_x(Length::Fixed(26.0))
-        .into()
+        .boxed()
     };
     let perm_grid = column![
         row![
@@ -534,14 +534,14 @@ pub(crate) fn properties_modal<'a>(
         header_row(t("permissions")),
         Space::new().height(8),
     ];
-    content = content.push(perm_grid);
+    content = content.push(perm_grid.boxed());
     if let Some(err) = &props.error {
-        content = content.push(Space::new().height(10));
+        content = content.push(Space::new().height(10).boxed());
         content = content.push(
-            text(err.clone()).size(11).color(OryxisColors::t().error),
+            text(err.clone()).size(11).color(OryxisColors::t().error).boxed(),
         );
     }
-    content = content.push(Space::new().height(18));
+    content = content.push(Space::new().height(18).boxed());
     let apply_label = if props.applying { t("applying") } else { t("apply") };
     // While the chmod is in flight the action is disabled (None) so the user
     // can't double-fire; the handler also guards on `applying`.
@@ -555,7 +555,7 @@ pub(crate) fn properties_modal<'a>(
     ));
 
     let dialog = container(content.padding(22).width(440))
-        .style(|_| container::Style {
+        .style(|_: &iced::Theme| container::Style {
             background: Some(Background::Color(OryxisColors::t().bg_surface)),
             border: Border {
                 radius: Radius::from(12.0),
@@ -580,23 +580,23 @@ pub(crate) fn properties_modal<'a>(
             }),
     )
     .on_press(Message::Sftp(SftpMessage::SftpPropertiesClose))
-    .into();
+    .boxed();
 
     // Wrap the dialog in a MouseArea that swallows clicks via `NoOp`,
     // otherwise events fall through the Stack to the scrim underneath
     // and the modal closes on every click inside the dialog body.
-    let centered = container(MouseArea::new(dialog).on_press(Message::NoOp))
+    let centered = container::<_, iced::Theme>(MouseArea::new(dialog).on_press(Message::NoOp))
         .width(Length::Fill)
         .height(Length::Fill)
         .center_x(Length::Fill)
         .center_y(Length::Fill);
 
-    iced::widget::Stack::new()
+    iced::widget::Stack::<iced::Element<'_, _>>::new()
         .push(scrim)
-        .push(centered)
+        .push(centered.boxed())
         .width(Length::Fill)
         .height(Length::Fill)
-        .into()
+        .boxed()
 }
 
 /// Modal shown when an upload would clobber an existing remote file.
@@ -643,28 +643,28 @@ pub(crate) fn edit_prompt_modal<'a>(
             false,
             ghost_button(t("sftp_edit_stop_watching"), choice(C::Cancel)),
         ),
-        Space::new().width(Length::Fill).into(),
+        Space::new().width(Length::Fill).boxed(),
         app.modal_nav_slot(
             crate::keynav::RowAction::activate(choice(C::No)),
             8.0,
             false,
             outlined_button(t("no"), choice(C::No)),
         ),
-        Space::new().width(8).into(),
+        Space::new().width(8).boxed(),
         app.modal_nav_slot(
             crate::keynav::RowAction::activate(choice(C::Autosave)),
             8.0,
             false,
             outlined_button(t("sftp_edit_autosave_btn"), choice(C::Autosave)),
         ),
-        Space::new().width(8).into(),
+        Space::new().width(8).boxed(),
         app.modal_nav_slot(
             crate::keynav::RowAction::activate(choice(C::YesToAll)),
             8.0,
             false,
             outlined_button(t("sftp_edit_yes_all"), choice(C::YesToAll)),
         ),
-        Space::new().width(8).into(),
+        Space::new().width(8).boxed(),
         app.modal_nav_slot_default(
             crate::keynav::RowAction::activate(choice(C::Yes)),
             8.0,
@@ -694,7 +694,7 @@ pub(crate) fn edit_prompt_modal<'a>(
     .width(Length::Fill);
 
     let dialog = container(content.padding(22).width(620))
-        .style(|_| container::Style {
+        .style(|_: &iced::Theme| container::Style {
             background: Some(Background::Color(OryxisColors::t().bg_surface)),
             border: Border {
                 radius: Radius::from(12.0),
@@ -718,20 +718,20 @@ pub(crate) fn edit_prompt_modal<'a>(
             background: Some(Background::Color(Color::from_rgba(0.0, 0.0, 0.0, 0.5))),
             ..Default::default()
         })
-        .into();
+        .boxed();
 
-    let centered = container(MouseArea::new(dialog).on_press(Message::NoOp))
+    let centered = container::<_, iced::Theme>(MouseArea::new(dialog).on_press(Message::NoOp))
         .width(Length::Fill)
         .height(Length::Fill)
         .center_x(Length::Fill)
         .center_y(Length::Fill);
 
-    iced::widget::Stack::new()
+    iced::widget::Stack::<iced::Element<'_, _>>::new()
         .push(scrim)
-        .push(centered)
+        .push(centered.boxed())
         .width(Length::Fill)
         .height(Length::Fill)
-        .into()
+        .boxed()
 }
 
 pub(crate) fn overwrite_modal<'a>(
@@ -787,19 +787,19 @@ pub(crate) fn overwrite_modal<'a>(
     if prompt.multi {
         // Sticky decision lets the user clear out a long upload's
         // collisions in one click instead of answering N times.
-        content = content.push(Space::new().height(14));
+        content = content.push(Space::new().height(14).boxed());
         content = content.push(overwrite_apply_to_all_checkbox(prompt.apply_to_all, prompt.owner));
     }
     if can_resume {
-        content = content.push(Space::new().height(10));
+        content = content.push(Space::new().height(10).boxed());
         content = content.push(
             text(t("resume_hint"))
                 .size(11)
-                .color(OryxisColors::t().text_muted),
+                .color(OryxisColors::t().text_muted).boxed(),
         );
     }
 
-    content = content.push(Space::new().height(18));
+    content = content.push(Space::new().height(18).boxed());
     let mut actions = row![
         ghost_button(
             t("cancel"),
@@ -813,27 +813,27 @@ pub(crate) fn overwrite_modal<'a>(
             t("resume_transfer"),
             reply(crate::state::OverwriteAction::Resume),
         ));
-        actions = actions.push(Space::new().width(8));
+        actions = actions.push(Space::new().width(8).boxed());
     }
     actions = actions.push(outlined_button(
         t("replace_if_different"),
         reply(crate::state::OverwriteAction::ReplaceIfDifferent),
     ));
-    actions = actions.push(Space::new().width(8));
+    actions = actions.push(Space::new().width(8).boxed());
     actions = actions.push(outlined_button(
         t("duplicate"),
         reply(crate::state::OverwriteAction::Duplicate),
     ));
-    actions = actions.push(Space::new().width(8));
+    actions = actions.push(Space::new().width(8).boxed());
     actions = actions.push(primary_button(
         t("replace"),
         reply(crate::state::OverwriteAction::Replace),
         OryxisColors::t().error,
     ));
-    content = content.push(actions);
+    content = content.push(actions.boxed());
 
     let dialog = container(content.padding(22).width(560))
-        .style(|_| container::Style {
+        .style(|_: &iced::Theme| container::Style {
             background: Some(Background::Color(OryxisColors::t().bg_surface)),
             border: Border {
                 radius: Radius::from(12.0),
@@ -858,23 +858,23 @@ pub(crate) fn overwrite_modal<'a>(
             background: Some(Background::Color(Color::from_rgba(0.0, 0.0, 0.0, 0.5))),
             ..Default::default()
         })
-        .into();
+        .boxed();
 
     // Wrap the dialog in a MouseArea that swallows clicks via `NoOp`,
     // otherwise events fall through the Stack to the scrim underneath
     // and the modal closes on every click inside the dialog body.
-    let centered = container(MouseArea::new(dialog).on_press(Message::NoOp))
+    let centered = container::<_, iced::Theme>(MouseArea::new(dialog).on_press(Message::NoOp))
         .width(Length::Fill)
         .height(Length::Fill)
         .center_x(Length::Fill)
         .center_y(Length::Fill);
 
-    iced::widget::Stack::new()
+    iced::widget::Stack::<iced::Element<'_, _>>::new()
         .push(scrim)
-        .push(centered)
+        .push(centered.boxed())
         .width(Length::Fill)
         .height(Length::Fill)
-        .into()
+        .boxed()
 }
 
 /// Filled primary action button, destructive variants pass red, neutral
@@ -915,7 +915,7 @@ pub(crate) fn primary_button<'a>(label: &'a str, msg: Message, color: Color) -> 
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }
 
 /// Standard modal footer: a neutral cancel/close action on the leading edge
@@ -946,11 +946,11 @@ pub(crate) fn modal_footer<'a>(
     let action = footer_button(action_label, action_msg, action_color, action_fg, FOOTER_BTN_W);
     crate::widgets::dir_row(vec![
         cancel,
-        Space::new().width(Length::Fill).into(),
+        Space::new().width(Length::Fill).boxed(),
         action,
     ])
     .align_y(iced::Alignment::Center)
-    .into()
+    .boxed()
 }
 
 /// Equal-width footer button with centered label. `msg = None` renders it
@@ -1001,7 +1001,7 @@ pub(crate) fn footer_button<'a>(
     if let Some(msg) = msg {
         b = b.on_press(msg);
     }
-    b.into()
+    b.boxed()
 }
 
 /// Outlined secondary button, transparent fill with a subtle border.
@@ -1030,7 +1030,7 @@ pub(crate) fn outlined_button<'a>(label: &'a str, msg: Message) -> Element<'a, M
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }
 
 /// Ghost button, pure text on transparent, hover-only background tint.
@@ -1054,7 +1054,7 @@ pub(crate) fn ghost_button<'a>(label: &'a str, msg: Message) -> Element<'a, Mess
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }
 
 /// Small click-to-toggle row with a square indicator + label. iced 0.14
@@ -1096,5 +1096,5 @@ pub(crate) fn overwrite_apply_to_all_checkbox<'a>(checked: bool, owner: Option<u
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }

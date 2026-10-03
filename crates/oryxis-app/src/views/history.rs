@@ -4,6 +4,7 @@
 //! folded into the corresponding session log row (start/end times,
 //! data size) so the list reads as one chronological feed.
 
+use iced::Widget as _;
 use std::sync::Arc;
 
 use iced::border::Radius;
@@ -76,14 +77,14 @@ impl Oryxis {
                 iced_fonts::lucide::history()
                     .size(32)
                     .color(OryxisColors::t().text_muted)
-                    .into(),
+                    .boxed(),
                 crate::i18n::t("no_activity").to_string(),
                 crate::i18n::t("no_activity_desc").to_string(),
                 None,
             )]
             .width(Length::Fill)
             .height(Length::Fill)
-            .into();
+            .boxed();
         }
 
         // ── Toolbar ──
@@ -314,7 +315,7 @@ impl Oryxis {
             self.keynav_toolbar_record(crate::keynav::ToolbarItem::SearchContent);
         }
         let mut row_items: Vec<Element<'_, Message>> =
-            vec![search_slot, Space::new().width(10).into()];
+            vec![search_slot, Space::new().width(10).boxed()];
         // Output-scan progress: the command tiers answer instantly,
         // the recorded-output pass streams in; say where it stands so
         // a still-filling result list reads as "working", not "done".
@@ -329,9 +330,9 @@ impl Oryxis {
                 )
                 .size(11)
                 .color(OryxisColors::t().text_muted)
-                .into(),
+                .boxed(),
             );
-            row_items.push(Space::new().width(8).into());
+            row_items.push(Space::new().width(8).boxed());
         }
         // Host-tag filter, mirroring the dashboard's: only rendered
         // once at least one host is tagged (or a filter needs
@@ -347,7 +348,7 @@ impl Oryxis {
                     self.history_tag_filter_btn_bounds.clone(),
                 ),
             ));
-            row_items.push(Space::new().width(8).into());
+            row_items.push(Space::new().width(8).boxed());
         }
         // Privacy reveal toggle, shown whenever Privacy Mode could mask
         // something in this view (global on, or any host forces it on).
@@ -358,7 +359,7 @@ impl Oryxis {
                 crate::keynav::ToolbarItem::PrivacyReveal,
                 crate::widgets::privacy_reveal_btn(self.privacy.revealed),
             ));
-            row_items.push(Space::new().width(8).into());
+            row_items.push(Space::new().width(8).boxed());
         }
         if buttons_overflow {
             row_items.push(self.keynav_toolbar_slot(
@@ -380,20 +381,20 @@ impl Oryxis {
                 next_btn
             };
             let clear_slot: Element<'_, Message> = if has_entries {
-                self.keynav_toolbar_slot(crate::keynav::ToolbarItem::Primary, clear_btn.into())
+                self.keynav_toolbar_slot(crate::keynav::ToolbarItem::Primary, clear_btn.boxed())
             } else {
-                clear_btn.into()
+                clear_btn.boxed()
             };
             row_items.extend([
                 text(range_label)
                     .size(11)
                     .color(OryxisColors::t().text_muted)
-                    .into(),
-                Space::new().width(8).into(),
+                    .boxed(),
+                Space::new().width(8).boxed(),
                 prev_slot,
-                Space::new().width(4).into(),
+                Space::new().width(4).boxed(),
                 next_slot,
-                Space::new().width(12).into(),
+                Space::new().width(12).boxed(),
                 clear_slot,
             ]);
         }
@@ -412,7 +413,7 @@ impl Oryxis {
                 iced_fonts::lucide::history()
                     .size(32)
                     .color(OryxisColors::t().text_muted)
-                    .into(),
+                    .boxed(),
                 crate::i18n::t("no_activity").to_string(),
                 crate::i18n::t("no_activity_desc").to_string(),
                 None,
@@ -463,7 +464,7 @@ impl Oryxis {
                     None
                 };
                 row_elements.push(self.render_timeline_row(row_data, conn, content_hit));
-                row_elements.push(Space::new().height(4).into());
+                row_elements.push(Space::new().height(4).boxed());
             }
             self.keynav_set_content_rows(nav_rows);
             scrollable(
@@ -478,7 +479,7 @@ impl Oryxis {
             // row scrolled into view.
             .id(iced::widget::Id::new("history-list-scroll"))
             .height(Length::Fill)
-            .into()
+            .boxed()
         };
 
         // ── Session player surface (issue #71) ──
@@ -595,12 +596,12 @@ impl Oryxis {
                 text(crate::i18n::t("session_log"))
                     .size(16)
                     .color(OryxisColors::t().text_primary)
-                    .into(),
-                Space::new().width(Length::Fill).into(),
+                    .boxed(),
+                Space::new().width(Length::Fill).boxed(),
             ];
             if privacy_applies {
                 header_items.push(crate::widgets::privacy_reveal_btn(self.privacy.revealed));
-                header_items.push(Space::new().width(8).into());
+                header_items.push(Space::new().width(8).boxed());
             }
             // Transcript mode switch. A recording that lived on the
             // alternate screen (a whole tmux session, a long pager) has
@@ -616,13 +617,13 @@ impl Oryxis {
                     }
                     .size(11)
                     .color(OryxisColors::t().text_muted)
-                    .into(),
+                    .boxed(),
                     None,
                     Message::History(HistoryMessage::ToggleSessionViewerMode),
                 ),
                 crate::i18n::t(next_mode.label_key()),
             ));
-            header_items.push(Space::new().width(8).into());
+            header_items.push(Space::new().width(8).boxed());
             // Resolve the viewed recording's index for the actions menu;
             // a row deleted underneath the viewer resolves to None and
             // simply drops the affordances.
@@ -635,11 +636,11 @@ impl Oryxis {
                         iced_fonts::lucide::play()
                             .size(11)
                             .color(OryxisColors::t().success)
-                            .into(),
+                            .boxed(),
                         Some(crate::i18n::t("session_play")),
                         Message::Player(PlayerMessage::Open(log_id)),
                     ));
-                    header_items.push(Space::new().width(8).into());
+                    header_items.push(Space::new().width(8).boxed());
                 }
                 let menu_open = matches!(
                     self.overlay.as_ref().map(|o| &o.content),
@@ -654,7 +655,7 @@ impl Oryxis {
                         } else {
                             OryxisColors::t().text_muted
                         })
-                        .into(),
+                        .boxed(),
                     None,
                     Message::History(HistoryMessage::ShowSessionLogViewerMenu(idx)),
                 );
@@ -667,7 +668,7 @@ impl Oryxis {
                 } else {
                     crate::views::terminal::icon_tooltip(kebab, crate::i18n::t("more_actions"))
                 });
-                header_items.push(Space::new().width(8).into());
+                header_items.push(Space::new().width(8).boxed());
             }
             header_items.push(
                 button(
@@ -698,7 +699,7 @@ impl Oryxis {
                         ..Default::default()
                     }
                 })
-                .into(),
+                .boxed(),
             );
             let viewer = container(
                 column![
@@ -722,12 +723,12 @@ impl Oryxis {
                 ..Default::default()
             });
 
-            return viewer.into();
+            return viewer.boxed();
         }
 
         // Search now lives in the toolbar (`vault_search_field`); the
         // legacy below-toolbar search bar collapses to nothing.
-        let search_bar: Element<'_, Message> = Space::new().into();
+        let search_bar: Element<'_, Message> = Space::new().boxed();
 
         // ── Hosts with matching commands (content search) ──
         // A host whose command history matched but has no recorded
@@ -783,28 +784,28 @@ impl Oryxis {
                         text(label)
                             .size(11)
                             .color(OryxisColors::t().text_primary)
-                            .into(),
-                        Space::new().width(8).into(),
+                            .boxed(),
+                        Space::new().width(8).boxed(),
                         text(cmd_disp)
                             .size(11)
                             .color(OryxisColors::t().text_muted)
-                            .into(),
+                            .boxed(),
                     ])
                     .align_y(iced::Alignment::Center)
-                    .into(),
+                    .boxed(),
                 );
-                lines.push(Space::new().height(2).into());
+                lines.push(Space::new().height(2).boxed());
             }
             if hidden > 0 {
                 lines.push(
                     text(format!("+{hidden}"))
                         .size(11)
                         .color(OryxisColors::t().text_muted)
-                        .into(),
+                        .boxed(),
                 );
             }
             if lines.is_empty() {
-                Space::new().into()
+                Space::new().boxed()
             } else {
                 container(
                     container(
@@ -813,12 +814,12 @@ impl Oryxis {
                                 iced_fonts::lucide::terminal()
                                     .size(12)
                                     .color(OryxisColors::t().accent)
-                                    .into(),
-                                Space::new().width(6).into(),
+                                    .boxed(),
+                                Space::new().width(6).boxed(),
                                 text(crate::i18n::t("history_cmd_hosts"))
                                     .size(11)
                                     .color(OryxisColors::t().text_muted)
-                                    .into(),
+                                    .boxed(),
                             ])
                             .align_y(iced::Alignment::Center),
                             Space::new().height(6),
@@ -840,16 +841,16 @@ impl Oryxis {
                 )
                 .padding(Padding { top: 0.0, right: 24.0, bottom: 8.0, left: 24.0 })
                 .width(Length::Fill)
-                .into()
+                .boxed()
             }
         } else {
-            Space::new().into()
+            Space::new().boxed()
         };
 
         column![toolbar, search_bar, cmd_hosts, list]
             .width(Length::Fill)
             .height(Length::Fill)
-            .into()
+            .boxed()
     }
 
     /// Render one row of the unified timeline. Layout (LTR):
@@ -1057,24 +1058,24 @@ impl Oryxis {
                         true,
                         Message::History(HistoryMessage::ShowSessionLogMenu(idx)),
                     )
-                    .into()
+                    .boxed()
                 } else {
                     Space::new()
                         .width(Length::Fixed(LOG_DOTS_SLOT_W))
                         .height(Length::Fixed(22.0))
-                        .into()
+                        .boxed()
                 };
                 let _ = entry;
                 crate::widgets::dir_row(vec![
                     text(ts)
                         .size(10)
                         .color(OryxisColors::t().text_muted)
-                        .into(),
-                    Space::new().width(8).into(),
+                        .boxed(),
+                    Space::new().width(8).boxed(),
                     kebab,
                 ])
                 .align_y(iced::Alignment::Center)
-                .into()
+                .boxed()
             }
             // A saved conversation gets the same kebab as a session, with
             // its own menu (open / delete). The row click opens it.
@@ -1094,29 +1095,29 @@ impl Oryxis {
                         true,
                         Message::History(HistoryMessage::ShowChatConversationMenu(idx)),
                     )
-                    .into()
+                    .boxed()
                 } else {
                     Space::new()
                         .width(Length::Fixed(LOG_DOTS_SLOT_W))
                         .height(Length::Fixed(22.0))
-                        .into()
+                        .boxed()
                 };
                 let _ = entry;
                 crate::widgets::dir_row(vec![
                     text(ts)
                         .size(10)
                         .color(OryxisColors::t().text_muted)
-                        .into(),
-                    Space::new().width(8).into(),
+                        .boxed(),
+                    Space::new().width(8).boxed(),
                     kebab,
                 ])
                 .align_y(iced::Alignment::Center)
-                .into()
+                .boxed()
             }
             TimelineKind::Failure(_) => text(ts)
                 .size(10)
                 .color(OryxisColors::t().text_muted)
-                .into(),
+                .boxed(),
         };
 
         let mut title_col = column![
@@ -1124,9 +1125,9 @@ impl Oryxis {
                 text(display_label)
                     .size(13)
                     .color(OryxisColors::t().text_primary)
-                    .into(),
-                Space::new().width(8).into(),
-                chip.into(),
+                    .boxed(),
+                Space::new().width(8).boxed(),
+                chip.boxed(),
             ])
             .align_y(iced::Alignment::Center),
             Space::new().height(2),
@@ -1149,27 +1150,27 @@ impl Oryxis {
             } else {
                 hit.to_string()
             };
-            title_col = title_col.push(Space::new().height(2)).push(
+            title_col = title_col.push(Space::new().height(2).boxed()).push(
                 crate::widgets::dir_row(vec![
                     iced_fonts::lucide::search()
                         .size(10)
                         .color(OryxisColors::t().accent)
-                        .into(),
-                    Space::new().width(5).into(),
+                        .boxed(),
+                    Space::new().width(5).boxed(),
                     text(hit_disp)
                         .size(11)
                         .color(OryxisColors::t().text_secondary)
-                        .into(),
+                        .boxed(),
                 ])
-                .align_y(iced::Alignment::Center),
+                .align_y(iced::Alignment::Center).boxed(),
             );
         }
         let card = container(
             crate::widgets::dir_row(vec![
                 badge,
-                Space::new().width(12).into(),
-                title_col.into(),
-                Space::new().width(12).into(),
+                Space::new().width(12).boxed(),
+                title_col.boxed(),
+                Space::new().width(12).boxed(),
                 trailing,
             ])
             .align_y(iced::Alignment::Center),
@@ -1220,14 +1221,14 @@ impl Oryxis {
                     }
                     TimelineKind::Failure(_) => {}
                 }
-                let row_el: Element<'_, Message> = area.into();
+                let row_el: Element<'_, Message> = area.boxed();
                 crate::widgets::select_ring_opt(
                     row_el,
                     8.0,
                     kb_selected.then(|| OryxisColors::t().accent),
                 )
             }
-            None => card.into(),
+            None => card.boxed(),
         }
     }
 }
@@ -1243,7 +1244,7 @@ pub(super) fn viewer_header_btn<'a>(
 ) -> Element<'a, Message> {
     let mut items: Vec<Element<'a, Message>> = vec![icon];
     if let Some(label) = label {
-        items.push(Space::new().width(6).into());
+        items.push(Space::new().width(6).boxed());
         items.push(
             text(label)
                 .size(11)
@@ -1252,7 +1253,7 @@ pub(super) fn viewer_header_btn<'a>(
                     ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
                 })
                 .color(OryxisColors::t().text_secondary)
-                .into(),
+                .boxed(),
         );
     }
     button(
@@ -1279,7 +1280,7 @@ pub(super) fn viewer_header_btn<'a>(
             ..Default::default()
         }
     })
-    .into()
+    .boxed()
 }
 
 /// Pagination chevron button. Disabled state has no `on_press` and a
@@ -1322,5 +1323,5 @@ fn nav_btn<'a>(
     if enabled {
         b = b.on_press(msg);
     }
-    b.into()
+    b.boxed()
 }

@@ -16,7 +16,7 @@ fn vault_callout<'a>(
     container(
         dir_row(vec![
             icon,
-            Space::new().width(12).into(),
+            Space::new().width(12).boxed(),
             column![
                 text(title)
                     .size(13)
@@ -30,7 +30,7 @@ fn vault_callout<'a>(
             ]
             .width(Length::Fill)
             .align_x(dir_align_x())
-            .into(),
+            .boxed(),
         ])
         .align_y(iced::Alignment::Start),
     )
@@ -45,7 +45,7 @@ fn vault_callout<'a>(
         },
         ..Default::default()
     })
-    .into()
+    .boxed()
 }
 
 /// Localized label for a size-cap code. The numbers are byte counts
@@ -96,9 +96,9 @@ impl Oryxis {
         ))
         .width(300);
         let error: Element<'_, Message> = if let Some(err) = &self.vault_ui.password_error {
-            text(err.clone()).size(12).color(OryxisColors::t().error).into()
+            text(err.clone()).size(12).color(OryxisColors::t().error).boxed()
         } else {
-            Space::new().into()
+            Space::new().boxed()
         };
         let update_btn = if self.vault_ui.calibrating {
             // E1: KDF calibration in flight; disable + show progress.
@@ -128,7 +128,7 @@ impl Oryxis {
             Space::new().height(8),
             confirm,
             Space::new().height(10),
-            dir_row(vec![update_btn, Space::new().width(8).into(), cancel_btn]),
+            dir_row(vec![update_btn, Space::new().width(8).boxed(), cancel_btn]),
             error,
         ])
     }
@@ -156,7 +156,7 @@ impl Oryxis {
                 iced_fonts::lucide::shield()
                     .size(20)
                     .color(OryxisColors::t().accent)
-                    .into(),
+                    .boxed(),
                 t("vault_importance_title"),
                 t("vault_importance_desc"),
                 OryxisColors::t().accent,
@@ -164,7 +164,7 @@ impl Oryxis {
 
             if !self.vault_ui.show_password_form {
                 // Switch is off: callout only, no input fields.
-                column![Space::new().height(8), importance].into()
+                column![Space::new().height(8), importance].boxed()
             } else {
             // Show password input to enable
             let input = container(crate::widgets::password_input_with_eye(
@@ -215,15 +215,14 @@ impl Oryxis {
                         Message::Vault(VaultMessage::ToggleSetupBiometric),
                     ))
                     .width(300),
-                ]
-                .into()
+                ].boxed()
             } else {
-                Space::new().into()
+                Space::new().boxed()
             };
             let error: Element<'_, Message> = if let Some(err) = &self.vault_ui.password_error {
-                text(err.clone()).size(12).color(OryxisColors::t().error).into()
+                text(err.clone()).size(12).color(OryxisColors::t().error).boxed()
             } else {
-                Space::new().into()
+                Space::new().boxed()
             };
             column![
                 Space::new().height(8),
@@ -239,13 +238,13 @@ impl Oryxis {
                 Space::new().height(8),
                 btn,
                 error,
-            ].into()
+            ].boxed()
             }
         } else {
             let error: Element<'_, Message> = if let Some(err) = &self.vault_ui.password_error {
-                text(err.clone()).size(12).color(OryxisColors::t().error).into()
+                text(err.clone()).size(12).color(OryxisColors::t().error).boxed()
             } else {
-                Space::new().into()
+                Space::new().boxed()
             };
             if self.vault_ui.confirm_remove_password {
                 // Confirm prompt armed by the header switch. The header
@@ -256,7 +255,7 @@ impl Oryxis {
                     iced_fonts::lucide::triangle_alert()
                         .size(20)
                         .color(OryxisColors::t().warning)
-                        .into(),
+                        .boxed(),
                     t("vault_remove_confirm_title"),
                     t("vault_remove_confirm_desc"),
                     OryxisColors::t().warning,
@@ -285,12 +284,11 @@ impl Oryxis {
                     Space::new().height(10),
                     dir_row(vec![
                         remove_btn,
-                        Space::new().width(8).into(),
+                        Space::new().width(8).boxed(),
                         cancel_btn,
                     ]),
                     error,
-                ]
-                .into()
+                ].boxed()
             } else {
                 // Steady protected state: a highlighted success callout
                 // rather than a faint one-liner, so the reassurance reads
@@ -299,12 +297,12 @@ impl Oryxis {
                     iced_fonts::lucide::shield_check()
                         .size(20)
                         .color(OryxisColors::t().success)
-                        .into(),
+                        .boxed(),
                     t("vault_protected_title"),
                     t("vault_protected_note"),
                     OryxisColors::t().success,
                 );
-                column![Space::new().height(8), protected, error].into()
+                column![Space::new().height(8), protected, error].boxed()
             }
         };
 
@@ -324,8 +322,8 @@ impl Oryxis {
             let tint = OryxisColors::t().accent;
             let card = container(
                 dir_row(vec![
-                    crate::biometric::bio_icon().size(20).color(tint).into(),
-                    Space::new().width(12).into(),
+                    crate::biometric::bio_icon().size(20).color(tint).boxed(),
+                    Space::new().width(12).boxed(),
                     column![
                         self.nav_toggle_row(
                             crate::biometric::bio_setting_label(),
@@ -339,7 +337,7 @@ impl Oryxis {
                     ]
                     .width(Length::Fill)
                     .align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
                 ])
                 .align_y(iced::Alignment::Start),
             )
@@ -354,9 +352,9 @@ impl Oryxis {
                 },
                 ..Default::default()
             });
-            column![Space::new().height(12), card].into()
+            column![Space::new().height(12), card].boxed()
         } else {
-            Space::new().into()
+            Space::new().boxed()
         }
     }
 
@@ -382,9 +380,9 @@ impl Oryxis {
                 button(
                     container(
                         dir_row(vec![
-                            iced_fonts::lucide::lock().size(14).color(OryxisColors::t().warning).into(),
-                            Space::new().width(10).into(),
-                            text(crate::i18n::t("lock_vault")).size(13).color(OryxisColors::t().warning).into(),
+                            iced_fonts::lucide::lock().size(14).color(OryxisColors::t().warning).boxed(),
+                            Space::new().width(10).boxed(),
+                            text(crate::i18n::t("lock_vault")).size(13).color(OryxisColors::t().warning).boxed(),
                         ]).align_y(iced::Alignment::Center),
                     )
                     .padding(Padding { top: 10.0, right: 20.0, bottom: 10.0, left: 20.0 }),
@@ -401,13 +399,13 @@ impl Oryxis {
                         ..Default::default()
                     }
                 })
-                .into(),
+                .boxed(),
             )
         } else {
             text(crate::i18n::t("lock_vault_requires_password"))
                 .size(11)
                 .color(OryxisColors::t().text_muted)
-                .into()
+                .boxed()
         };
 
         // "Update password" sits beside Lock Vault: rotate the master
@@ -422,9 +420,9 @@ impl Oryxis {
                 button(
                     container(
                         dir_row(vec![
-                            iced_fonts::lucide::key_round().size(14).color(OryxisColors::t().accent).into(),
-                            Space::new().width(10).into(),
-                            text(crate::i18n::t("update_password")).size(13).color(OryxisColors::t().accent).into(),
+                            iced_fonts::lucide::key_round().size(14).color(OryxisColors::t().accent).boxed(),
+                            Space::new().width(10).boxed(),
+                            text(crate::i18n::t("update_password")).size(13).color(OryxisColors::t().accent).boxed(),
                         ]).align_y(iced::Alignment::Center),
                     )
                     .padding(Padding { top: 10.0, right: 20.0, bottom: 10.0, left: 20.0 }),
@@ -441,13 +439,13 @@ impl Oryxis {
                         ..Default::default()
                     }
                 })
-                .into(),
+                .boxed(),
             );
-            let buttons = dir_row(vec![lock_btn, Space::new().width(10).into(), update_btn]);
+            let buttons = dir_row(vec![lock_btn, Space::new().width(10).boxed(), update_btn]);
             if self.vault_ui.change_password_open {
-                column![buttons, Space::new().height(12), self.change_password_form()].into()
+                column![buttons, Space::new().height(12), self.change_password_form()].boxed()
             } else {
-                buttons.into()
+                buttons.boxed()
             }
         } else {
             lock_btn
@@ -479,10 +477,9 @@ impl Oryxis {
                 text(t("manual_lock_action_desc"))
                     .size(11)
                     .color(OryxisColors::t().text_muted),
-            ]
-            .into()
+            ].boxed()
         } else {
-            Space::new().into()
+            Space::new().boxed()
         };
 
         // MCP Server moved to its own Settings sidebar entry
@@ -507,13 +504,13 @@ impl Oryxis {
                     .width(240)
                     .style(crate::widgets::rounded_input_style)
                     .align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
             )
         } else {
             text(crate::i18n::t("lock_vault_requires_password"))
                 .size(11)
                 .color(OryxisColors::t().text_muted)
-                .into()
+                .boxed()
         };
         let auto_lock_section = panel_section(column![
             text(crate::i18n::t("auto_lock_minutes"))
@@ -530,7 +527,7 @@ impl Oryxis {
         // the button row already collapsed to the muted note, so the
         // block stays a single element either way.
         let lock_block: Element<'_, Message> = if self.vault_ui.has_user_password {
-            column![lock_row, Space::new().height(14), manual_action].into()
+            column![lock_row, Space::new().height(14), manual_action].boxed()
         } else {
             lock_row
         };
@@ -569,44 +566,44 @@ impl Oryxis {
             // the kind of state that made #53 confusing.
             use crate::messages::PrivacyMaskClass;
             privacy_rows = privacy_rows
-                .push(Space::new().height(10))
+                .push(Space::new().height(10).boxed())
                 .push(self.nav_toggle_row(
                     crate::i18n::t("privacy_class_public_ips"),
                     self.privacy.mask_public_ips,
                     Message::Settings(SettingsMessage::TogglePrivacyMaskClass(PrivacyMaskClass::PublicIps)),
                 ))
-                .push(Space::new().height(8))
+                .push(Space::new().height(8).boxed())
                 .push(self.nav_toggle_row(
                     crate::i18n::t("privacy_class_private_ips"),
                     self.privacy.mask_private_ips,
                     Message::Settings(SettingsMessage::TogglePrivacyMaskClass(PrivacyMaskClass::PrivateIps)),
                 ))
-                .push(Space::new().height(8))
+                .push(Space::new().height(8).boxed())
                 .push(self.nav_toggle_row(
                     crate::i18n::t("privacy_class_usernames"),
                     self.privacy.mask_usernames,
                     Message::Settings(SettingsMessage::TogglePrivacyMaskClass(PrivacyMaskClass::Usernames)),
                 ))
-                .push(Space::new().height(8))
+                .push(Space::new().height(8).boxed())
                 .push(self.nav_toggle_row(
                     crate::i18n::t("privacy_class_hostnames"),
                     self.privacy.mask_hostnames,
                     Message::Settings(SettingsMessage::TogglePrivacyMaskClass(PrivacyMaskClass::Hostnames)),
                 ));
             privacy_rows = privacy_rows
-                .push(Space::new().height(14))
+                .push(Space::new().height(14).boxed())
                 .push(
                     text(crate::i18n::t("privacy_always_mask_label"))
                         .size(13)
-                        .color(OryxisColors::t().text_primary),
+                        .color(OryxisColors::t().text_primary).boxed(),
                 )
-                .push(Space::new().height(4))
+                .push(Space::new().height(4).boxed())
                 .push(
                     text(crate::i18n::t("privacy_always_mask_desc"))
                         .size(11)
-                        .color(OryxisColors::t().text_muted),
+                        .color(OryxisColors::t().text_muted).boxed(),
                 )
-                .push(Space::new().height(8))
+                .push(Space::new().height(8).boxed())
                 .push(self.settings_nav_slot_labeled(
                     t("privacy_always_mask_label"),
                     crate::keynav::RowAction::input(iced::widget::Id::new(
@@ -629,21 +626,21 @@ impl Oryxis {
                         .padding(10)
                         .height(Length::Shrink)
                         .style(crate::widgets::rounded_text_editor_style)
-                        .into(),
+                        .boxed(),
                 ))
-                .push(Space::new().height(14))
+                .push(Space::new().height(14).boxed())
                 .push(
                     text(crate::i18n::t("privacy_never_mask_label"))
                         .size(13)
-                        .color(OryxisColors::t().text_primary),
+                        .color(OryxisColors::t().text_primary).boxed(),
                 )
-                .push(Space::new().height(4))
+                .push(Space::new().height(4).boxed())
                 .push(
                     text(crate::i18n::t("privacy_never_mask_desc"))
                         .size(11)
-                        .color(OryxisColors::t().text_muted),
+                        .color(OryxisColors::t().text_muted).boxed(),
                 )
-                .push(Space::new().height(8))
+                .push(Space::new().height(8).boxed())
                 .push(self.settings_nav_slot_labeled(
                     t("privacy_never_mask_label"),
                     crate::keynav::RowAction::input(iced::widget::Id::new(
@@ -657,7 +654,7 @@ impl Oryxis {
                         .padding(10)
                         .height(Length::Shrink)
                         .style(crate::widgets::rounded_text_editor_style)
-                        .into(),
+                        .boxed(),
                 ));
         }
         panel_section(privacy_rows)
@@ -671,7 +668,7 @@ impl Oryxis {
     /// Settings > Terminal.
     fn session_log_dir_row(&self) -> Element<'_, Message> {
         if !self.prefs.session_log_file {
-            return Space::new().into();
+            return Space::new().boxed();
         }
         let indent = if crate::i18n::is_rtl_layout() {
             Padding { right: 22.0, ..Padding::ZERO }
@@ -695,8 +692,8 @@ impl Oryxis {
                 .size(12)
                 .color(OryxisColors::t().text_muted)
                 .width(Length::Fill)
-                .into(),
-            Space::new().width(10).into(),
+                .boxed(),
+            Space::new().width(10).boxed(),
             change,
         ]);
         // Reset-to-default only when a custom folder is set.
@@ -712,12 +709,12 @@ impl Oryxis {
                     OryxisColors::t().text_muted,
                 ),
             );
-            row = row.push(Space::new().width(8)).push(reset);
+            row = row.push(Space::new().width(8).boxed()).push(reset);
         }
         container(row.align_y(iced::Alignment::Center))
             .padding(Padding { top: 8.0, ..indent })
             .width(Length::Fill)
-            .into()
+            .boxed()
     }
 
     /// Logging card: session recording (+ its sub-options), the
@@ -740,42 +737,42 @@ impl Oryxis {
         // so conditional rows drop out of the Tab walk for free).
         if session_logging_enabled {
             session_logging_rows = session_logging_rows
-                .push(Space::new().height(8))
+                .push(Space::new().height(8).boxed())
                 .push(self.nav_toggle_row(
                     crate::i18n::t("session_log_full"),
                     self.prefs.session_log_full,
                     Message::Settings(SettingsMessage::SettingToggleSessionLogFull),
                 ))
-                .push(Space::new().height(4))
+                .push(Space::new().height(4).boxed())
                 .push(
                     text(t("setting_session_log_full_desc"))
-                        .size(11).color(OryxisColors::t().text_muted),
+                        .size(11).color(OryxisColors::t().text_muted).boxed(),
                 )
-                .push(Space::new().height(8))
+                .push(Space::new().height(8).boxed())
                 .push(self.nav_toggle_row(
                     crate::i18n::t("session_log_compress"),
                     self.prefs.session_log_compress,
                     Message::Settings(SettingsMessage::SettingToggleSessionLogCompress),
                 ))
-                .push(Space::new().height(4))
+                .push(Space::new().height(4).boxed())
                 .push(
                     text(t("setting_session_log_compress_desc"))
-                        .size(11).color(OryxisColors::t().text_muted),
+                        .size(11).color(OryxisColors::t().text_muted).boxed(),
                 )
                 // The plain-text mirror (issue #187). Nested under the
                 // recording rather than standing on its own, because it
                 // writes what the recording captures: the per-host
                 // override still decides which sessions produce a file.
-                .push(Space::new().height(8))
+                .push(Space::new().height(8).boxed())
                 .push(self.nav_toggle_row(
                     crate::i18n::t("session_log_file"),
                     self.prefs.session_log_file,
                     Message::Settings(SettingsMessage::SettingToggleSessionLogFile),
                 ))
-                .push(Space::new().height(4))
+                .push(Space::new().height(4).boxed())
                 .push(
                     text(t("setting_session_log_file_desc"))
-                        .size(11).color(OryxisColors::t().text_muted),
+                        .size(11).color(OryxisColors::t().text_muted).boxed(),
                 )
                 .push(self.session_log_dir_row());
         }
@@ -783,16 +780,16 @@ impl Oryxis {
         // window are one logging theme, so they share a single card
         // below (16 px between the sub-blocks).
         let logging_rows = session_logging_rows
-            .push(Space::new().height(16))
+            .push(Space::new().height(16).boxed())
             .push(self.nav_toggle_row(
                 crate::i18n::t("connection_history"),
                 self.prefs.connection_history,
                 Message::Settings(SettingsMessage::SettingToggleConnectionHistory),
             ))
-            .push(Space::new().height(4))
+            .push(Space::new().height(4).boxed())
             .push(
                 text(t("setting_connection_history_desc"))
-                    .size(11).color(OryxisColors::t().text_muted),
+                    .size(11).color(OryxisColors::t().text_muted).boxed(),
             );
 
         // Retention: auto-delete connection events + finished
@@ -832,7 +829,7 @@ impl Oryxis {
             &size_cap_selected,
             |v| Message::Settings(SettingsMessage::LogsSizeCapChanged(v)),
         );
-        panel_section(logging_rows.push(Space::new().height(16)).push(column![
+        panel_section(logging_rows.push(Space::new().height(16).boxed()).push(column![
             text(crate::i18n::t("log_retention_label"))
                 .size(13)
                 .color(OryxisColors::t().text_primary),
@@ -864,7 +861,7 @@ impl Oryxis {
                 .on_open(Message::Navigation(NavigationMessage::PickOpenChanged(true)))
                 .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                 .width(260).padding(10).style(crate::widgets::rounded_pick_list_style)
-                .into(),
+                .boxed(),
             ),
             // Size cap: the user's own quota on what recordings may
             // occupy together. Reaching it drops the OLDEST FINISHED
@@ -893,9 +890,9 @@ impl Oryxis {
                 .on_open(Message::Navigation(NavigationMessage::PickOpenChanged(true)))
                 .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                 .width(260).padding(10).style(crate::widgets::rounded_pick_list_style)
-                .into(),
+                .boxed(),
             ),
-        ]))
+        ].boxed()))
     }
 
     /// Export / import card body: the vault export + import buttons,
@@ -903,7 +900,7 @@ impl Oryxis {
     /// picker and the status lines. The SSH config importer is built
     /// separately (`security_ssh_import_card`); the assembly joins
     /// the two inside one panel.
-    fn security_export_import_card(&self) -> iced::widget::Column<'_, Message> {
+    fn security_export_import_card(&self) -> iced::widget::Column<iced::Element<'_, Message>> {
         // Export/Import section
         let export_btn = self.settings_nav_slot_labeled(
             t("export_vault"),
@@ -934,10 +931,10 @@ impl Oryxis {
             styled_button(crate::i18n::t("export_hosts_csv"), Message::Share(ShareMessage::ExportHostsCsv), OryxisColors::t().text_muted),
         );
 
-        let mut export_import_section: iced::widget::Column<'_, Message> = column![
+        let mut export_import_section: iced::widget::Column<iced::Element<'_, Message>> = column![
             text(crate::i18n::t("export_import")).size(13).color(OryxisColors::t().text_primary),
             Space::new().height(8),
-            dir_row(vec![export_btn, Space::new().width(8).into(), export_csv_btn, Space::new().width(8).into(), import_btn, Space::new().width(8).into(), import_sftp_btn]),
+            dir_row(vec![export_btn, Space::new().width(8).boxed(), export_csv_btn, Space::new().width(8).boxed(), import_btn, Space::new().width(8).boxed(), import_sftp_btn]),
         ];
 
         // Show export dialog inline
@@ -973,10 +970,10 @@ impl Oryxis {
                     ),
                 ))
                 .width(300)
-                .into(),
+                .boxed(),
             );
             // One checkbox per category, all checked by default.
-            let mut categories: iced::widget::Column<'_, Message> =
+            let mut categories: iced::widget::Column<iced::Element<'_, Message>> =
                 column![text(crate::i18n::t("export_select_what"))
                     .size(12)
                     .color(OryxisColors::t().text_muted)]
@@ -992,7 +989,7 @@ impl Oryxis {
                         .on_toggle(move |_| Message::Share(ShareMessage::ExportToggleCategory(cat)))
                         .size(16)
                         .text_size(13)
-                        .into(),
+                        .boxed(),
                 ));
             }
             // Private-key material is a sub-option of the Keys
@@ -1002,8 +999,8 @@ impl Oryxis {
                     crate::keynav::RowAction::activate(Message::Share(ShareMessage::ExportToggleKeys)),
                     8.0,
                     dir_row(vec![
-                        text(crate::i18n::t("include_private_keys")).size(13).color(OryxisColors::t().text_secondary).into(),
-                        Space::new().width(Length::Fill).into(),
+                        text(crate::i18n::t("include_private_keys")).size(13).color(OryxisColors::t().text_secondary).boxed(),
+                        Space::new().width(Length::Fill).boxed(),
                         button(
                             text(if self.export_include_keys { "ON" } else { "OFF" }).size(12)
                         ).on_press(Message::Share(ShareMessage::ExportToggleKeys)).style(move |_theme, _status| {
@@ -1013,11 +1010,11 @@ impl Oryxis {
                                 text_color: OryxisColors::t().text_primary,
                                 ..Default::default()
                             }
-                        }).into(),
-                    ]).align_y(iced::Alignment::Center).into(),
+                        }).boxed(),
+                    ]).align_y(iced::Alignment::Center).boxed(),
                 )
             } else {
-                Space::new().into()
+                Space::new().boxed()
             };
             let confirm_btn = self.settings_nav_slot(
                 crate::keynav::RowAction::activate(Message::Share(ShareMessage::ExportConfirm)),
@@ -1035,14 +1032,14 @@ impl Oryxis {
                 styled_button(crate::i18n::t("cancel"), Message::Share(ShareMessage::ExportImportDismiss), OryxisColors::t().text_muted),
             );
             export_import_section = export_import_section
-                .push(Space::new().height(12))
+                .push(Space::new().height(12).boxed())
                 .push(pw_input)
-                .push(Space::new().height(10))
-                .push(categories)
-                .push(Space::new().height(8))
+                .push(Space::new().height(10).boxed())
+                .push(categories.boxed())
+                .push(Space::new().height(8).boxed())
                 .push(keys_toggle)
-                .push(Space::new().height(8))
-                .push(dir_row(vec![confirm_btn, Space::new().width(8).into(), sftp_btn, Space::new().width(8).into(), cancel_btn]));
+                .push(Space::new().height(8).boxed())
+                .push(dir_row(vec![confirm_btn, Space::new().width(8).boxed(), sftp_btn, Space::new().width(8).boxed(), cancel_btn]).boxed());
         }
 
         // Show import dialog inline
@@ -1082,22 +1079,22 @@ impl Oryxis {
                     ),
                 ))
                 .width(300)
-                .into(),
+                .boxed(),
             );
             export_import_section = export_import_section
-                .push(Space::new().height(12))
-                .push(text(crate::i18n::t("import_password_hint")).size(12).color(OryxisColors::t().text_muted))
+                .push(Space::new().height(12).boxed())
+                .push(text(crate::i18n::t("import_password_hint")).size(12).color(OryxisColors::t().text_muted).boxed())
                 // The hub's `.oryxis` redirect lands here from inside a
                 // folder; the Security card's own button never does.
                 .push(self.import_target_line())
-                .push(Space::new().height(4))
+                .push(Space::new().height(4).boxed())
                 .push(pw_input);
             if let Some(summary) = &self.vault_import.summary {
                 // Phase 2: the file is decrypted, show what it
                 // holds. Present categories are interactive
                 // checkboxes (with counts); absent ones are
                 // greyed so the user sees the full shape.
-                let mut categories: iced::widget::Column<'_, Message> =
+                let mut categories: iced::widget::Column<iced::Element<'_, Message>> =
                     column![text(crate::i18n::t("import_select_what"))
                         .size(12)
                         .color(OryxisColors::t().text_muted)]
@@ -1117,13 +1114,13 @@ impl Oryxis {
                                 .on_toggle(move |_| Message::Share(ShareMessage::ImportToggleCategory(cat)))
                                 .size(16)
                                 .text_size(13)
-                                .into(),
+                                .boxed(),
                         ));
                     } else {
                         categories = categories.push(
                             text(format!("{label} ({})", crate::i18n::t("import_not_in_file")))
                                 .size(13)
-                                .color(OryxisColors::t().text_muted),
+                                .color(OryxisColors::t().text_muted).boxed(),
                         );
                     }
                 }
@@ -1141,10 +1138,10 @@ impl Oryxis {
                     styled_button(crate::i18n::t("cancel"), Message::Share(ShareMessage::ExportImportDismiss), OryxisColors::t().text_muted),
                 );
                 export_import_section = export_import_section
-                    .push(Space::new().height(10))
-                    .push(categories)
-                    .push(Space::new().height(8))
-                    .push(dir_row(vec![confirm_btn, Space::new().width(8).into(), cancel_btn]));
+                    .push(Space::new().height(10).boxed())
+                    .push(categories.boxed())
+                    .push(Space::new().height(8).boxed())
+                    .push(dir_row(vec![confirm_btn, Space::new().width(8).boxed(), cancel_btn]).boxed());
             } else {
                 // Phase 1: enter the password, then inspect.
                 let inspect_btn = self.settings_nav_slot(
@@ -1158,8 +1155,8 @@ impl Oryxis {
                     styled_button(crate::i18n::t("cancel"), Message::Share(ShareMessage::ExportImportDismiss), OryxisColors::t().text_muted),
                 );
                 export_import_section = export_import_section
-                    .push(Space::new().height(8))
-                    .push(dir_row(vec![inspect_btn, Space::new().width(8).into(), cancel_btn]));
+                    .push(Space::new().height(8).boxed())
+                    .push(dir_row(vec![inspect_btn, Space::new().width(8).boxed(), cancel_btn]).boxed());
             }
         }
 
@@ -1207,7 +1204,7 @@ impl Oryxis {
                     .width(300)
                     .padding(10)
                     .style(crate::widgets::rounded_pick_list_style)
-                    .into(),
+                    .boxed(),
             );
             let path_field = self.settings_nav_slot(
                 crate::keynav::RowAction::input(iced::widget::Id::new("set-security-sftp-path")),
@@ -1219,7 +1216,7 @@ impl Oryxis {
                     .width(300)
                     .padding(10)
                     .style(crate::widgets::rounded_input_style)
-                    .into(),
+                    .boxed(),
             );
             // Restore collects the decrypt password here (export
             // already has it in the dialog above), so both flows ask
@@ -1255,7 +1252,7 @@ impl Oryxis {
                         ),
                     ))
                     .width(300)
-                    .into(),
+                    .boxed(),
                 ))
             } else {
                 None
@@ -1295,7 +1292,7 @@ impl Oryxis {
                     OryxisColors::t().text_muted,
                 ),
             );
-            let mut sftp_section: iced::widget::Column<'_, Message> = column![
+            let mut sftp_section: iced::widget::Column<iced::Element<'_, Message>> = column![
                 text(crate::i18n::t(title_key)).size(13).color(OryxisColors::t().text_primary),
                 Space::new().height(2),
                 text(crate::i18n::t("sftp_backup_hint")).size(12).color(OryxisColors::t().text_muted),
@@ -1310,24 +1307,24 @@ impl Oryxis {
             ];
             if let Some(pw) = import_pw {
                 sftp_section = sftp_section
-                    .push(Space::new().height(10))
+                    .push(Space::new().height(10).boxed())
                     .push(pw);
             }
             sftp_section = sftp_section
-                .push(Space::new().height(10))
-                .push(dir_row(vec![confirm_btn, Space::new().width(8).into(), cancel_btn]));
+                .push(Space::new().height(10).boxed())
+                .push(dir_row(vec![confirm_btn, Space::new().width(8).boxed(), cancel_btn]).boxed());
             if let Some(status) = &self.sftp_backup.status {
                 let (msg, color) = match status {
                     Ok(m) => (m.clone(), OryxisColors::t().success),
                     Err(e) => (e.clone(), OryxisColors::t().error),
                 };
                 sftp_section = sftp_section
-                    .push(Space::new().height(8))
-                    .push(text(msg).size(12).color(color));
+                    .push(Space::new().height(8).boxed())
+                    .push(text(msg).size(12).color(color).boxed());
             }
             export_import_section = export_import_section
-                .push(Space::new().height(14))
-                .push(sftp_section);
+                .push(Space::new().height(14).boxed())
+                .push(sftp_section.boxed());
         }
 
         // Status messages
@@ -1337,8 +1334,8 @@ impl Oryxis {
                 Err(m) => (m.as_str(), OryxisColors::t().error),
             };
             export_import_section = export_import_section
-                .push(Space::new().height(8))
-                .push(text(msg).size(12).color(color));
+                .push(Space::new().height(8).boxed())
+                .push(text(msg).size(12).color(color).boxed());
         }
         if let Some(status) = &self.vault_import.status {
             let (msg, color) = match status {
@@ -1346,8 +1343,8 @@ impl Oryxis {
                 Err(m) => (m.as_str(), OryxisColors::t().error),
             };
             export_import_section = export_import_section
-                .push(Space::new().height(8))
-                .push(text(msg).size(12).color(color));
+                .push(Space::new().height(8).boxed())
+                .push(text(msg).size(12).color(color).boxed());
         }
 
         export_import_section
@@ -1356,7 +1353,7 @@ impl Oryxis {
     /// SSH config import block: sits below the vault export/import
     /// inside the same panel. One-shot batch importer; no preview
     /// yet.
-    fn security_ssh_import_card(&self) -> iced::widget::Column<'_, Message> {
+    fn security_ssh_import_card(&self) -> iced::widget::Column<iced::Element<'_, Message>> {
         let ssh_config_btn = self.settings_nav_slot_labeled(
             t("import_ssh_config_btn"),
             crate::keynav::RowAction::activate(Message::Share(ShareMessage::ImportSshConfig)),
@@ -1367,7 +1364,7 @@ impl Oryxis {
                 OryxisColors::t().accent,
             ),
         );
-        let mut ssh_config_section: iced::widget::Column<'_, Message> = column![
+        let mut ssh_config_section: iced::widget::Column<iced::Element<'_, Message>> = column![
             text(t("ssh_config_import"))
                 .size(13)
                 .color(OryxisColors::t().text_primary),
@@ -1384,8 +1381,8 @@ impl Oryxis {
                 Err(m) => (m.as_str(), OryxisColors::t().error),
             };
             ssh_config_section = ssh_config_section
-                .push(Space::new().height(8))
-                .push(text(msg).size(12).color(color));
+                .push(Space::new().height(8).boxed())
+                .push(text(msg).size(12).color(color).boxed());
         }
 
         ssh_config_section
@@ -1434,8 +1431,8 @@ impl Oryxis {
                     // share one import/export card.
                     panel_section(
                         export_import_section
-                            .push(Space::new().height(16))
-                            .push(ssh_config_section),
+                            .push(Space::new().height(16).boxed())
+                            .push(ssh_config_section.boxed()),
                     ),
                     Space::new().height(24),
                 ]
@@ -1449,6 +1446,6 @@ impl Oryxis {
         .id(iced::widget::Id::new("settings-security-scroll"))
         .on_scroll(|s| Message::Settings(SettingsMessage::SectionScrolled(s.viewport.relative_offset().y)))
         .height(Length::Fill)
-        .into()
+        .boxed()
     }
 }

@@ -5,6 +5,7 @@
 //! final slide creates the vault via `VaultSetup` / `VaultSkipPassword`,
 //! replacing the old dry `view_vault_setup` screen.
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::button::Status as BtnStatus;
 use iced::widget::{button, column, container, svg, text, Space};
@@ -96,7 +97,7 @@ impl Oryxis {
             })
             .width(Length::Fill)
             .height(Length::Fill)
-            .into()
+            .boxed()
     }
 
     /// One of the four feature slides (welcome / vault / connect / sync).
@@ -106,14 +107,14 @@ impl Oryxis {
     fn onboarding_feature_slide(&self, slide: usize) -> Element<'_, Message> {
         let accent = OryxisColors::t().accent;
         let badge: Element<'_, Message> = if slide == 0 {
-            svg(self.logo_handle.clone()).width(84).height(84).into()
+            svg(self.logo_handle.clone()).width(84).height(84).boxed()
         } else {
             let glyph = match slide {
                 1 => iced_fonts::lucide::shield(),
                 2 => iced_fonts::lucide::terminal(),
                 _ => iced_fonts::lucide::sparkles(),
             };
-            onboarding_icon_badge(glyph.size(38).color(accent).into(), accent)
+            onboarding_icon_badge(glyph.size(38).color(accent).boxed(), accent)
         };
 
         let title_key = match slide {
@@ -130,7 +131,7 @@ impl Oryxis {
                 .size(16)
                 .color(OryxisColors::t().text_secondary)
                 .align_x(iced::alignment::Horizontal::Center)
-                .into()
+                .boxed()
         } else {
             let bullets = match slide {
                 1 => ["onboarding_vault_b1", "onboarding_vault_b2", "onboarding_vault_b3"],
@@ -146,7 +147,7 @@ impl Oryxis {
             ]
             .width(Length::Fixed(440.0))
             .align_x(crate::widgets::dir_align_x())
-            .into()
+            .boxed()
         };
 
         column![
@@ -160,7 +161,7 @@ impl Oryxis {
             body,
         ]
         .align_x(iced::Alignment::Center)
-        .into()
+        .boxed()
     }
 
     /// Optional features, with a one-line explanation each and a live
@@ -176,7 +177,7 @@ impl Oryxis {
         use crate::app::{AgentMessage, AiMessage, SettingsMessage, SyncMessage};
         let accent = OryxisColors::t().accent;
         let badge = onboarding_icon_badge(
-            iced_fonts::lucide::sliders_horizontal().size(38).color(accent).into(),
+            iced_fonts::lucide::sliders_horizontal().size(38).color(accent).boxed(),
             accent,
         );
 
@@ -248,7 +249,7 @@ impl Oryxis {
             ));
         }
 
-        let mut list = column![].spacing(10);
+        let mut list = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(10);
         for (label, desc, value, msg) in rows {
             list = list.push(crate::widgets::toggle_row_desc(label, desc, value, msg));
         }
@@ -279,7 +280,7 @@ impl Oryxis {
             .width(Length::Fixed(460.0)),
         ]
         .align_x(iced::Alignment::Center)
-        .into()
+        .boxed()
     }
 
     /// The import offer: names the clients Oryxis can read and, on
@@ -288,7 +289,7 @@ impl Oryxis {
     fn onboarding_import_slide(&self) -> Element<'_, Message> {
         let accent = OryxisColors::t().accent;
         let badge = onboarding_icon_badge(
-            iced_fonts::lucide::download().size(38).color(accent).into(),
+            iced_fonts::lucide::download().size(38).color(accent).boxed(),
             accent,
         );
         column![
@@ -326,7 +327,7 @@ impl Oryxis {
                 .align_x(iced::alignment::Horizontal::Center),
         ]
         .align_x(iced::Alignment::Center)
-        .into()
+        .boxed()
     }
 
     /// The final slide: master-password setup. Creates the vault via
@@ -335,7 +336,7 @@ impl Oryxis {
     fn onboarding_password_slide(&self) -> Element<'_, Message> {
         let accent = OryxisColors::t().accent;
         let badge = onboarding_icon_badge(
-            iced_fonts::lucide::key_round().size(38).color(accent).into(),
+            iced_fonts::lucide::key_round().size(38).color(accent).boxed(),
             accent,
         );
 
@@ -369,10 +370,9 @@ impl Oryxis {
             column![
                 Space::new().height(8),
                 text(e.clone()).size(12).color(OryxisColors::t().error),
-            ]
-            .into()
+            ].boxed()
         } else {
-            Space::new().into()
+            Space::new().boxed()
         };
 
         // Offer the biometric convenience layer at password-creation time
@@ -387,10 +387,9 @@ impl Oryxis {
                     Message::Vault(VaultMessage::ToggleSetupBiometric),
                 ))
                 .width(300),
-            ]
-            .into()
+            ].boxed()
         } else {
-            Space::new().into()
+            Space::new().boxed()
         };
 
         column![
@@ -417,7 +416,7 @@ impl Oryxis {
             error,
         ]
         .align_x(iced::Alignment::Center)
-        .into()
+        .boxed()
     }
 
     /// The single action row: Back on the leading edge, the pagination
@@ -430,13 +429,13 @@ impl Oryxis {
         if slide > 0 {
             items.push(onboarding_text_button(t("onboarding_back"), Message::Onboarding(OnboardingMessage::Back)));
         }
-        items.push(Space::new().width(Length::Fill).into());
+        items.push(Space::new().width(Length::Fill).boxed());
         items.push(onboarding_dots(slide));
-        items.push(Space::new().width(Length::Fill).into());
+        items.push(Space::new().width(Length::Fill).boxed());
 
         if slide < ONBOARDING_LAST_SLIDE {
             items.push(onboarding_text_button(t("onboarding_skip"), Message::Onboarding(OnboardingMessage::SkipToEnd)));
-            items.push(Space::new().width(10).into());
+            items.push(Space::new().width(10).boxed());
             items.push(styled_button(
                 t("onboarding_next"),
                 Message::Onboarding(OnboardingMessage::Next),
@@ -444,7 +443,7 @@ impl Oryxis {
             ));
         }
 
-        dir_row(items).align_y(iced::Alignment::Center).into()
+        dir_row(items).align_y(iced::Alignment::Center).boxed()
     }
 }
 
@@ -458,15 +457,15 @@ fn onboarding_bullet(label: &str) -> Element<'_, Message> {
                 .color(OryxisColors::t().accent),
         )
         .padding(Padding { top: 2.0, right: 0.0, bottom: 0.0, left: 0.0 })
-        .into(),
-        Space::new().width(12).into(),
+        .boxed(),
+        Space::new().width(12).boxed(),
         text(label.to_string())
             .size(15)
             .color(OryxisColors::t().text_secondary)
-            .into(),
+            .boxed(),
     ])
     .align_y(iced::Alignment::Start)
-    .into()
+    .boxed()
 }
 
 /// A circular, tinted badge framing a slide's glyph: a soft accent disc so
@@ -482,7 +481,7 @@ fn onboarding_icon_badge<'a>(glyph: Element<'a, Message>, accent: Color) -> Elem
             },
             ..Default::default()
         })
-        .into()
+        .boxed()
 }
 
 /// The slide-position dots (filled for the current slide, muted otherwise).
@@ -490,7 +489,7 @@ fn onboarding_dots<'a>(active: usize) -> Element<'a, Message> {
     let mut items: Vec<Element<'a, Message>> = Vec::new();
     for i in 0..=ONBOARDING_LAST_SLIDE {
         if i > 0 {
-            items.push(Space::new().width(7).into());
+            items.push(Space::new().width(7).boxed());
         }
         let on = i == active;
         let color = if on {
@@ -511,10 +510,10 @@ fn onboarding_dots<'a>(active: usize) -> Element<'a, Message> {
                     },
                     ..Default::default()
                 })
-                .into(),
+                .boxed(),
         );
     }
-    dir_row(items).align_y(iced::Alignment::Center).into()
+    dir_row(items).align_y(iced::Alignment::Center).boxed()
 }
 
 /// A subtle text-style button (muted label, hover/press tint) for the
@@ -535,5 +534,5 @@ fn onboarding_text_button(label: &str, msg: Message) -> Element<'_, Message> {
                 ..Default::default()
             }
         })
-        .into()
+        .boxed()
 }

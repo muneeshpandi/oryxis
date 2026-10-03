@@ -1,5 +1,6 @@
 //! Key generation side panel (spec form + result screen). Split out of views/keys.rs.
 
+use iced::Widget as _;
 use super::*;
 use iced::widget::column;
 
@@ -18,8 +19,8 @@ impl Oryxis {
 
         let panel_header = container(
             dir_row(vec![
-                text(t("generate_key")).size(18).color(OryxisColors::t().text_primary).into(),
-                Space::new().width(Length::Fill).into(),
+                text(t("generate_key")).size(18).color(OryxisColors::t().text_primary).boxed(),
+                Space::new().width(Length::Fill).boxed(),
                 button(text("\u{00D7}").size(14).color(OryxisColors::t().text_muted))
                     .on_press(Message::Keys(KeysMessage::HideKeyGeneratePanel))
                     .padding(Padding { top: 4.0, right: 8.0, bottom: 4.0, left: 8.0 })
@@ -35,7 +36,7 @@ impl Oryxis {
                             ..Default::default()
                         }
                     })
-                    .into(),
+                    .boxed(),
             ])
             .align_y(iced::Alignment::Center),
         )
@@ -59,9 +60,9 @@ impl Oryxis {
 
             let mut col = column![
                 dir_row(vec![
-                    iced_fonts::lucide::circle_check().size(13).color(OryxisColors::t().success).into(),
-                    Space::new().width(6).into(),
-                    text(t("keygen_result_saved")).size(12).color(OryxisColors::t().success).into(),
+                    iced_fonts::lucide::circle_check().size(13).color(OryxisColors::t().success).boxed(),
+                    Space::new().width(6).boxed(),
+                    text(t("keygen_result_saved")).size(12).color(OryxisColors::t().success).boxed(),
                 ]).align_y(iced::Alignment::Center),
                 Space::new().height(12),
                 crate::widgets::panel_field(
@@ -70,10 +71,10 @@ impl Oryxis {
                         .size(11)
                         .font(iced::Font::MONOSPACE)
                         .color(OryxisColors::t().text_secondary)
-                        .into(),
+                        .boxed(),
                 ),
                 Space::new().height(12),
-                crate::widgets::panel_field(t("public_key"), public_block.into()),
+                crate::widgets::panel_field(t("public_key"), public_block.boxed()),
                 Space::new().height(10),
                 dir_row(vec![
                     self.panel_nav_slot(
@@ -85,7 +86,7 @@ impl Oryxis {
                             OryxisColors::t().bg_selected,
                         ),
                     ),
-                    Space::new().width(8).into(),
+                    Space::new().width(8).boxed(),
                     self.panel_nav_slot(
                         crate::keynav::RowAction::activate(Message::Keys(KeysMessage::SaveGeneratedPublicKeyFile)),
                         6.0,
@@ -128,7 +129,7 @@ impl Oryxis {
                     ),
                 ),
             ));
-            col = col.push(Space::new().height(8));
+            col = col.push(Space::new().height(8).boxed());
             self.panel_nav_record(crate::keynav::RowAction::input(
                 iced::widget::Id::new("keygen-export-pass-confirm"),
             ));
@@ -153,14 +154,14 @@ impl Oryxis {
                 ),
             ));
             if form.export_passphrase.is_empty() && form.export_passphrase_confirm.is_empty() {
-                col = col.push(Space::new().height(6));
+                col = col.push(Space::new().height(6).boxed());
                 col = col.push(
                     text(t("keygen_export_plaintext_warn"))
                         .size(11)
-                        .color(OryxisColors::t().warning),
+                        .color(OryxisColors::t().warning).boxed(),
                 );
             }
-            col = col.push(Space::new().height(10));
+            col = col.push(Space::new().height(10).boxed());
             col = col.push(self.panel_nav_slot(
                 crate::keynav::RowAction::activate(Message::Keys(KeysMessage::ExportGeneratedPrivateKey)),
                 6.0,
@@ -170,7 +171,7 @@ impl Oryxis {
                     OryxisColors::t().bg_selected,
                 ),
             ));
-            col.width(Length::Fill).align_x(dir_align_x()).into()
+            col.width(Length::Fill).align_x(dir_align_x()).boxed()
         } else {
             // ── Spec form ──
             self.panel_nav_record(crate::keynav::RowAction::input(
@@ -184,7 +185,7 @@ impl Oryxis {
                     .padding(10)
                     .style(crate::widgets::rounded_input_style)
                     .align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
             );
 
             let algo_picker = crate::widgets::panel_field(
@@ -203,13 +204,13 @@ impl Oryxis {
                     .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                     .padding(10)
                     .style(crate::widgets::rounded_pick_list_style)
-                    .into(),
+                    .boxed(),
                 ),
             );
 
             // Dependent sub-picker, only for RSA / ECDSA.
             let sub_picker: Element<'_, Message> = match form.algo {
-                KeyGenAlgo::Ed25519 => Space::new().into(),
+                KeyGenAlgo::Ed25519 => Space::new().boxed(),
                 KeyGenAlgo::Rsa => column![
                     Space::new().height(12),
                     crate::widgets::panel_field(
@@ -232,11 +233,10 @@ impl Oryxis {
                             .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                             .padding(10)
                             .style(crate::widgets::rounded_pick_list_style)
-                            .into(),
+                            .boxed(),
                         ),
                     ),
-                ]
-                .into(),
+                ].boxed(),
                 KeyGenAlgo::Ecdsa => column![
                     Space::new().height(12),
                     crate::widgets::panel_field(
@@ -259,11 +259,10 @@ impl Oryxis {
                             .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                             .padding(10)
                             .style(crate::widgets::rounded_pick_list_style)
-                            .into(),
+                            .boxed(),
                         ),
                     ),
-                ]
-                .into(),
+                ].boxed(),
             };
 
             self.panel_nav_record(crate::keynav::RowAction::input(
@@ -277,17 +276,16 @@ impl Oryxis {
                     .padding(10)
                     .style(crate::widgets::rounded_input_style)
                     .align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
             );
 
             let working: Element<'_, Message> = if form.working {
                 column![
                     Space::new().height(10),
                     text(t("keygen_working")).size(12).color(OryxisColors::t().text_muted),
-                ]
-                .into()
+                ].boxed()
             } else {
-                Space::new().into()
+                Space::new().boxed()
             };
 
             column![
@@ -301,7 +299,7 @@ impl Oryxis {
             ]
             .width(Length::Fill)
             .align_x(dir_align_x())
-            .into()
+            .boxed()
         };
 
         // Shared form chrome: error above the footer, Cancel/Generate
@@ -310,7 +308,7 @@ impl Oryxis {
         let panel_error = crate::widgets::form_error(form.error.as_deref());
         let footer = if form.result.is_some() {
             crate::widgets::form_footer(
-                Space::new().into(),
+                Space::new().boxed(),
                 self.panel_nav_slot(
                     crate::keynav::RowAction::activate(Message::Keys(KeysMessage::HideKeyGeneratePanel)),
                     6.0,
@@ -352,6 +350,6 @@ impl Oryxis {
         ]
         .height(Length::Fill);
 
-        crate::widgets::side_panel_frame(panel_content.into(), OryxisColors::t().bg_sidebar, self.panel_width)
+        crate::widgets::side_panel_frame(panel_content.boxed(), OryxisColors::t().bg_sidebar, self.panel_width)
     }
 }

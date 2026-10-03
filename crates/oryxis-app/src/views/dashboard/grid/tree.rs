@@ -436,13 +436,13 @@ impl Oryxis {
                 .size(13)
                 .color(OryxisColors::t().text_primary)
                 .wrapping(iced::widget::text::Wrapping::None)
-                .into(),
+                .boxed(),
             Some(
                 text(count_text)
                     .size(10)
                     .color(OryxisColors::t().text_muted)
                     .wrapping(iced::widget::text::Wrapping::None)
-                    .into(),
+                    .boxed(),
             ),
             Some(Message::Ai(crate::app::AiMessage::HostsTreeToggleGroup(gid))),
             hovered,
@@ -586,36 +586,36 @@ impl Oryxis {
                     .size(13)
                     .color(label_color)
                     .wrapping(iced::widget::text::Wrapping::None)
-                    .into(),
-                Space::new().width(6).into(),
-                pill.into(),
+                    .boxed(),
+                Space::new().width(6).boxed(),
+                pill.boxed(),
             ])
             .align_y(iced::Alignment::Center)
-            .into()
+            .boxed()
         } else {
             text(display_label.clone())
                 .size(13)
                 .color(label_color)
                 .wrapping(iced::widget::text::Wrapping::None)
-                .into()
+                .boxed()
         };
         let subtitle_el: Element<'_, Message> = match &cloud {
             Some((brand_key, color, _)) => dir_row(vec![
                 crate::os_icon::custom_icon_glyph(brand_key).view(10.0, *color),
-                Space::new().width(4).into(),
+                Space::new().width(4).boxed(),
                 text(subtitle)
                     .size(10)
                     .color(OryxisColors::t().text_muted)
                     .wrapping(iced::widget::text::Wrapping::None)
-                    .into(),
+                    .boxed(),
             ])
             .align_y(iced::Alignment::Center)
-            .into(),
+            .boxed(),
             None => text(subtitle)
                 .size(10)
                 .color(OryxisColors::t().text_muted)
                 .wrapping(iced::widget::text::Wrapping::None)
-                .into(),
+                .boxed(),
         };
 
         let el = self.dash_tree_row(
@@ -677,13 +677,13 @@ impl Oryxis {
                 .size(13)
                 .color(OryxisColors::t().text_primary)
                 .wrapping(iced::widget::text::Wrapping::None)
-                .into(),
+                .boxed(),
             Some(
                 text(subtitle)
                     .size(10)
                     .color(OryxisColors::t().text_muted)
                     .wrapping(iced::widget::text::Wrapping::None)
-                    .into(),
+                    .boxed(),
             ),
             Some(Message::SessionGroup(SessionGroupMessage::OpenSessionGroup(idx))),
             hovered,
@@ -736,13 +736,13 @@ impl Oryxis {
                 .size(13)
                 .color(OryxisColors::t().text_primary)
                 .wrapping(iced::widget::text::Wrapping::None)
-                .into(),
+                .boxed(),
             Some(
                 text(subtitle)
                     .size(10)
                     .color(OryxisColors::t().text_muted)
                     .wrapping(iced::widget::text::Wrapping::None)
-                    .into(),
+                    .boxed(),
             ),
             Some(Message::Navigation(NavigationMessage::OpenGroup(gid))),
             hovered,
@@ -815,7 +815,7 @@ impl Oryxis {
                 )
                 .width(Length::Fixed(INDENT))
                 .align_x(iced::alignment::Horizontal::Center)
-                .into()
+                .boxed()
             })
             .collect();
 
@@ -834,23 +834,23 @@ impl Oryxis {
                 container(chevron.size(13).color(OryxisColors::t().text_muted))
                     .center_x(Length::Fixed(LEAD))
                     .center_y(Length::Fixed(ROW_H))
-                    .into()
+                    .boxed()
             }
             TreeLead::Drill | TreeLead::Leaf => {
-                Space::new().width(LEAD).into()
+                Space::new().width(LEAD).boxed()
             }
         };
         cells.push(lead_el);
         cells.push(icon);
-        cells.push(Space::new().width(7).into());
+        cells.push(Space::new().width(7).boxed());
         cells.push(label);
         if let Some(sub) = subtitle {
-            cells.push(Space::new().width(8).into());
+            cells.push(Space::new().width(8).boxed());
             cells.push(sub);
         }
         // Fill the remaining width so the row is clickable (and the
         // hover fill paints) all the way across.
-        cells.push(Space::new().width(Length::Fill).into());
+        cells.push(Space::new().width(Length::Fill).boxed());
 
         // 24 px trailing pad reserves the kebab overlay slot, same as
         // the cards, so subtitles never slide under the ⋮.
@@ -897,7 +897,7 @@ impl Oryxis {
                 true,
                 kebab_msg.clone(),
             )
-            .into()
+            .boxed()
         } else if show_drill_idle {
             let chevron = if rtl {
                 iced_fonts::lucide::chevron_left()
@@ -907,16 +907,16 @@ impl Oryxis {
             container(chevron.size(13).color(OryxisColors::t().text_muted))
                 .center_x(Length::Fixed(22.0))
                 .center_y(Length::Fixed(22.0))
-                .into()
+                .boxed()
         } else {
-            Space::new().into()
+            Space::new().boxed()
         };
-        let stacked = crate::widgets::card_trailing_overlay(row_btn.into(), trailing);
+        let stacked = crate::widgets::card_trailing_overlay(row_btn.boxed(), trailing);
         let wrapped = MouseArea::new(stacked)
             .on_enter(on_enter)
             .on_exit(on_exit)
             .on_right_press(kebab_msg);
-        Element::from(container(wrapped).width(Length::Fill).clip(true))
+        container(wrapped).width(Length::Fill).clip(true).boxed()
     }
 }
 

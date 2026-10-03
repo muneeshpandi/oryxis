@@ -4,6 +4,7 @@
 //! Serial, etc.), and includes a search box so the user can filter
 //! down to a target tab without reaching for the mouse.
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::button::Status as BtnStatus;
 use iced::widget::{button, column, container, scrollable, text, text_input, Space};
@@ -27,7 +28,7 @@ impl Oryxis {
 
         // ── Tabs section ───────────────────────────────────────────────
         // Every open tab is a row; current one gets the accent bg.
-        let mut tabs_col = column![].spacing(2);
+        let mut tabs_col = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(2);
         let mut had_match = false;
         for (idx, tab) in self.tabs.iter().enumerate() {
             // Show (and search) what the strip shows, custom rename
@@ -77,7 +78,7 @@ impl Oryxis {
                         },
                         ..Default::default()
                     })
-                    .into();
+                    .boxed();
 
             tabs_col = tabs_col.push(self.jump_row(
                 badge,
@@ -95,7 +96,7 @@ impl Oryxis {
         )
         .center_x(Length::Fixed(20.0))
         .center_y(Length::Fixed(20.0))
-        .into();
+        .boxed();
         let new_tab_label = t("new_tab").to_string();
         if new_tab_label.to_lowercase().contains(&needle) || needle.is_empty() {
             had_match = true;
@@ -111,8 +112,7 @@ impl Oryxis {
             section_header(t("tabs")),
             Space::new().height(4),
             tabs_col,
-        ]
-        .into();
+        ].boxed();
 
         // ── Quick connect section ──────────────────────────────────────
         // Mirrors the "categories" of the new-tab picker so the user
@@ -124,7 +124,7 @@ impl Oryxis {
         )
         .center_x(Length::Fixed(20.0))
         .center_y(Length::Fixed(20.0))
-        .into();
+        .boxed();
         let mut quick_col = column![self.jump_row(
             quick_local,
             t("local_terminal").to_string(),
@@ -141,7 +141,7 @@ impl Oryxis {
             )
             .center_x(Length::Fixed(20.0))
             .center_y(Length::Fixed(20.0))
-            .into();
+            .boxed();
             quick_col = quick_col.push(self.jump_row(
                 quick_target,
                 match conn.protocol
@@ -162,8 +162,7 @@ impl Oryxis {
             section_header(t("quick_connect")),
             Space::new().height(4),
             quick_col,
-        ]
-        .into();
+        ].boxed();
 
         // ── Search header ──────────────────────────────────────────────
         let search_input = text_input(t("search_tabs"), &self.tab_jump_search)
@@ -195,26 +194,26 @@ impl Oryxis {
             },
             ..Default::default()
         })
-        .into();
+        .boxed();
         let shortcut_hint: Element<'_, Message> = text(
             self.hotkey_label_for_action(crate::hotkeys::HotkeyAction::ShowTabJump)
                 .unwrap_or_default(),
         )
         .size(11)
         .color(OryxisColors::t().text_muted)
-        .into();
+        .boxed();
 
         let search_header = container(
             dir_row(vec![
                 iced_fonts::lucide::globe()
                     .size(13)
                     .color(OryxisColors::t().text_muted)
-                    .into(),
-                Space::new().width(8).into(),
+                    .boxed(),
+                Space::new().width(8).boxed(),
                 pill,
-                Space::new().width(8).into(),
-                container(search_input).width(Length::Fill).into(),
-                Space::new().width(12).into(),
+                Space::new().width(8).boxed(),
+                container(search_input).width(Length::Fill).boxed(),
+                Space::new().width(12).boxed(),
                 shortcut_hint,
             ])
             .align_y(iced::Alignment::Center),
@@ -237,7 +236,7 @@ impl Oryxis {
                     .color(OryxisColors::t().text_muted),
             )
             .padding(20)
-            .into()
+            .boxed()
         } else {
             scrollable(
                 column![
@@ -257,7 +256,7 @@ impl Oryxis {
             // Stable id so the keyboard selection can be kept in view.
             .id(iced::widget::Id::new("tab-jump-scroll"))
             .height(Length::Fixed(420.0))
-            .into()
+            .boxed()
         };
 
         let dialog = container(
@@ -282,7 +281,7 @@ impl Oryxis {
 
         // Bare card; `widgets::modal_overlay` (the caller) owns centering,
         // the absorbing scrim, and the click-trap.
-        dialog.into()
+        dialog.boxed()
     }
 }
 
@@ -290,7 +289,7 @@ fn section_header<'a>(label: &'a str) -> Element<'a, Message> {
     text(label.to_owned())
         .size(11)
         .color(OryxisColors::t().text_muted)
-        .into()
+        .boxed()
 }
 
 impl Oryxis {
@@ -315,8 +314,8 @@ impl Oryxis {
         let row: Element<'a, Message> = button(
             dir_row(vec![
                 icon,
-                Space::new().width(8).into(),
-                text(label).size(13).color(label_color).into(),
+                Space::new().width(8).boxed(),
+                text(label).size(13).color(label_color).boxed(),
             ])
             .align_y(iced::Alignment::Center),
         )
@@ -339,7 +338,7 @@ impl Oryxis {
                 ..Default::default()
             }
         })
-        .into();
+        .boxed();
         // Keyboard row: Enter mirrors the click (same two-step
         // TabJumpSelect dispatch).
         self.modal_nav_slot(

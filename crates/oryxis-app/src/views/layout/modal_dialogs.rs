@@ -49,7 +49,7 @@ impl Oryxis {
                 ),
             ))
             .width(280)
-            .into(),
+            .boxed(),
         );
         // Group-mode export: a per-folder include/exclude checklist
         // sits between the password and the keys toggle. A single-host
@@ -70,7 +70,7 @@ impl Oryxis {
                         .on_toggle(move |_| Message::Share(ShareMessage::ShareToggleGroup(id)))
                         .size(16)
                         .text_size(13)
-                        .into(),
+                        .boxed(),
                 ));
             }
             list = list.push(self.modal_nav_slot(
@@ -82,7 +82,7 @@ impl Oryxis {
                     .on_toggle(|_| Message::Share(ShareMessage::ShareToggleUngrouped))
                     .size(16)
                     .text_size(13)
-                    .into(),
+                    .boxed(),
             ));
             column![
                 iced::widget::container(
@@ -91,10 +91,9 @@ impl Oryxis {
                 )
                 .width(280),
                 Space::new().height(8),
-            ]
-            .into()
+            ].boxed()
         } else {
-            Space::new().into()
+            Space::new().boxed()
         };
         let dialog_title = if self.share.group_mode {
             crate::i18n::t("export_hosts")
@@ -124,7 +123,7 @@ impl Oryxis {
                                 text_color: OryxisColors::t().text_primary,
                                 ..Default::default()
                             }
-                        }).into(),
+                        }).boxed(),
                     ),
                 ].align_y(iced::Alignment::Center).width(280),
                 Space::new().height(12),
@@ -148,9 +147,9 @@ impl Oryxis {
                         Ok(m) => (m.as_str(), OryxisColors::t().success),
                         Err(m) => (m.as_str(), OryxisColors::t().error),
                     };
-                    Element::from(column![Space::new().height(8), text(msg).size(12).color(color)])
+                    column![Space::new().height(8), text(msg).size(12).color(color)].boxed()
                 } else {
-                    Element::from(Space::new())
+                    Space::new().boxed()
                 },
             ]
             .padding(24),
@@ -160,7 +159,7 @@ impl Oryxis {
             border: Border { radius: Radius::from(12.0), color: OryxisColors::t().border, width: 1.0 },
             ..Default::default()
         });
-        dialog_content.into()
+        dialog_content.boxed()
     }
 
     /// The ssh-agent per-signature confirm card: a tool is asking the
@@ -191,7 +190,7 @@ impl Oryxis {
                 text(card.key_comment.clone())
                     .size(13)
                     .color(OryxisColors::t().text_primary)
-                    .into(),
+                    .boxed(),
             ),
             Space::new().height(8),
             crate::widgets::panel_field(
@@ -200,17 +199,17 @@ impl Oryxis {
                     .size(11)
                     .font(iced::Font::MONOSPACE)
                     .color(OryxisColors::t().text_secondary)
-                    .into(),
+                    .boxed(),
             ),
         ];
         if let Some(peer) = &card.peer {
-            info = info.push(Space::new().height(8));
+            info = info.push(Space::new().height(8).boxed());
             info = info.push(crate::widgets::panel_field(
                 crate::i18n::t("agent_confirm_process"),
                 text(peer.clone())
                     .size(12)
                     .color(OryxisColors::t().text_secondary)
-                    .into(),
+                    .boxed(),
             ));
         }
 
@@ -223,7 +222,7 @@ impl Oryxis {
                 .on_toggle(|_| Message::Agent(AgentMessage::AgentConfirmToggleAlways))
                 .size(16)
                 .text_size(13)
-                .into(),
+                .boxed(),
         );
 
         let buttons = crate::widgets::dir_row(vec![
@@ -240,7 +239,7 @@ impl Oryxis {
                     OryxisColors::t().error,
                 ),
             ),
-            Space::new().width(8).into(),
+            Space::new().width(8).boxed(),
             self.modal_nav_slot(
                 crate::keynav::RowAction::activate(Message::Agent(AgentMessage::AgentConfirmDecision {
                     allow: true,
@@ -272,7 +271,7 @@ impl Oryxis {
             border: Border { radius: Radius::from(12.0), color: OryxisColors::t().border, width: 1.0 },
             ..Default::default()
         });
-        dialog.into()
+        dialog.boxed()
     }
 
     /// "A highlight rule wants to run a snippet on this session" (C6).
@@ -303,7 +302,7 @@ impl Oryxis {
             Space::new().height(12),
             crate::widgets::panel_field(
                 crate::i18n::t("trigger_confirm_rule"),
-                text(rule).size(13).color(OryxisColors::t().text_primary).into(),
+                text(rule).size(13).color(OryxisColors::t().text_primary).boxed(),
             ),
             Space::new().height(8),
             crate::widgets::panel_field(
@@ -312,7 +311,7 @@ impl Oryxis {
                     .size(11)
                     .font(iced::Font::MONOSPACE)
                     .color(OryxisColors::t().text_secondary)
-                    .into(),
+                    .boxed(),
             ),
             Space::new().height(8),
             crate::widgets::panel_field(
@@ -321,7 +320,7 @@ impl Oryxis {
                     .size(11)
                     .font(iced::Font::MONOSPACE)
                     .color(OryxisColors::t().text_primary)
-                    .into(),
+                    .boxed(),
             ),
         ];
 
@@ -338,7 +337,7 @@ impl Oryxis {
                     OryxisColors::t().bg_hover,
                 ),
             ),
-            Space::new().width(8).into(),
+            Space::new().width(8).boxed(),
             self.modal_nav_slot(
                 crate::keynav::RowAction::activate(Message::Terminal(
                     TerminalMessage::TriggerConfirmDecision(true),
@@ -367,7 +366,7 @@ impl Oryxis {
             },
             ..Default::default()
         })
-        .into()
+        .boxed()
     }
 
     /// "Open this link?" for a Ctrl+click in a remote pane.
@@ -406,7 +405,7 @@ impl Oryxis {
                     .size(11)
                     .font(iced::Font::MONOSPACE)
                     .color(OryxisColors::t().text_primary)
-                    .into(),
+                    .boxed(),
             ),
         ];
         if let Some(cb) = &card.callback {
@@ -427,13 +426,13 @@ impl Oryxis {
                         .replace("{port}", &cb.port.to_string()),
                 )
             };
-            info = info.push(Space::new().height(8)).push(
+            info = info.push(Space::new().height(8).boxed()).push(
                 crate::widgets::panel_field(
                     label,
                     text(body)
                         .size(11)
                         .color(OryxisColors::t().text_secondary)
-                        .into(),
+                        .boxed(),
                 ),
             );
         }
@@ -451,7 +450,7 @@ impl Oryxis {
                     OryxisColors::t().bg_hover,
                 ),
             ),
-            Space::new().width(8).into(),
+            Space::new().width(8).boxed(),
             // Copying is the escape hatch for a link the user wants to
             // look at before following it (VS Code offers the same).
             self.modal_nav_slot(
@@ -466,7 +465,7 @@ impl Oryxis {
                     OryxisColors::t().bg_hover,
                 ),
             ),
-            Space::new().width(8).into(),
+            Space::new().width(8).boxed(),
             self.modal_nav_slot(
                 crate::keynav::RowAction::activate(Message::Terminal(
                     TerminalMessage::TerminalLinkDecision(true),
@@ -495,7 +494,7 @@ impl Oryxis {
             },
             ..Default::default()
         })
-        .into()
+        .boxed()
     }
 
     /// The one-entry Import hub (owner call: ONE standardized import):
@@ -514,9 +513,8 @@ impl Oryxis {
                 text(format!("{} {}", crate::i18n::t("import_into_folder"), path))
                     .size(12)
                     .color(OryxisColors::t().accent),
-            ]
-            .into(),
-            None => Space::new().into(),
+            ].boxed(),
+            None => Space::new().boxed(),
         }
     }
 
@@ -534,24 +532,23 @@ impl Oryxis {
             "Xshell / SecureCRT / FinalShell (session folder)",
             "Termius export / CSV (any host table)",
         ];
-        let mut sources = column![].spacing(4);
+        let mut sources = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(4);
         for s in SOURCES {
             sources = sources.push(
                 dir_row(vec![
-                    text("•").size(12).color(OryxisColors::t().text_muted).into(),
-                    Space::new().width(8).into(),
-                    text(s).size(13).color(OryxisColors::t().text_primary).into(),
+                    text("•").size(12).color(OryxisColors::t().text_muted).boxed(),
+                    Space::new().width(8).boxed(),
+                    text(s).size(13).color(OryxisColors::t().text_primary).boxed(),
                 ])
-                .align_y(iced::Alignment::Center),
+                .align_y(iced::Alignment::Center).boxed(),
             );
         }
         let error_line: Element<'_, Message> = match &self.import_hub_error {
             Some(e) => column![
                 Space::new().height(10),
                 text(e.clone()).size(12).color(OryxisColors::t().error),
-            ]
-            .into(),
-            None => Space::new().into(),
+            ].boxed(),
+            None => Space::new().boxed(),
         };
         // A protected mRemoteNG file is parked here while its password
         // is asked for; Enter in the field retries directly.
@@ -594,10 +591,9 @@ impl Oryxis {
                     ),
                 ]
                 .align_y(iced::Alignment::Center),
-            ]
-            .into()
+            ].boxed()
         } else {
-            Space::new().into()
+            Space::new().boxed()
         };
         container(
             column![
@@ -669,7 +665,7 @@ impl Oryxis {
             },
             ..Default::default()
         })
-        .into()
+        .boxed()
     }
 
     /// Content for the import preview (per-host checklist with
@@ -759,7 +755,7 @@ impl Oryxis {
                 OryxisColors::t().text_muted,
             ),
         );
-        let mut list = column![].spacing(4);
+        let mut list = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(4);
         for (i, (name, detail)) in rows.iter().enumerate() {
             let checked =
                 self.ssh_import_selected.get(i).copied().unwrap_or(false);
@@ -779,7 +775,7 @@ impl Oryxis {
                     .on_toggle(move |_| Message::Share(ShareMessage::SshImportToggle(i)))
                     .size(16)
                     .text_size(13)
-                    .into(),
+                    .boxed(),
             ));
         }
         // Sessions the parser could not map: named, muted, honest.
@@ -794,9 +790,8 @@ impl Oryxis {
                 ))
                 .size(11)
                 .color(OryxisColors::t().warning),
-            ]
-            .into(),
-            None => Space::new().into(),
+            ].boxed(),
+            None => Space::new().boxed(),
         };
         let dialog_content = container(
             column![
@@ -846,7 +841,7 @@ impl Oryxis {
             border: Border { radius: Radius::from(12.0), color: OryxisColors::t().border, width: 1.0 },
             ..Default::default()
         });
-        dialog_content.into()
+        dialog_content.boxed()
     }
 
     /// Content for the generic blocking error dialog (title, selectable
@@ -948,7 +943,7 @@ impl Oryxis {
             },
             ..Default::default()
         });
-        dialog_content.into()
+        dialog_content.boxed()
     }
 
     /// Content for the Logs "Clear all" confirmation (entry count, then
@@ -988,7 +983,7 @@ impl Oryxis {
                             ),
                         )
                     },
-                    Space::new().width(8).into(),
+                    Space::new().width(8).boxed(),
                     self.modal_nav_slot_default(
                         crate::keynav::RowAction::activate(Message::History(HistoryMessage::ClearLogs)),
                         6.0,
@@ -1010,7 +1005,7 @@ impl Oryxis {
             border: Border { radius: Radius::from(12.0), color: OryxisColors::t().border, width: 1.0 },
             ..Default::default()
         });
-        dialog.into()
+        dialog.boxed()
     }
 
     /// "Lock the vault?" confirmation. Manual Lock Vault tears down
@@ -1092,7 +1087,7 @@ impl Oryxis {
             text(crate::i18n::t("lock_vault_confirm_count").replacen("{count}", "0", 1))
                 .size(12)
                 .color(c.text_muted)
-                .into()
+                .boxed()
         } else {
             const MAX_ROWS: usize = 4;
             let extra = total.saturating_sub(MAX_ROWS);
@@ -1105,7 +1100,7 @@ impl Oryxis {
                     )
                     .size(11)
                     .color(c.text_muted)
-                    .into(),
+                    .boxed(),
                 );
             }
             container(column(rows).spacing(6))
@@ -1116,7 +1111,7 @@ impl Oryxis {
                     border: Border { radius: Radius::from(10.0), color: c.border, width: 1.0 },
                     ..Default::default()
                 })
-                .into()
+                .boxed()
         };
 
         // Keyboard rows, in visual order: the remember opt-in, then
@@ -1134,7 +1129,7 @@ impl Oryxis {
                 .on_toggle(|_| Message::Vault(VaultMessage::LockVaultConfirmRememberToggled))
                 .size(16)
                 .text_size(12)
-                .into(),
+                .boxed(),
         );
         let cancel = self.modal_nav_slot_default(
             RowAction::activate(Message::Vault(VaultMessage::CancelLockVaultConfirm)),
@@ -1207,9 +1202,9 @@ impl Oryxis {
                 Space::new().height(14),
                 crate::widgets::dir_row(vec![
                     cancel,
-                    Space::new().width(8).into(),
+                    Space::new().width(8).boxed(),
                     sleep,
-                    Space::new().width(8).into(),
+                    Space::new().width(8).boxed(),
                     lock,
                 ]),
             ]
@@ -1223,7 +1218,7 @@ impl Oryxis {
             border: Border { radius: Radius::from(14.0), color: c.border, width: 1.0 },
             ..Default::default()
         });
-        dialog.into()
+        dialog.boxed()
     }
 
     /// Content for the "kill the process on this port" confirmation
@@ -1309,17 +1304,17 @@ impl Oryxis {
         // No PID means an unescalated run has nothing to signal; say
         // so before the user commits, not after it fails.
         if pending.pid.is_none() {
-            body = body.push(Space::new().height(8)).push(
+            body = body.push(Space::new().height(8).boxed()).push(
                 text(crate::i18n::t("monitor_kill_unknown_pid"))
                     .size(11)
                     .color(c.text_muted)
                     .width(Length::Fill)
-                    .align_x(iced::alignment::Horizontal::Center),
+                    .align_x(iced::alignment::Horizontal::Center).boxed(),
             );
         }
 
         if let KillPhase::Failed(outcome) = &pending.phase {
-            body = body.push(Space::new().height(12)).push(
+            body = body.push(Space::new().height(12).boxed()).push(
                 container(
                     text(outcome.message())
                         .size(12)
@@ -1337,7 +1332,7 @@ impl Oryxis {
                         width: 1.0,
                     },
                     ..Default::default()
-                }),
+                }).boxed(),
             );
         }
 
@@ -1353,14 +1348,14 @@ impl Oryxis {
                 c.text_muted,
             ),
         );
-        let mut actions = vec![cancel, Space::new().width(8).into()];
+        let mut actions = vec![cancel, Space::new().width(8).boxed()];
         if running {
             // Nothing to press while a run is on the wire: a second
             // confirm would queue a second signal behind the first.
             actions.push(
                 container(text(crate::i18n::t("monitor_kill_running")).size(12).color(c.text_muted))
                     .padding(Padding { top: 8.0, right: 4.0, bottom: 8.0, left: 4.0 })
-                    .into(),
+                    .boxed(),
             );
         } else {
             // A failure escalation can fix replaces the confirm button
@@ -1405,7 +1400,7 @@ impl Oryxis {
             border: Border { radius: Radius::from(14.0), color: c.border, width: 1.0 },
             ..Default::default()
         });
-        dialog.into()
+        dialog.boxed()
     }
 }
 
@@ -1414,15 +1409,15 @@ impl Oryxis {
 /// long hostname can't wrap the tight row.
 fn lock_impact_row(icon: iced::widget::Text<'static>, label: String) -> Element<'static, Message> {
     dir_row(vec![
-        icon.size(12).color(OryxisColors::t().text_muted).into(),
-        Space::new().width(8).into(),
+        icon.size(12).color(OryxisColors::t().text_muted).boxed(),
+        Space::new().width(8).boxed(),
         text(label)
             .size(12)
             .color(OryxisColors::t().text_secondary)
             .width(Length::Fill)
             .wrapping(iced::widget::text::Wrapping::None)
-            .into(),
+            .boxed(),
     ])
     .align_y(iced::Alignment::Center)
-    .into()
+    .boxed()
 }

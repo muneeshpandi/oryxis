@@ -29,7 +29,7 @@ impl Oryxis {
                 .map(|p| crate::dispatch_sidebar_files::selected_items(&p.files))
                 .unwrap_or_default();
             let n = selection.len();
-            let mut items = column![];
+            let mut items = iced::widget::Column::<iced::Element<'_, _>>::new();
             let copy_label =
                 crate::i18n::t("copy_n_paths").replacen("{n}", &n.to_string(), 1);
             items = items.push(self.menu_item_owned(
@@ -58,7 +58,7 @@ impl Oryxis {
                 Message::SidebarFiles(SidebarFilesMessage::SidebarFilesDeleteSelection(selection)),
                 OryxisColors::t().error,
             ));
-            return items.into();
+            return items.boxed();
         }
         // Directory the "Open SFTP session here" lands on: the
         // folder itself, or a file's containing folder.
@@ -73,7 +73,7 @@ impl Oryxis {
         // dual-pane promote and chmod-properties have no local meaning;
         // files open with the OS instead.
         let local = self.sidebar_files_is_local();
-        let mut items = column![];
+        let mut items = iced::widget::Column::<iced::Element<'_, _>>::new();
         if is_dir {
             items = items.push(self.menu_item(
                 iced_fonts::lucide::folder_open(),
@@ -167,7 +167,7 @@ impl Oryxis {
             Message::SidebarFiles(SidebarFilesMessage::SidebarFilesDelete(path.clone(), is_dir)),
             OryxisColors::t().error,
         ));
-        items.into()
+        items.boxed()
     }
 
     pub(crate) fn build_menu_sidebar_files_background(&self, dir: String) -> Element<'_, Message> {
@@ -208,11 +208,11 @@ impl Oryxis {
             Message::Sftp(SftpMessage::SftpCopyPath(dir)),
             secondary,
         ));
-        items.into()
+        items.boxed()
     }
 
     pub(crate) fn build_menu_tab_actions(&self, idx: usize) -> Element<'_, Message> {
-        iced::widget::Column::with_children(self.tab_actions_menu_items(idx)).into()
+        iced::widget::Column::with_children(self.tab_actions_menu_items(idx)).boxed()
     }
 
     /// How many rows the tab menu has right now, for `overlay_menu_height`.
@@ -521,7 +521,7 @@ impl Oryxis {
         if self.has_other_sftp_tabs(idx) {
             items = items.push(self.menu_item(iced_fonts::lucide::x(), crate::i18n::t("close_other_tabs"), Message::Sftp(SftpMessage::CloseOtherSftpTabs(idx)), OryxisColors::t().text_secondary));
         }
-        items.into()
+        items.boxed()
     }
 
     /// Recent-host rows for the two tab popovers (issue #206), newest
@@ -610,7 +610,7 @@ impl Oryxis {
         MouseArea::new(items)
             .on_enter(Message::Tabs(TabsMessage::SplitMenuEnter))
             .on_exit(Message::Tabs(TabsMessage::SplitMenuLeave))
-            .into()
+            .boxed()
     }
 
     /// Row count of the `+` popover, next to the builder so the height
@@ -646,7 +646,7 @@ impl Oryxis {
         for row in self.recent_host_rows(true) {
             items = items.push(row);
         }
-        items.into()
+        items.boxed()
     }
 
     /// Row count of the strip menu, next to its builder for the reason
@@ -699,8 +699,7 @@ impl Oryxis {
                 "sort_oldest_first",
                 current == ListSort::OldestFirst,
             ),
-        ]
-        .into()
+        ].boxed()
     }
 
     pub(crate) fn build_menu_cloud_discover_group_picker(
@@ -786,13 +785,13 @@ impl Oryxis {
                 bottom: 12.0,
                 left: 12.0,
             })
-            .into()
+            .boxed()
         } else {
             // Plain label rows: dropped the leading folder
             // glyph since every entry is a folder by
             // definition (the picker only lists groups) and
             // the icon was just visual noise.
-            let mut items = column![].spacing(2);
+            let mut items = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(2);
             for label in all_groups {
                 let display = label.clone();
                 let row = iced::widget::button(
@@ -835,16 +834,16 @@ impl Oryxis {
                     ),
                     4.0,
                     false,
-                    row.into(),
+                    row.boxed(),
                 ));
             }
             iced::widget::scrollable(items)
                 .height(Length::Fixed(220.0))
-                .into()
+                .boxed()
         };
         column![search_input, Space::new().height(8), list_el]
             .width(Length::Fixed(menu_content_width))
-            .into()
+            .boxed()
     }
 
     pub(crate) fn build_menu_group_picker(
@@ -941,9 +940,9 @@ impl Oryxis {
                 bottom: 12.0,
                 left: 12.0,
             })
-            .into()
+            .boxed()
         } else {
-            let mut items = column![].spacing(2);
+            let mut items = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(2);
             for label in all_groups {
                 let display = label.clone();
                 // The move target's "Top level" row is the one label
@@ -994,16 +993,16 @@ impl Oryxis {
                     ),
                     4.0,
                     false,
-                    row.into(),
+                    row.boxed(),
                 ));
             }
             iced::widget::scrollable(items)
                 .height(Length::Fixed(220.0))
-                .into()
+                .boxed()
         };
         column![search_input, Space::new().height(8), list_el]
             .width(Length::Fixed(menu_content_width))
-            .into()
+            .boxed()
     }
 
     pub(crate) fn build_menu_toolbar_overflow(&self) -> Element<'_, Message> {
@@ -1012,7 +1011,7 @@ impl Oryxis {
         // the search icon + this one button.
         use crate::state::{SortMenuKind, View};
         let secondary = OryxisColors::t().text_secondary;
-        let mut col = column![].spacing(2);
+        let mut col = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(2);
         match self.cur_view() {
             View::Dashboard => {
                 // Primary add action mirrors the toolbar's
@@ -1226,7 +1225,7 @@ impl Oryxis {
             }
             _ => {}
         }
-        col.into()
+        col.boxed()
     }
 
     pub(crate) fn build_menu_terminal_context(
@@ -1234,7 +1233,7 @@ impl Oryxis {
         pane_id: uuid::Uuid,
         selection: &Option<String>,
     ) -> Element<'_, Message> {
-        let mut items = column![];
+        let mut items = iced::widget::Column::<iced::Element<'_, _>>::new();
         // "Copy" acts on the selection captured at right-click
         // (the app can't read the widget's live selection); shown
         // only when something was selected.
@@ -1360,7 +1359,7 @@ impl Oryxis {
                 OryxisColors::t().text_secondary,
             ));
         }
-        items.into()
+        items.boxed()
     }
 
     /// Row count of the pane context menu, for the popover's height.
@@ -1406,7 +1405,7 @@ impl Oryxis {
         &self,
         selection: &Option<String>,
     ) -> Element<'_, Message> {
-        let mut items = column![];
+        let mut items = iced::widget::Column::<iced::Element<'_, _>>::new();
         if let Some(text) = selection {
             items = items.push(self.menu_item(
                 iced_fonts::lucide::copy(),
@@ -1421,7 +1420,7 @@ impl Oryxis {
             Message::History(HistoryMessage::SessionViewerCopyAll),
             OryxisColors::t().text_secondary,
         ));
-        items.into()
+        items.boxed()
     }
 
     /// Right-click menu on a Monitor-tab listening-port row (issue #96).
@@ -1436,7 +1435,7 @@ impl Oryxis {
     ) -> Element<'_, Message> {
         use crate::monitor::kill::KillSignal;
         let c = OryxisColors::t();
-        let mut items = column![];
+        let mut items = iced::widget::Column::<iced::Element<'_, _>>::new();
         if port.proto == "tcp"
             && let Some(conn_id) = self.monitor_pane_connection()
         {
@@ -1465,7 +1464,7 @@ impl Oryxis {
                 Message::Monitor(MonitorMessage::AskKillPort(row, KillSignal::Force)),
                 c.error,
             ));
-        items.into()
+        items.boxed()
     }
 }
 
@@ -1499,7 +1498,7 @@ fn menu_divider() -> Element<'static, Message> {
             }),
     )
     .padding(Padding { top: 4.0, right: 4.0, bottom: 4.0, left: 4.0 })
-    .into()
+    .boxed()
 }
 
 /// Cut a label to [`RECENT_LABEL_MAX`] characters, marking the cut.

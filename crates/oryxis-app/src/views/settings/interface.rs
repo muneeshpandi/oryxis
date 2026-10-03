@@ -17,14 +17,14 @@ impl Oryxis {
         if self.tab_number_style() == TabNumberStyle::Off
             || !self.prefs.tab_slot_includes_home
         {
-            return Space::new().into();
+            return Space::new().boxed();
         }
         crate::widgets::dir_row(vec![
             text(crate::i18n::t("tab_number_slot_offset"))
                 .size(11)
                 .color(OryxisColors::t().warning)
                 .width(Length::Fill)
-                .into(),
+                .boxed(),
             self.settings_nav_slot_labeled(
                 crate::i18n::t("tab_number_slot_align"),
                 crate::keynav::RowAction::activate(Message::Settings(
@@ -39,7 +39,7 @@ impl Oryxis {
             ),
         ])
         .align_y(iced::Alignment::Center)
-        .into()
+        .boxed()
     }
 
     pub(crate) fn view_settings_interface(&self) -> Element<'_, Message> {
@@ -444,19 +444,19 @@ impl Oryxis {
         ];
         if matches!(self.prefs.tab_bar_position.as_str(), "left" | "right") {
             top_bar_col = top_bar_col
-                .push(Space::new().height(8))
+                .push(Space::new().height(8).boxed())
                 .push(self.nav_toggle_row(
                     crate::i18n::t("pinned_tabs_top_bar"),
                     self.prefs.pinned_tabs_top_bar,
                     Message::Settings(SettingsMessage::SettingTogglePinnedTabsTopBar),
                 ))
-                .push(Space::new().height(4))
+                .push(Space::new().height(4).boxed())
                 .push(
                     text(crate::i18n::t("pinned_tabs_top_bar_desc"))
                         .size(11)
-                        .color(OryxisColors::t().text_muted),
+                        .color(OryxisColors::t().text_muted).boxed(),
                 )
-                .push(Space::new().height(8));
+                .push(Space::new().height(8).boxed());
             // Not offered where it cannot apply: on macOS a right dock
             // keeps the top bar for the traffic lights (`top_bar_hidden`).
             if !(crate::views::chrome::NATIVE_FRAME && self.prefs.tab_bar_position == "right") {
@@ -466,13 +466,13 @@ impl Oryxis {
                         self.prefs.side_hide_top_bar,
                         Message::Settings(SettingsMessage::SettingToggleSideHideTopBar),
                     ))
-                    .push(Space::new().height(4))
+                    .push(Space::new().height(4).boxed())
                     .push(
                         text(crate::i18n::t("side_hide_top_bar_desc"))
                             .size(11)
-                            .color(OryxisColors::t().text_muted),
+                            .color(OryxisColors::t().text_muted).boxed(),
                     )
-                    .push(Space::new().height(8));
+                    .push(Space::new().height(8).boxed());
             }
             top_bar_col = top_bar_col
                 .push(self.nav_toggle_row(
@@ -480,11 +480,11 @@ impl Oryxis {
                     self.prefs.side_full_height,
                     Message::Settings(SettingsMessage::SettingToggleSideFullHeight),
                 ))
-                .push(Space::new().height(4))
+                .push(Space::new().height(4).boxed())
                 .push(
                     text(crate::i18n::t("side_full_height_desc"))
                         .size(11)
-                        .color(OryxisColors::t().text_muted),
+                        .color(OryxisColors::t().text_muted).boxed(),
                 );
         }
         let top_bar_section = panel_section(top_bar_col.push(column![
@@ -500,7 +500,7 @@ impl Oryxis {
                 self.prefs.tab_accent_wash,
                 Message::Settings(SettingsMessage::SettingToggleTabAccentWash),
             ),
-        ]));
+        ].boxed()));
 
         // Status bar card: its own group with a live preview below (the
         // toggles used to hide inside the Top bar card, where "Show
@@ -547,7 +547,7 @@ impl Oryxis {
                 ),
             ] {
                 status_bar_col = status_bar_col
-                    .push(Space::new().height(8))
+                    .push(Space::new().height(8).boxed())
                     .push(self.nav_toggle_row(
                         crate::i18n::t(label),
                         on,
@@ -582,10 +582,9 @@ impl Oryxis {
                     ))
                     .size(11)
                     .color(OryxisColors::t().text_secondary),
-                ]
-                .into()
+                ].boxed()
             } else {
-                Space::new().into()
+                Space::new().boxed()
             };
         let rendering_section = panel_section(column![
             self.nav_pick_row(
@@ -731,16 +730,16 @@ impl Oryxis {
         // hints in one card, plus the system tray toggles on Windows
         // (a no-op elsewhere, so hidden on macOS/Linux).
         content_col = content_col
-            .push(Space::new().height(10))
+            .push(Space::new().height(10).boxed())
             .push(gh(crate::i18n::t("interface_group_advanced")))
-            .push(Space::new().height(8))
+            .push(Space::new().height(8).boxed())
             .push(rendering_section);
         if let Some(tray) = tray_section {
             content_col = content_col
-                .push(Space::new().height(12))
+                .push(Space::new().height(12).boxed())
                 .push(tray);
         }
-        content_col = content_col.push(Space::new().height(24));
+        content_col = content_col.push(Space::new().height(24).boxed());
 
         scrollable(
             container(content_col)
@@ -751,7 +750,7 @@ impl Oryxis {
         .id(iced::widget::Id::new("settings-interface-scroll"))
         .on_scroll(|s| Message::Settings(SettingsMessage::SectionScrolled(s.viewport.relative_offset().y)))
         .height(Length::Fill)
-        .into()
+        .boxed()
     }
 
     /// The app-theme gallery: every built-in and custom chrome theme as a
@@ -873,21 +872,21 @@ impl Oryxis {
             if let Some(b) = iter.next() {
                 cells.push(b);
             } else {
-                cells.push(Space::new().width(Length::FillPortion(1)).into());
+                cells.push(Space::new().width(Length::FillPortion(1)).boxed());
             }
-            grid_rows.push(dir_row(cells).spacing(12).into());
+            grid_rows.push(dir_row(cells).spacing(12).boxed());
         }
         let footer: Element<'_, Message> = dir_row(vec![
-            Space::new().width(Length::Fill).into(),
+            Space::new().width(Length::Fill).boxed(),
             crate::widgets::form_cancel_button(Message::Settings(
                 SettingsMessage::CloseUiThemeGallery,
             )),
         ])
         .align_y(iced::Alignment::Center)
-        .into();
-        let mut grid = iced::widget::Column::new().width(Length::Fill);
+        .boxed();
+        let mut grid = iced::widget::Column::<iced::Element<'_, _>>::new().width(Length::Fill);
         for row_el in grid_rows {
-            grid = grid.push(row_el).push(Space::new().height(8));
+            grid = grid.push(row_el).push(Space::new().height(8).boxed());
         }
         let filter_input = self.settings_nav_ring_at(
             filter_idx,
@@ -898,7 +897,7 @@ impl Oryxis {
                 .padding(10)
                 .size(13)
                 .style(crate::widgets::rounded_input_style)
-                .into(),
+                .boxed(),
         );
         let card = container(
             iced::widget::column![
@@ -937,7 +936,7 @@ impl Oryxis {
             },
             ..Default::default()
         });
-        card.into()
+        card.boxed()
     }
 
     /// The single Settings row that stands in for the grid: the app theme
@@ -982,7 +981,7 @@ impl Oryxis {
     /// means anything without a strip to apply to.
     fn restore_tabs_sub_rows(&self) -> Element<'_, Message> {
         if !self.prefs.restore_tabs_on_launch {
-            return Space::new().into();
+            return Space::new().boxed();
         }
         column![
             Space::new().height(8),
@@ -1014,8 +1013,7 @@ impl Oryxis {
             text(crate::i18n::t("restore_last_active_tab_desc"))
                 .size(11)
                 .color(OryxisColors::t().text_muted),
-        ]
-        .into()
+        ].boxed()
     }
 
     /// Width ceiling for the uniform tab mode. Hidden entirely under the
@@ -1023,7 +1021,7 @@ impl Oryxis {
     /// shows no UI at all rather than a dead control.
     fn tab_uniform_size_row(&self) -> Element<'_, Message> {
         if self.prefs.tab_width_mode != "uniform" {
-            return Space::new().into();
+            return Space::new().boxed();
         }
         column![
             Space::new().height(8),
@@ -1046,8 +1044,7 @@ impl Oryxis {
             text(crate::i18n::t("tab_uniform_size_desc"))
                 .size(11)
                 .color(OryxisColors::t().text_muted),
-        ]
-        .into()
+        ].boxed()
     }
 
 }

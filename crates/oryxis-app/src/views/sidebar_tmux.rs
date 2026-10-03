@@ -10,6 +10,7 @@
 //! `Stack` over the row and appears on hover, so it reserves no inline
 //! width and the row content never shifts.
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::button::Status as BtnStatus;
 use iced::widget::{button, column, container, text, MouseArea, Space, Stack};
@@ -38,7 +39,7 @@ impl Oryxis {
         let entry = self.tmux.get(&pane_id);
         let status = entry.map(|e| &e.status).unwrap_or(&TmuxStatus::Idle);
 
-        let mut body = column![]
+        let mut body = iced::widget::Column::<iced::Element<'_, _>>::new()
             .spacing(8)
             .padding(Padding { top: 10.0, right: 10.0, bottom: 12.0, left: 10.0 })
             .width(Length::Fill);
@@ -63,7 +64,7 @@ impl Oryxis {
                 // listing lands on its own (a refresh, an attach elsewhere)
                 // and a count change used to shift the input and drop the
                 // name being typed into it.
-                let mut list = column![].spacing(8).width(Length::Fill);
+                let mut list = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(8).width(Length::Fill);
                 if sessions.is_empty() {
                     list = list.push(hint(t("tmux_no_sessions")));
                 }
@@ -75,7 +76,7 @@ impl Oryxis {
                         self.tmux_session_row(tab_idx, pane_id, idx, session)
                     });
                 }
-                body = body.push(list).push(self.tmux_new_session_row(pane_id));
+                body = body.push(list.boxed()).push(self.tmux_new_session_row(pane_id));
             }
         }
 
@@ -84,14 +85,14 @@ impl Oryxis {
         if let Some(err) = entry.and_then(|e| e.error.as_deref()) {
             body = body.push(
                 container(text(err.to_string()).size(11).color(OryxisColors::t().error))
-                    .padding(Padding { top: 2.0, right: 4.0, bottom: 0.0, left: 4.0 }),
+                    .padding(Padding { top: 2.0, right: 4.0, bottom: 0.0, left: 4.0 }).boxed(),
             );
         }
 
         iced::widget::scrollable(body)
             .id(crate::keynav::sidebar_scroll_id(crate::state::TerminalSidebarTab::Tmux))
             .height(Length::Fill)
-            .into()
+            .boxed()
     }
 
     /// Title line + Refresh. Refresh is the first navigable row of the
@@ -106,15 +107,15 @@ impl Oryxis {
             .on_press(Message::Tmux(TmuxMessage::Refresh(pane_id)))
             .padding(Padding { top: 4.0, right: 6.0, bottom: 4.0, left: 6.0 })
             .style(icon_btn_style)
-            .into(),
+            .boxed(),
             t("tmux_refresh"),
         );
         dir_row(vec![
             text(t("tmux_sessions"))
                 .size(11)
                 .color(OryxisColors::t().text_secondary)
-                .into(),
-            Space::new().width(Length::Fill).into(),
+                .boxed(),
+            Space::new().width(Length::Fill).boxed(),
             self.sidebar_nav_slot(
                 crate::keynav::SidebarRow::button(Message::Tmux(TmuxMessage::Refresh(pane_id))),
                 TerminalSidebarTab::Tmux,
@@ -124,7 +125,7 @@ impl Oryxis {
         ])
         .align_y(iced::Alignment::Center)
         .width(Length::Fill)
-        .into()
+        .boxed()
     }
 
     /// One session row: the whole row attaches, the floating trash asks
@@ -164,18 +165,18 @@ impl Oryxis {
             text(t("tmux_windows").replace("{n}", &session.windows.to_string()))
                 .size(10)
                 .color(muted)
-                .into(),
+                .boxed(),
         ];
         if current {
-            meta.push(Space::new().width(6).into());
-            meta.push(text(t("tmux_attached_here")).size(10).color(accent).into());
+            meta.push(Space::new().width(6).boxed());
+            meta.push(text(t("tmux_attached_here")).size(10).color(accent).boxed());
         } else if session.is_attached() {
-            meta.push(Space::new().width(6).into());
-            meta.push(text(t("tmux_attached")).size(10).color(accent).into());
+            meta.push(Space::new().width(6).boxed());
+            meta.push(text(t("tmux_attached")).size(10).color(accent).boxed());
         }
         if let Some(group) = &session.group {
-            meta.push(Space::new().width(6).into());
-            meta.push(text(format!("({group})")).size(10).color(muted).into());
+            meta.push(Space::new().width(6).boxed());
+            meta.push(text(format!("({group})")).size(10).color(muted).boxed());
         }
         // Work still running inside the session (issue #159 follow-up):
         // the pane commands that are not a shell at its prompt, so a
@@ -187,12 +188,12 @@ impl Oryxis {
             } else {
                 first.clone()
             };
-            meta.push(Space::new().width(6).into());
+            meta.push(Space::new().width(6).boxed());
             meta.push(
                 text(t("tmux_running").replace("{cmd}", &display))
                     .size(10)
                     .color(OryxisColors::t().warning)
-                    .into(),
+                    .boxed(),
             );
         }
 
@@ -213,7 +214,7 @@ impl Oryxis {
 
         // Floating kill, revealed on hover so it reserves no inline
         // width (card-action convention).
-        let mut stack = Stack::new().push(row_body);
+        let mut stack = Stack::<iced::Element<'_, _>>::new().push(row_body.boxed());
         if self.hover.tmux_row == Some(idx) {
             stack = stack.push(
                 container(crate::views::terminal::icon_tooltip(
@@ -228,7 +229,7 @@ impl Oryxis {
                     )))
                     .padding(Padding { top: 4.0, right: 6.0, bottom: 4.0, left: 6.0 })
                     .style(icon_btn_style)
-                    .into(),
+                    .boxed(),
                     t("tmux_kill"),
                 ))
                 .width(Length::Fill)
@@ -239,7 +240,7 @@ impl Oryxis {
                     iced::alignment::Horizontal::Right
                 })
                 .align_y(iced::alignment::Vertical::Center)
-                .padding(Padding { top: 0.0, right: 4.0, bottom: 0.0, left: 4.0 }),
+                .padding(Padding { top: 0.0, right: 4.0, bottom: 0.0, left: 4.0 }).boxed(),
             );
         }
 
@@ -256,13 +257,13 @@ impl Oryxis {
                 ))),
             TerminalSidebarTab::Tmux,
             6.0,
-            stack.into(),
+            stack.boxed(),
         );
 
         MouseArea::new(navigable)
             .on_enter(Message::Tmux(TmuxMessage::RowHovered(idx)))
             .on_exit(Message::Tmux(TmuxMessage::RowExit(idx)))
-            .into()
+            .boxed()
     }
 
     /// The kill confirmation, in place of the row it replaces: a kill is
@@ -290,7 +291,7 @@ impl Oryxis {
                             OryxisColors::t().error,
                         ),
                     ),
-                    Space::new().width(6).into(),
+                    Space::new().width(6).boxed(),
                     self.sidebar_nav_slot(
                         crate::keynav::SidebarRow::button(cancel.clone()),
                         TerminalSidebarTab::Tmux,
@@ -317,7 +318,7 @@ impl Oryxis {
             },
             ..Default::default()
         })
-        .into()
+        .boxed()
     }
 
     /// Name field + create. An empty name is valid: tmux numbers the
@@ -349,9 +350,9 @@ impl Oryxis {
                 crate::keynav::SidebarRow::input(input_id),
                 TerminalSidebarTab::Tmux,
                 6.0,
-                container(field).width(Length::Fill).into(),
+                container(field).width(Length::Fill).boxed(),
             ),
-            Space::new().width(6).into(),
+            Space::new().width(6).boxed(),
             self.sidebar_nav_slot(
                 crate::keynav::SidebarRow::button(create.clone()),
                 TerminalSidebarTab::Tmux,
@@ -365,14 +366,14 @@ impl Oryxis {
                     .on_press(create)
                     .padding(Padding { top: 5.0, right: 7.0, bottom: 5.0, left: 7.0 })
                     .style(icon_btn_style)
-                    .into(),
+                    .boxed(),
                     t("tmux_new_session"),
                 ),
             ),
         ])
         .align_y(iced::Alignment::Center)
         .width(Length::Fill)
-        .into()
+        .boxed()
     }
 }
 
@@ -421,7 +422,7 @@ fn hint(label: &str) -> Element<'_, Message> {
     container(text(label.to_string()).size(11).color(OryxisColors::t().text_muted))
         .padding(Padding { top: 10.0, right: 4.0, bottom: 4.0, left: 4.0 })
         .width(Length::Fill)
-        .into()
+        .boxed()
 }
 
 fn placeholder(label: &str) -> Element<'_, Message> {
@@ -429,5 +430,5 @@ fn placeholder(label: &str) -> Element<'_, Message> {
         .center_x(Length::Fill)
         .padding(Padding { top: 40.0, right: 12.0, bottom: 0.0, left: 12.0 })
         .width(Length::Fill)
-        .into()
+        .boxed()
 }

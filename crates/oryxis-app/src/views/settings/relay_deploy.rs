@@ -21,10 +21,10 @@ const SCRIPT_HEIGHT: f32 = 320.0;
 impl Oryxis {
     /// The deploy section of the relay wizard card. Rows record on the
     /// Settings ring in visual order, like the wizard rows above them.
-    pub(super) fn sync_relay_deploy_block(&self) -> iced::widget::Column<'_, Message> {
+    pub(super) fn sync_relay_deploy_block(&self) -> iced::widget::Column<iced::Element<'_, Message>> {
         let d = &self.sync.relay_deploy;
         let c = OryxisColors::t();
-        let mut col: iced::widget::Column<'_, Message> =
+        let mut col: iced::widget::Column<iced::Element<'_, Message>> =
             column![self.settings_nav_slot_labeled(
                 t("relay_deploy_button"),
                 crate::keynav::RowAction::activate(Message::Sync(SyncMessage::DeployToggle)),
@@ -39,9 +39,9 @@ impl Oryxis {
             return col;
         }
         col = col
-            .push(Space::new().height(8))
-            .push(text(t("relay_deploy_intro")).size(11).color(c.text_muted))
-            .push(Space::new().height(10));
+            .push(Space::new().height(8).boxed())
+            .push(text(t("relay_deploy_intro")).size(11).color(c.text_muted).boxed())
+            .push(Space::new().height(10).boxed());
 
         // Host picker trigger (the SFTP sync card's shape).
         let selected_conn = d
@@ -50,21 +50,21 @@ impl Oryxis {
         let trigger_inner: Element<'_, Message> = if let Some(conn) = selected_conn {
             dir_row(vec![
                 super::host_picker::host_badge(conn, &self.prefs.default_host_icon, 22.0),
-                Space::new().width(10).into(),
-                text(conn.label.clone()).size(13).color(c.text_primary).into(),
-                Space::new().width(Length::Fill).into(),
-                text("\u{25BE}").size(12).color(c.text_muted).into(),
+                Space::new().width(10).boxed(),
+                text(conn.label.clone()).size(13).color(c.text_primary).boxed(),
+                Space::new().width(Length::Fill).boxed(),
+                text("\u{25BE}").size(12).color(c.text_muted).boxed(),
             ])
             .align_y(iced::Alignment::Center)
-            .into()
+            .boxed()
         } else {
             dir_row(vec![
-                text(t("select_a_host")).size(13).color(c.text_muted).into(),
-                Space::new().width(Length::Fill).into(),
-                text("\u{25BE}").size(12).color(c.text_muted).into(),
+                text(t("select_a_host")).size(13).color(c.text_muted).boxed(),
+                Space::new().width(Length::Fill).boxed(),
+                text("\u{25BE}").size(12).color(c.text_muted).boxed(),
             ])
             .align_y(iced::Alignment::Center)
-            .into()
+            .boxed()
         };
         // Everything the plan is built from is frozen while a probe or
         // run is in flight: disabled here and refused in the handlers.
@@ -91,7 +91,7 @@ impl Oryxis {
                     ..Default::default()
                 }
             })
-            .into();
+            .boxed();
         let host_pick = self.settings_nav_slot_labeled(
             t("host"),
             if editable {
@@ -102,7 +102,7 @@ impl Oryxis {
             8.0,
             host_btn,
         );
-        col = col.push(panel_field(t("host"), host_pick)).push(Space::new().height(8));
+        col = col.push(panel_field(t("host"), host_pick)).push(Space::new().height(8).boxed());
 
         // Relay port.
         let port_field: Element<'_, Message> = text_input("8080", &d.port)
@@ -114,7 +114,7 @@ impl Oryxis {
             .width(120)
             .style(crate::widgets::rounded_input_style)
             .align_x(dir_align_x())
-            .into();
+            .boxed();
         let port_input = self.settings_nav_slot_labeled(
             t("relay_deploy_port"),
             if editable {
@@ -127,7 +127,7 @@ impl Oryxis {
         );
         col = col
             .push(panel_field(t("relay_deploy_port"), port_input))
-            .push(Space::new().height(8));
+            .push(Space::new().height(8).boxed());
 
         // TLS via Caddy on the host.
         col = col
@@ -148,7 +148,7 @@ impl Oryxis {
                     crate::widgets::toggle_row(t("relay_deploy_caddy"), d.use_caddy, Message::NoOp),
                 )
             })
-            .push(Space::new().height(4))
+            .push(Space::new().height(4).boxed())
             .push(
                 text(if d.use_caddy {
                     t("relay_deploy_caddy_hint")
@@ -156,9 +156,9 @@ impl Oryxis {
                     t("relay_deploy_http_warning")
                 })
                 .size(11)
-                .color(if d.use_caddy { c.text_muted } else { c.warning }),
+                .color(if d.use_caddy { c.text_muted } else { c.warning }).boxed(),
             )
-            .push(Space::new().height(12));
+            .push(Space::new().height(12).boxed());
 
         // Actions: Check host, then Review & run or Copy script once a
         // plan exists. While busy they are disabled and their slots are
@@ -173,7 +173,7 @@ impl Oryxis {
         );
         let mut actions: Vec<Element<'_, Message>> = vec![probe_btn];
         if let (Some(plan), Some(probe)) = (&d.plan, &d.probe) {
-            actions.push(Space::new().width(8).into());
+            actions.push(Space::new().width(8).boxed());
             if probe.privilege != Privilege::None {
                 let m = (!d.busy).then_some(Message::Sync(SyncMessage::DeployReview));
                 actions.push(self.settings_nav_slot(
@@ -181,7 +181,7 @@ impl Oryxis {
                     6.0,
                     styled_button_opt(t("relay_deploy_review"), m, c.accent),
                 ));
-                actions.push(Space::new().width(8).into());
+                actions.push(Space::new().width(8).boxed());
             }
             let copy = (!d.busy).then(|| Message::CopyToClipboard(plan.consent_script()));
             actions.push(self.settings_nav_slot(
@@ -190,14 +190,14 @@ impl Oryxis {
                 styled_button_opt(t("relay_deploy_copy_script"), copy, c.button_bg),
             ));
         }
-        col = col.push(dir_row(actions).align_y(iced::Alignment::Center));
+        col = col.push(dir_row(actions).align_y(iced::Alignment::Center).boxed());
 
         // Progress line while a probe or run is in flight.
         if let (true, Some(step)) = (d.busy, d.step) {
-            col = col.push(Space::new().height(8)).push(
+            col = col.push(Space::new().height(8).boxed()).push(
                 text(format!("{}\u{2026}", t(step.label_key())))
                     .size(11)
-                    .color(c.text_muted),
+                    .color(c.text_muted).boxed(),
             );
         }
 
@@ -207,11 +207,11 @@ impl Oryxis {
                 Ok(url) => (t("relay_deploy_done").replace("{url}", url), c.success),
                 Err(e) => (e.clone(), c.error),
             };
-            col = col.push(Space::new().height(8)).push(text(txt).size(11).color(color));
+            col = col.push(Space::new().height(8).boxed()).push(text(txt).size(11).color(color).boxed());
             if let Some(hint) = &d.result_hint {
                 col = col
-                    .push(Space::new().height(2))
-                    .push(text(hint.clone()).size(11).color(c.text_muted));
+                    .push(Space::new().height(2).boxed())
+                    .push(text(hint.clone()).size(11).color(c.text_muted).boxed());
             }
         }
 
@@ -226,7 +226,7 @@ impl Oryxis {
                         .size(10)
                         .font(iced::Font::MONOSPACE)
                         .color(if l.starts_with('\u{2717}') { c.error } else { c.text_secondary })
-                        .into()
+                        .boxed()
                 })
                 .collect();
             let log_pane = container(
@@ -247,21 +247,21 @@ impl Oryxis {
             });
             let copy = Message::CopyToClipboard(d.log.join("\n"));
             col = col
-                .push(Space::new().height(10))
+                .push(Space::new().height(10).boxed())
                 .push(
                     dir_row(vec![
-                        text(t("relay_deploy_log")).size(12).color(c.text_secondary).into(),
-                        Space::new().width(Length::Fill).into(),
+                        text(t("relay_deploy_log")).size(12).color(c.text_secondary).boxed(),
+                        Space::new().width(Length::Fill).boxed(),
                         self.settings_nav_slot(
                             crate::keynav::RowAction::activate(copy.clone()),
                             6.0,
                             styled_button(t("terminal_copy"), copy, c.button_bg),
                         ),
                     ])
-                    .align_y(iced::Alignment::Center),
+                    .align_y(iced::Alignment::Center).boxed(),
                 )
-                .push(Space::new().height(4))
-                .push(log_pane);
+                .push(Space::new().height(4).boxed())
+                .push(log_pane.boxed());
         }
         col
     }
@@ -295,7 +295,7 @@ impl Oryxis {
                 border: Border { radius: Radius::from(12.0), color: OryxisColors::t().border, width: 1.0 },
                 ..Default::default()
             })
-            .into();
+            .boxed();
         };
 
         let how = match plan.privilege {
@@ -383,9 +383,9 @@ impl Oryxis {
                 Space::new().height(16),
                 dir_row(vec![
                     cancel,
-                    Space::new().width(8).into(),
+                    Space::new().width(8).boxed(),
                     copy,
-                    Space::new().width(Length::Fill).into(),
+                    Space::new().width(Length::Fill).boxed(),
                     run,
                 ])
                 .align_y(iced::Alignment::Center),
@@ -399,7 +399,7 @@ impl Oryxis {
             border: Border { radius: Radius::from(12.0), color: OryxisColors::t().border, width: 1.0 },
             ..Default::default()
         });
-        dialog.into()
+        dialog.boxed()
     }
 }
 

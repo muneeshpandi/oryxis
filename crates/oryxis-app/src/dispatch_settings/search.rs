@@ -142,9 +142,9 @@ impl Oryxis {
                 self.settings_scroll.insert(self.settings_section, offset);
             }
             SettingsMessage::SectionScrollTo(id, y) => {
-                return Ok(iced::widget::operation::snap_to(
+                return Ok(iced::widget::operation::scrollable::snap_to(
                     id,
-                    iced::widget::operation::RelativeOffset { x: None, y: Some(y) },
+                    iced::widget::operation::scrollable::RelativeOffset { x: None, y: Some(y) },
                     iced::widget::operation::Animation::Instant,
                 ));
             }

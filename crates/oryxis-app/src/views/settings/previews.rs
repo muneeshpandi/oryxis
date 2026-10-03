@@ -47,11 +47,11 @@ impl Oryxis {
                         border: Border { radius: Radius::from(3.0), ..Default::default() },
                         ..Default::default()
                     })
-                    .into(),
+                    .boxed(),
             );
-            active_row.push(Space::new().width(6).into());
+            active_row.push(Space::new().width(6).boxed());
         }
-        active_row.push(text("production-web").size(12).color(label_color).into());
+        active_row.push(text("production-web").size(12).color(label_color).boxed());
         let active_tab = container(
             dir_row(active_row).align_y(iced::Alignment::Center),
         )
@@ -91,9 +91,9 @@ impl Oryxis {
         };
         let strip = container(
             dir_row(vec![
-                active_tab.into(),
-                Space::new().width(4).into(),
-                idle_tab.into(),
+                active_tab.boxed(),
+                Space::new().width(4).boxed(),
+                idle_tab.boxed(),
             ])
             .align_y(iced::Alignment::Center),
         )
@@ -103,7 +103,7 @@ impl Oryxis {
             background: Some(bar_bg),
             ..Default::default()
         });
-        column![strip, hairline].width(Length::Fill).into()
+        column![strip, hairline].width(Length::Fill).boxed()
     }
 
     /// Live preview of the status bar under the current settings, with
@@ -120,15 +120,15 @@ impl Oryxis {
             });
         let vital = |label: String, value: &'static str| -> Element<'static, Message> {
             dir_row(vec![
-                text(label).size(11).color(OryxisColors::t().text_muted).into(),
-                Space::new().width(4).into(),
+                text(label).size(11).color(OryxisColors::t().text_muted).boxed(),
+                Space::new().width(4).boxed(),
                 text(value)
                     .size(11)
                     .color(OryxisColors::t().text_secondary)
-                    .into(),
+                    .boxed(),
             ])
             .align_y(iced::Alignment::Center)
-            .into()
+            .boxed()
         };
         // Same spacer placement as the real bar: `status_bar_align_left`
         // parks the content on the PHYSICAL left edge (not flipped by
@@ -137,7 +137,7 @@ impl Oryxis {
         let spacer_leads = align_left && crate::i18n::is_rtl_layout();
         let mut items: Vec<Element<'_, Message>> = Vec::new();
         if spacer_leads {
-            items.push(Space::new().width(Length::Fill).into());
+            items.push(Space::new().width(Length::Fill).boxed());
         }
         if self.prefs.status_show_connection {
             items.push(
@@ -147,45 +147,45 @@ impl Oryxis {
                 ))
                 .size(12)
                 .color(OryxisColors::t().success)
-                .into(),
+                .boxed(),
             );
             if align_left {
-                items.push(Space::new().width(16).into());
+                items.push(Space::new().width(16).boxed());
             }
         }
         if !align_left {
-            items.push(Space::new().width(Length::Fill).into());
+            items.push(Space::new().width(Length::Fill).boxed());
         }
         if self.prefs.status_show_latency {
             items.push(vital(crate::i18n::t("status_latency").into(), "23 ms"));
-            items.push(Space::new().width(12).into());
+            items.push(Space::new().width(12).boxed());
         }
         if self.prefs.status_show_dimensions {
             items.push(vital(crate::i18n::t("status_dimensions").into(), "120×32"));
-            items.push(Space::new().width(12).into());
+            items.push(Space::new().width(12).boxed());
         }
         if self.prefs.status_show_cwd {
             items.push(vital(crate::i18n::t("status_cwd").into(), "~/projects/api"));
-            items.push(Space::new().width(12).into());
+            items.push(Space::new().width(12).boxed());
         }
         if self.prefs.monitor_status_bar {
             items.push(vital(crate::i18n::t("monitor_cpu").into(), "12%"));
-            items.push(Space::new().width(12).into());
+            items.push(Space::new().width(12).boxed());
             items.push(vital(crate::i18n::t("monitor_mem").into(), "38%"));
-            items.push(Space::new().width(12).into());
+            items.push(Space::new().width(12).boxed());
             items.push(vital(crate::i18n::t("monitor_net").into(), "↓1.2M/s ↑340K/s"));
-            items.push(Space::new().width(12).into());
+            items.push(Space::new().width(12).boxed());
         }
         if self.prefs.status_show_version {
             items.push(
                 text(concat!("Oryxis v", env!("CARGO_PKG_VERSION")))
                     .size(12)
                     .color(OryxisColors::t().text_muted)
-                    .into(),
+                    .boxed(),
             );
         }
         if align_left && !spacer_leads {
-            items.push(Space::new().width(Length::Fill).into());
+            items.push(Space::new().width(Length::Fill).boxed());
         }
         let bar = container(
             dir_row(items)
@@ -197,7 +197,7 @@ impl Oryxis {
             background: Some(Background::Color(OryxisColors::t().bg_sidebar)),
             ..Default::default()
         });
-        column![top_hairline, bar].width(Length::Fill).into()
+        column![top_hairline, bar].width(Length::Fill).boxed()
     }
 
     /// Live preview of a dashboard host card under the current dashboard
@@ -212,7 +212,7 @@ impl Oryxis {
             style,
             accent,
             "production-web",
-            Some(iced_fonts::lucide::server().size(16).color(Color::WHITE).into()),
+            Some(iced_fonts::lucide::server().size(16).color(Color::WHITE).boxed()),
             32.0,
         );
         let mut text_col = column![
@@ -220,18 +220,18 @@ impl Oryxis {
         ];
         if self.prefs.show_host_address {
             text_col = text_col
-                .push(Space::new().height(2))
+                .push(Space::new().height(2).boxed())
                 .push(
                     text("deploy@10.0.0.4")
                         .size(11)
-                        .color(OryxisColors::t().text_muted),
+                        .color(OryxisColors::t().text_muted).boxed(),
                 );
         }
         let card = container(
             dir_row(vec![
                 icon,
-                Space::new().width(10).into(),
-                text_col.width(Length::Fill).align_x(dir_align_x()).into(),
+                Space::new().width(10).boxed(),
+                text_col.width(Length::Fill).align_x(dir_align_x()).boxed(),
             ])
             .align_y(iced::Alignment::Center),
         )
@@ -246,7 +246,7 @@ impl Oryxis {
             },
             ..Default::default()
         });
-        let card_el: Element<'_, Message> = card.into();
+        let card_el: Element<'_, Message> = card.boxed();
         if self.prefs.card_accent_glass {
             crate::widgets::card_accent_wash(card_el, accent)
         } else {

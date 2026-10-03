@@ -9,6 +9,7 @@
 //! itself (the boot check) and a stray Enter must neither start a
 //! download nor restart the app.
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::{column, container, scrollable, text, MouseArea, Space};
 use iced::{Background, Border, Element, Length, Padding};
@@ -23,7 +24,7 @@ impl Oryxis {
     pub(crate) fn view_update_modal(&self) -> Element<'_, Message> {
         let info = match &self.pending_update {
             Some(i) => i,
-            None => return Space::new().into(),
+            None => return Space::new().boxed(),
         };
         // The topmost navigable surface of the frame: record from a
         // clean ring, like every other modal view.
@@ -69,7 +70,7 @@ impl Oryxis {
             .collect::<Vec<_>>()
             .join("\n");
         let notes: Element<'_, Message> = if notes_preview.trim().is_empty() {
-            Space::new().into()
+            Space::new().boxed()
         } else {
             container(
                 scrollable(
@@ -87,7 +88,7 @@ impl Oryxis {
                 border: Border { radius: Radius::from(8.0), color: OryxisColors::t().border, width: 1.0 },
                 ..Default::default()
             })
-            .into()
+            .boxed()
         };
 
         let release_link = self.modal_nav_slot(
@@ -100,7 +101,7 @@ impl Oryxis {
                     .color(OryxisColors::t().accent),
             )
             .on_press(Message::Update(UpdateMessage::UpdateOpenRelease))
-            .into(),
+            .boxed(),
         );
 
         // Action row OR progress bar depending on state.
@@ -134,8 +135,7 @@ impl Oryxis {
                     .size(11).color(OryxisColors::t().text_muted),
                 Space::new().height(8),
                 bar,
-            ]
-            .into()
+            ].boxed()
         } else if self
             .update_ready
             .as_ref()
@@ -151,17 +151,17 @@ impl Oryxis {
                     .color(OryxisColors::t().text_primary),
             ];
             if live > 0 {
-                lines = lines.push(Space::new().height(4)).push(
+                lines = lines.push(Space::new().height(4).boxed()).push(
                     text(t("update_ready_sessions").replacen("{n}", &live.to_string(), 1))
                         .size(11)
-                        .color(OryxisColors::t().warning),
+                        .color(OryxisColors::t().warning).boxed(),
                 );
             }
             column![
                 lines,
                 Space::new().height(12),
                 dir_row(vec![
-                    Space::new().width(Length::Fill).into(),
+                    Space::new().width(Length::Fill).boxed(),
                     // Later is the default row: the restart closes every
                     // live session, which is the very thing this state
                     // exists to ask about.
@@ -175,7 +175,7 @@ impl Oryxis {
                             OryxisColors::t().bg_hover,
                         ),
                     ),
-                    Space::new().width(8).into(),
+                    Space::new().width(8).boxed(),
                     self.modal_nav_slot(
                         RowAction::activate(Message::Update(UpdateMessage::UpdateInstallNow)),
                         6.0,
@@ -188,8 +188,7 @@ impl Oryxis {
                     ),
                 ])
                 .align_y(iced::Alignment::Center),
-            ]
-            .into()
+            ].boxed()
         } else {
             dir_row(vec![
                 self.modal_nav_slot(
@@ -202,7 +201,7 @@ impl Oryxis {
                         OryxisColors::t().bg_selected,
                     ),
                 ),
-                Space::new().width(Length::Fill).into(),
+                Space::new().width(Length::Fill).boxed(),
                 // Later is the default row here too: the offer opened
                 // itself, and Enter on a dialog nobody asked for must
                 // commit to nothing.
@@ -216,7 +215,7 @@ impl Oryxis {
                         OryxisColors::t().bg_hover,
                     ),
                 ),
-                Space::new().width(8).into(),
+                Space::new().width(8).boxed(),
                 self.modal_nav_slot(
                     RowAction::activate(Message::Update(UpdateMessage::UpdateStartDownload)),
                     6.0,
@@ -229,7 +228,7 @@ impl Oryxis {
                 ),
             ])
             .align_y(iced::Alignment::Center)
-            .into()
+            .boxed()
         };
 
         let error_line: Element<'_, Message> = if let Some(err) = &self.update_error {
@@ -239,9 +238,9 @@ impl Oryxis {
                     .color(OryxisColors::t().error),
             )
             .padding(Padding { top: 8.0, right: 0.0, bottom: 0.0, left: 0.0 })
-            .into()
+            .boxed()
         } else {
-            Space::new().into()
+            Space::new().boxed()
         };
 
         let body = container(
@@ -272,7 +271,7 @@ impl Oryxis {
 
         // Return the bare card; `widgets::modal_overlay` (the caller) owns
         // centering, the absorbing scrim, and the click-trap.
-        body.into()
+        body.boxed()
     }
 }
 

@@ -140,7 +140,7 @@ impl Oryxis {
                 .map(|d| d.from_id == kind.tab_id())
                 .unwrap_or(false);
             if is_dragging {
-                return Space::new().width(width).height(TAB_HEIGHT).into();
+                return Space::new().width(width).height(TAB_HEIGHT).boxed();
             }
             return panel_tab(
                 kind,
@@ -221,7 +221,7 @@ impl Oryxis {
                 .unwrap_or(false);
             if is_dragging {
                 let gap_w = if ctx.compact_pins && tab.pinned { CHIP_W } else { width };
-                return Space::new().width(gap_w).height(TAB_HEIGHT).into();
+                return Space::new().width(gap_w).height(TAB_HEIGHT).boxed();
             } else if ctx.compact_pins && tab.pinned {
                 return sftp_pinned_chip(idx, is_active, badge_accent, host_accent, ctx.solid_fill, number);
             }
@@ -479,7 +479,7 @@ impl Oryxis {
             Space::new()
                 .width(gap_w)
                 .height(TAB_HEIGHT)
-                .into()
+                .boxed()
         } else if tab.pinned && ctx.compact_pins {
             // Chrome-style: icon-only chip, fixed width, stuck left.
             // A hybrid chip widens to carry the mode glyph (owner QA:

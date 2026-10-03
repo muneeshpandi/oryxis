@@ -1,5 +1,6 @@
 //! UI helper widgets: privacy. Split out of widgets/mod.rs.
 
+use iced::Widget as _;
 use super::*;
 /// Mask a sensitive string for Privacy Mode: every non-whitespace char
 /// becomes a muted block (`192.168.0.4` -> `███████████`, `deploy@web`
@@ -299,7 +300,7 @@ pub(crate) fn privacy_reveal_btn<'a>(revealed: bool) -> Element<'a, Message> {
             }),
         iced::widget::tooltip::Position::Bottom,
     )
-    .into()
+    .boxed()
 }
 
 #[cfg(test)]

@@ -35,7 +35,7 @@ impl Oryxis {
             col = col.push(
                 text(t("login_script_empty"))
                     .size(12)
-                    .color(OryxisColors::t().text_muted),
+                    .color(OryxisColors::t().text_muted).boxed(),
             );
             return panel_section(col);
         }
@@ -55,9 +55,8 @@ impl Oryxis {
                     )
                     .size(11)
                     .color(OryxisColors::t().text_muted),
-                ]
-                .into(),
-                Space::new().width(Length::Fill).into(),
+                ].boxed(),
+                Space::new().width(Length::Fill).boxed(),
                 self.settings_nav_slot_labeled(
                     t("edit"),
                     crate::keynav::RowAction::activate(Message::Settings(
@@ -70,7 +69,7 @@ impl Oryxis {
                         OryxisColors::t().bg_hover,
                     ),
                 ),
-                Space::new().width(8).into(),
+                Space::new().width(8).boxed(),
                 self.settings_nav_slot_labeled(
                     t("delete"),
                     crate::keynav::RowAction::activate(Message::Settings(
@@ -86,16 +85,16 @@ impl Oryxis {
             ])
             .align_y(iced::Alignment::Center);
 
-            col = col.push(header);
+            col = col.push(header.boxed());
 
             if confirming {
-                col = col.push(Space::new().height(8)).push(
+                col = col.push(Space::new().height(8).boxed()).push(
                     dir_row(vec![
                         text(t("login_script_delete_confirm"))
                             .size(11)
                             .color(OryxisColors::t().warning)
-                            .into(),
-                        Space::new().width(Length::Fill).into(),
+                            .boxed(),
+                        Space::new().width(Length::Fill).boxed(),
                         self.settings_nav_slot_labeled(
                             t("delete"),
                             crate::keynav::RowAction::activate(Message::Settings(
@@ -108,7 +107,7 @@ impl Oryxis {
                                 OryxisColors::t().error,
                             ),
                         ),
-                        Space::new().width(8).into(),
+                        Space::new().width(8).boxed(),
                         self.settings_nav_slot_labeled(
                             t("cancel"),
                             crate::keynav::RowAction::activate(Message::Settings(
@@ -122,15 +121,15 @@ impl Oryxis {
                             ),
                         ),
                     ])
-                    .align_y(iced::Alignment::Center),
+                    .align_y(iced::Alignment::Center).boxed(),
                 );
             }
 
             if editing {
-                col = col.push(Space::new().height(10)).push(self.login_script_editor());
+                col = col.push(Space::new().height(10).boxed()).push(self.login_script_editor());
             }
 
-            col = col.push(Space::new().height(14));
+            col = col.push(Space::new().height(14).boxed());
         }
 
         panel_section(col)
@@ -150,7 +149,7 @@ impl Oryxis {
                     .on_input(|v| Message::Settings(SettingsMessage::LoginScriptNameChanged(v)))
                     .padding(10)
                     .style(crate::widgets::rounded_input_style)
-                    .into(),
+                    .boxed(),
             ),
             Space::new().height(12),
             text(t("login_script_steps"))
@@ -161,7 +160,7 @@ impl Oryxis {
 
         for (i, step) in form.steps.iter().enumerate() {
             col = col.push(self.login_script_step_row(i, step));
-            col = col.push(Space::new().height(10));
+            col = col.push(Space::new().height(10).boxed());
         }
 
         let footer = dir_row(vec![
@@ -177,7 +176,7 @@ impl Oryxis {
                     OryxisColors::t().bg_hover,
                 ),
             ),
-            Space::new().width(Length::Fill).into(),
+            Space::new().width(Length::Fill).boxed(),
             self.settings_nav_slot_labeled(
                 t("save"),
                 crate::keynav::RowAction::activate(Message::Settings(
@@ -190,7 +189,7 @@ impl Oryxis {
                     OryxisColors::t().accent,
                 ),
             ),
-            Space::new().width(8).into(),
+            Space::new().width(8).boxed(),
             self.settings_nav_slot_labeled(
                 t("cancel"),
                 crate::keynav::RowAction::activate(Message::Settings(
@@ -210,12 +209,12 @@ impl Oryxis {
             col = col.push(
                 text(err.clone())
                     .size(11)
-                    .color(OryxisColors::t().error),
+                    .color(OryxisColors::t().error).boxed(),
             );
-            col = col.push(Space::new().height(8));
+            col = col.push(Space::new().height(8).boxed());
         }
 
-        container(col.push(footer))
+        container(col.push(footer.boxed()))
             .padding(Padding {
                 top: 12.0,
                 right: 12.0,
@@ -230,7 +229,7 @@ impl Oryxis {
                 },
                 ..Default::default()
             })
-            .into()
+            .boxed()
     }
 
     // `step` shares the element's lifetime: the Text-payload input
@@ -274,7 +273,7 @@ impl Oryxis {
             )
             .on_select(move |v| Message::Settings(SettingsMessage::LoginScriptStepSendKind(i, v)))
             .padding(8)
-            .into(),
+            .boxed(),
         );
 
         let mut rows = column![
@@ -283,8 +282,8 @@ impl Oryxis {
                     .size(11)
                     .color(OryxisColors::t().text_muted)
                     .width(90)
-                    .into(),
-                expect_input.into(),
+                    .boxed(),
+                expect_input.boxed(),
             ])
             .align_y(iced::Alignment::Center)
             .spacing(8),
@@ -294,7 +293,7 @@ impl Oryxis {
                     .size(11)
                     .color(OryxisColors::t().text_muted)
                     .width(90)
-                    .into(),
+                    .boxed(),
                 send_picker,
             ])
             .align_y(iced::Alignment::Center)
@@ -306,9 +305,9 @@ impl Oryxis {
         if let SendPayload::Text(value) = &step.send {
             let id = iced::widget::Id::from(format!("set-login-step-text-{i}"));
             self.settings_nav_record(crate::keynav::RowAction::input(id.clone()));
-            rows = rows.push(Space::new().height(6)).push(
+            rows = rows.push(Space::new().height(6).boxed()).push(
                 dir_row(vec![
-                    Space::new().width(90).into(),
+                    Space::new().width(90).boxed(),
                     text_input(t("login_script_var_ph"), value)
                         .id(id)
                         .on_input(move |v| {
@@ -316,17 +315,17 @@ impl Oryxis {
                         })
                         .padding(8)
                         .style(crate::widgets::rounded_input_style)
-                        .into(),
+                        .boxed(),
                 ])
                 .align_y(iced::Alignment::Center)
-                .spacing(8),
+                .spacing(8).boxed(),
             );
         }
 
         let optional = step.optional;
-        rows = rows.push(Space::new().height(6)).push(
+        rows = rows.push(Space::new().height(6).boxed()).push(
             dir_row(vec![
-                Space::new().width(90).into(),
+                Space::new().width(90).boxed(),
                 self.settings_nav_slot_labeled(
                     t("login_script_step_optional"),
                     crate::keynav::RowAction::activate(Message::Settings(
@@ -345,7 +344,7 @@ impl Oryxis {
                         },
                     ),
                 ),
-                Space::new().width(Length::Fill).into(),
+                Space::new().width(Length::Fill).boxed(),
                 self.settings_nav_slot_labeled(
                     t("delete"),
                     crate::keynav::RowAction::activate(Message::Settings(
@@ -359,10 +358,10 @@ impl Oryxis {
                     ),
                 ),
             ])
-            .align_y(iced::Alignment::Center),
+            .align_y(iced::Alignment::Center).boxed(),
         );
 
-        rows.into()
+        rows.boxed()
     }
 }
 

@@ -74,9 +74,9 @@ impl Oryxis {
     fn panel_nav_scroll(&self, idx: usize) -> Task<Message> {
         let len = self.keynav.panel_items.borrow().len();
         let denom = len.saturating_sub(1).max(1);
-        iced::widget::operation::snap_to(
+        iced::widget::operation::scrollable::snap_to(
             iced::widget::Id::new("side-panel-scroll"),
-            iced::widget::operation::RelativeOffset {
+            iced::widget::operation::scrollable::RelativeOffset {
                 x: None,
                 y: Some(idx as f32 / denom as f32),
             },
@@ -89,9 +89,9 @@ impl Oryxis {
         // scroll input. A zero scroll_by right after materializes the
         // offset into an absolute pixel value, which height changes
         // leave alone.
-        .chain(iced::widget::operation::scroll_by(
+        .chain(iced::widget::operation::scrollable::scroll_by(
             iced::widget::Id::new("side-panel-scroll"),
-            iced::widget::operation::AbsoluteOffset { x: 0.0, y: 0.0 },
+            iced::widget::operation::scrollable::AbsoluteOffset { x: 0.0, y: 0.0 },
             iced::widget::operation::Animation::Instant,
         ))
     }

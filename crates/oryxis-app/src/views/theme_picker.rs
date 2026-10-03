@@ -8,6 +8,7 @@
 //! order, so Tab / arrows walk the whole dialog and Enter picks; the
 //! filter keeps the caret (`modal_surface_has_input`).
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::{column, container, scrollable, text, Space};
 use iced::{Background, Border, Element, Length};
@@ -60,7 +61,7 @@ impl Oryxis {
                 .padding(10)
                 .size(13)
                 .style(crate::widgets::rounded_input_style)
-                .into(),
+                .boxed(),
         );
         let tone_chips: Vec<Element<'_, Message>> = crate::theme_tags::TONE_CHOICES
             .iter()
@@ -199,6 +200,6 @@ impl Oryxis {
 
         // Bare card; `widgets::modal_overlay` (the caller) owns centering,
         // the absorbing scrim, and the click-trap.
-        dialog.into()
+        dialog.boxed()
     }
 }

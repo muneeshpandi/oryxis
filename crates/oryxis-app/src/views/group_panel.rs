@@ -5,6 +5,7 @@
 //! when `group_edit.id` is `None` (opened from the folder kebab with
 //! the parent prefilled).
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::{button, column, container, scrollable, text, text_input, Space};
 use iced::{Background, Border, Color, Element, Length, Padding};
@@ -40,8 +41,8 @@ impl Oryxis {
                 text(crate::i18n::t(header_key))
                     .size(16)
                     .color(OryxisColors::t().text_primary)
-                    .into(),
-                Space::new().width(Length::Fill).into(),
+                    .boxed(),
+                Space::new().width(Length::Fill).boxed(),
                 button(text("\u{00D7}").size(20).color(OryxisColors::t().text_muted))
                     .on_press(Message::Tabs(TabsMessage::CancelGroupEdit))
                     .padding(Padding { top: 4.0, right: 8.0, bottom: 4.0, left: 8.0 })
@@ -50,7 +51,7 @@ impl Oryxis {
                         border: Border::default(),
                         ..Default::default()
                     })
-                    .into(),
+                    .boxed(),
             ])
             .align_y(iced::Alignment::Center),
         )
@@ -94,7 +95,7 @@ impl Oryxis {
                     .padding(10)
                     .style(crate::widgets::rounded_input_style)
                     .align_x(dir_align_x())
-                    .into(),
+                    .boxed(),
             ),
         );
 
@@ -115,7 +116,7 @@ impl Oryxis {
             .padding(10)
             .style(crate::widgets::rounded_input_style)
             .align_x(dir_align_x())
-            .into(),
+            .boxed(),
         );
         let picker_toggle = Message::Navigation(NavigationMessage::ToggleGroupPicker(
             crate::state::GroupPickerTarget::GroupEditParent,
@@ -149,20 +150,20 @@ impl Oryxis {
                     ..Default::default()
                 }
             })
-            .into(),
+            .boxed(),
         );
         let parent_combo: Element<'_, Message> = crate::widgets::bounds_reporter(
             dir_row(vec![
                 container(parent_input)
                     .width(Length::Fill)
                     .height(Length::Fixed(PARENT_COMBO_HEIGHT))
-                    .into(),
-                Space::new().width(6).into(),
+                    .boxed(),
+                Space::new().width(6).boxed(),
                 container(parent_chevron)
                     .height(Length::Fixed(PARENT_COMBO_HEIGHT))
-                    .into(),
+                    .boxed(),
             ])
-            .align_y(iced::Alignment::Center),
+            .align_y(iced::Alignment::Center).boxed(),
             self.group_edit_parent_combo_bounds.clone(),
         );
 
@@ -177,7 +178,7 @@ impl Oryxis {
                 self.panel_nav_slot(
                     crate::keynav::RowAction::activate(Message::Tabs(TabsMessage::ShowGroupEditIconPicker)),
                     8.0,
-                    icon_badge.into(),
+                    icon_badge.boxed(),
                 ),
             ),
         ]);
@@ -199,7 +200,7 @@ impl Oryxis {
             .and_then(|gid| self.groups.iter().find(|g| g.id == gid))
             .is_some_and(|g| g.cloud_query.is_some());
         let defaults_section: Element<'_, Message> = if is_dynamic {
-            Space::new().height(0).into()
+            Space::new().height(0).boxed()
         } else {
             panel_section(column![self.group_defaults_section()])
         };
@@ -235,7 +236,7 @@ impl Oryxis {
                 border: Border { radius: Radius::from(8.0), ..Default::default() },
                 ..Default::default()
             })
-            .into(),
+            .boxed(),
         );
 
         let footer = container(save_btn)
@@ -243,6 +244,6 @@ impl Oryxis {
 
         let panel_content = column![panel_header, form_scroll, footer].height(Length::Fill);
 
-        crate::widgets::side_panel_frame(panel_content.into(), OryxisColors::t().bg_surface, self.panel_width)
+        crate::widgets::side_panel_frame(panel_content.boxed(), OryxisColors::t().bg_surface, self.panel_width)
     }
 }

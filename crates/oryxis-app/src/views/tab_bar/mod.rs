@@ -9,6 +9,7 @@
 //! the active tab keeps its natural width so its label stays fully
 //! readable.
 
+use iced::Widget as _;
 pub(crate) use iced::border::Radius;
 pub(crate) use iced::widget::button::Status as BtnStatus;
 pub(crate) use iced::widget::{button, container, row, scrollable, text, MouseArea, Space};
@@ -139,17 +140,17 @@ impl Oryxis {
         if self.cur_active_tab().is_some() {
             for toggle_side in self.sidebar_toggle_sides() {
                 cluster_items.push(sidebar_btn(toggle_side, SIDEBAR_BUTTON_WIDTH, BAR_HEIGHT));
-                cluster_items.push(Space::new().width(2).into());
+                cluster_items.push(Space::new().width(2).boxed());
             }
         }
-        cluster_items.push(self.window_chrome_row(CHROME_BUTTON_WIDTH, BAR_HEIGHT).into());
+        cluster_items.push(self.window_chrome_row(CHROME_BUTTON_WIDTH, BAR_HEIGHT).boxed());
         let right_cluster: Element<'_, Message> = crate::widgets::dir_row(cluster_items)
             .align_y(iced::Alignment::Center)
-            .into();
+            .boxed();
 
         let mut leading: Vec<Element<'_, Message>> = vec![
             burger_menu_btn(self.panels.burger_menu),
-            Space::new().width(1).height(TAB_HEIGHT).into(),
+            Space::new().width(1).height(TAB_HEIGHT).boxed(),
         ];
         if side {
             leading.push(self.home_area_tab(solid_fill));
@@ -173,13 +174,13 @@ impl Oryxis {
                 )
                 .on_press(Message::Tabs(TabsMessage::WindowDrag))
                 .on_double_click(Message::Tabs(TabsMessage::WindowMaximizeToggle))
-                .into(),
+                .boxed(),
             );
         }
         leading.push(right_cluster);
         let bar_bg = self.tab_bar_background();
         let bar: Element<'_, Message> = container(self.with_traffic_light_gutter(
-            crate::widgets::dir_row(leading).align_y(iced::Alignment::Center).into(),
+            crate::widgets::dir_row(leading).align_y(iced::Alignment::Center).boxed(),
             BAR_HEIGHT,
         ))
         .width(Length::Fill)
@@ -188,7 +189,7 @@ impl Oryxis {
             background: Some(bar_bg),
             ..Default::default()
         })
-        .into();
+        .boxed();
 
         // Floating ghost while a PINNED tab is being dragged: the pins
         // live on this bar, so the ghost tracks the cursor's x here;
@@ -206,20 +207,20 @@ impl Oryxis {
             )
         {
             let gx = (self.cur_mouse().x - ghost_w / 2.0).max(0.0);
-            let positioned: Element<'_, Message> = iced::widget::Column::new()
-                .push(Space::new().height(7.0))
+            let positioned: Element<'_, Message> = iced::widget::Column::<iced::Element<'_, _>>::new()
+                .push(Space::new().height(7.0).boxed())
                 .push(
-                    iced::widget::Row::new()
-                        .push(Space::new().width(gx))
-                        .push(ghost),
+                    iced::widget::Row::<iced::Element<'_, _>>::new()
+                        .push(Space::new().width(gx).boxed())
+                        .push(ghost).boxed(),
                 )
-                .into();
-            return iced::widget::Stack::new()
+                .boxed();
+            return iced::widget::Stack::<iced::Element<'_, _>>::new()
                 .push(bar)
                 .push(positioned)
                 .width(Length::Fill)
                 .height(Length::Fixed(BAR_HEIGHT))
-                .into();
+                .boxed();
         }
         bar
     }
@@ -385,7 +386,7 @@ impl Oryxis {
         // parked on the chrome bar answer a right-click the same way
         // the tab strip proper does (issue #186).
         .on_right_press(Message::Tabs(TabsMessage::ShowTabBarMenu))
-        .into()
+        .boxed()
     }
 
     /// Window controls (minimize / maximize-restore / close) in their own
@@ -398,7 +399,7 @@ impl Oryxis {
     /// Empty where AppKit draws the frame (`chrome::NATIVE_FRAME`): the
     /// traffic lights are the controls there, in the corner each bar
     /// reserves through `with_traffic_light_gutter`.
-    pub(crate) fn window_chrome_row(&self, cell_w: f32, cell_h: f32) -> iced::widget::Row<'_, Message> {
+    pub(crate) fn window_chrome_row(&self, cell_w: f32, cell_h: f32) -> iced::widget::Row<iced::Element<'_, Message>> {
         if crate::views::chrome::NATIVE_FRAME {
             return iced::widget::Row::new();
         }
@@ -635,7 +636,7 @@ impl Oryxis {
             self.plus_btn_bounds.clone(),
         ))
         .on_enter(Message::Tabs(TabsMessage::TabDragToEnd))
-        .into();
+        .boxed();
         let mut docked_plus: Option<Element<'_, Message>> = None;
         if strip_overflow {
             docked_plus = Some(plus_btn);
@@ -701,7 +702,7 @@ impl Oryxis {
             };
             Message::Tabs(TabsMessage::TabBarWheel(y))
         })
-        .into();
+        .boxed();
 
         // `⋯` jump-to button, shown only when the strip is compressed
         // (scroll mode). In the combined bar it heads the right cluster;
@@ -725,20 +726,20 @@ impl Oryxis {
             // is part of its clickable / hover area.
             leading.push(burger_menu_btn(self.panels.burger_menu));
             // 1 px breather between the burger and the first area tab (home).
-            leading.push(Space::new().width(1).height(TAB_HEIGHT).into());
+            leading.push(Space::new().width(1).height(TAB_HEIGHT).boxed());
         } else {
             // Bottom mode has no burger, so the Home tab leads the row;
             // give it a small gutter off the window edge. `dir_row`
             // flips the whole row under RTL, which carries the gutter
             // to the mirrored leading edge with no manual branch.
-            leading.push(Space::new().width(8).height(TAB_HEIGHT).into());
+            leading.push(Space::new().width(8).height(TAB_HEIGHT).boxed());
         }
         // The navigation areas live as fixed top-level tabs before the
         // scrollable connection strip (see `home_area_tab` for the
         // selection family and why Settings stays out), so Home stays
         // reachable no matter how far the strip overflows.
         leading.push(self.home_area_tab(solid_fill));
-        leading.push(Space::new().width(TAB_SPACING).height(TAB_HEIGHT).into());
+        leading.push(Space::new().width(TAB_SPACING).height(TAB_HEIGHT).boxed());
         leading.push(tab_strip);
         if let Some(plus) = docked_plus {
             leading.push(plus);
@@ -762,7 +763,7 @@ impl Oryxis {
             let mut cluster_items: Vec<Element<'_, Message>> = Vec::new();
             if let Some(dots) = dots_btn {
                 cluster_items.push(dots);
-                cluster_items.push(Space::new().width(2).into());
+                cluster_items.push(Space::new().width(2).boxed());
             }
             // The side-panel toggles (one per non-empty region, issue
             // #102) only make sense inside a connection tab, so skip
@@ -772,13 +773,13 @@ impl Oryxis {
                 for toggle_side in self.sidebar_toggle_sides() {
                     cluster_items
                         .push(sidebar_btn(toggle_side, SIDEBAR_BUTTON_WIDTH, BAR_HEIGHT));
-                    cluster_items.push(Space::new().width(2).into());
+                    cluster_items.push(Space::new().width(2).boxed());
                 }
             }
-            cluster_items.push(self.window_chrome_row(CHROME_BUTTON_WIDTH, BAR_HEIGHT).into());
+            cluster_items.push(self.window_chrome_row(CHROME_BUTTON_WIDTH, BAR_HEIGHT).boxed());
             let right_cluster: Element<'_, Message> = crate::widgets::dir_row(cluster_items)
                 .align_y(iced::Alignment::Center)
-                .into();
+                .boxed();
             leading.push(right_cluster);
         }
 
@@ -791,7 +792,7 @@ impl Oryxis {
         // The bottom-docked strip is not the top-most bar, so only the
         // combined bar leaves the traffic lights their corner.
         let row: Element<'_, Message> =
-            crate::widgets::dir_row(leading).align_y(iced::Alignment::Center).into();
+            crate::widgets::dir_row(leading).align_y(iced::Alignment::Center).boxed();
         let row = if bottom { row } else { self.with_traffic_light_gutter(row, BAR_HEIGHT) };
         let bar: Element<'_, Message> = container(row)
         .width(Length::Fill)
@@ -800,7 +801,7 @@ impl Oryxis {
             background: Some(bar_bg),
             ..Default::default()
         })
-        .into();
+        .boxed();
 
         // Floating ghost of the tab being dragged. The bar spans the window's
         // top-left, so window-space cursor x maps directly to bar-local x. The
@@ -814,20 +815,20 @@ impl Oryxis {
             .flatten();
         if let Some((ghost, ghost_w)) = drag_ghost_el {
             let gx = (self.cur_mouse().x - ghost_w / 2.0).max(0.0);
-            let positioned: Element<'_, Message> = iced::widget::Column::new()
-                .push(Space::new().height(7.0))
+            let positioned: Element<'_, Message> = iced::widget::Column::<iced::Element<'_, _>>::new()
+                .push(Space::new().height(7.0).boxed())
                 .push(
-                    iced::widget::Row::new()
-                        .push(Space::new().width(gx))
-                        .push(ghost),
+                    iced::widget::Row::<iced::Element<'_, _>>::new()
+                        .push(Space::new().width(gx).boxed())
+                        .push(ghost).boxed(),
                 )
-                .into();
-            return iced::widget::Stack::new()
+                .boxed();
+            return iced::widget::Stack::<iced::Element<'_, _>>::new()
                 .push(bar)
                 .push(positioned)
                 .width(Length::Fill)
                 .height(Length::Fixed(BAR_HEIGHT))
-                .into();
+                .boxed();
         }
         bar
     }
@@ -966,7 +967,7 @@ impl Oryxis {
                 .unwrap_or(active_idx) as f32;
             let viewport_h = (self.cur_window_size().height - BAR_HEIGHT - 40.0).max(120.0);
             let y = (preceding * row_pitch - viewport_h / 2.0 + row_pitch / 2.0).max(0.0);
-            return iced::widget::operation::scroll_to(
+            return iced::widget::operation::scrollable::scroll_to(
                 iced::widget::Id::new("tab-scroll"),
                 iced::widget::scrollable::AbsoluteOffset { x: 0.0, y },
                 iced::widget::operation::Animation::Instant,
@@ -993,7 +994,7 @@ impl Oryxis {
         // Center active in viewport instead of left-aligning so the
         // user has context (the previous + next tabs visible too).
         x = (x - approx_strip_width / 2.0 + active_w / 2.0).max(0.0);
-        iced::widget::operation::scroll_to(
+        iced::widget::operation::scrollable::scroll_to(
             iced::widget::Id::new("tab-scroll"),
             iced::widget::scrollable::AbsoluteOffset { x, y: 0.0 },
             iced::widget::operation::Animation::Instant,

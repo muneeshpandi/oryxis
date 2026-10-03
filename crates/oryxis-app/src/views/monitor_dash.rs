@@ -12,6 +12,7 @@
 //! panel actions are recorded as generic content actions per the
 //! keynav rule.
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::button::Status as BtnStatus;
 use iced::widget::{button, column, container, scrollable, text, Space};
@@ -67,7 +68,7 @@ impl Oryxis {
             .height(Length::Fill)
             .center_x(Length::Fill)
             .center_y(Length::Fill)
-            .into();
+            .boxed();
         }
 
         // ── Toolbar: search + shared tag filter + grid/list toggle ──
@@ -83,12 +84,12 @@ impl Oryxis {
                         self.host_tag_filter_btn_bounds.clone(),
                     ),
                 ),
-                Space::new().width(6).into(),
+                Space::new().width(6).boxed(),
             ])
             .align_y(iced::Alignment::Center)
-            .into()
+            .boxed()
         } else {
-            Space::new().into()
+            Space::new().boxed()
         };
         // Pause + Refresh (issue #156 follow-up): the fleet is the only
         // surface that opens connections on its own, so "stop reading
@@ -136,12 +137,12 @@ impl Oryxis {
         let toolbar = container(
             dir_row(vec![
                 self.vault_search_field(),
-                Space::new().width(10).into(),
+                Space::new().width(10).boxed(),
                 tag_filter_btn,
                 pause_btn,
-                Space::new().width(6).into(),
+                Space::new().width(6).boxed(),
                 refresh_btn,
-                Space::new().width(6).into(),
+                Space::new().width(6).boxed(),
                 view_toggle,
             ])
             .align_y(iced::Alignment::Center),
@@ -182,16 +183,16 @@ impl Oryxis {
             self.dash_table(hosts)
         } else {
             let cols = crate::widgets::card_grid_columns(available, CARD_W, 12.0).max(1);
-            let mut grid = column![].spacing(12);
+            let mut grid = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(12);
             for chunk in hosts.chunks(cols) {
                 let mut row_items: Vec<Element<'_, Message>> = Vec::new();
                 for conn_id in chunk {
                     row_items.push(self.dash_card(*conn_id));
-                    row_items.push(Space::new().width(12).into());
+                    row_items.push(Space::new().width(12).boxed());
                 }
-                grid = grid.push(dir_row(row_items).align_y(iced::Alignment::Start));
+                grid = grid.push(dir_row(row_items).align_y(iced::Alignment::Start).boxed());
             }
-            grid.into()
+            grid.boxed()
         };
 
         let content = column![
@@ -209,11 +210,11 @@ impl Oryxis {
 
         match self.monitor_dash.selected {
             Some(conn_id) => dir_row(vec![
-                container(content).width(Length::Fill).height(Length::Fill).into(),
+                container(content).width(Length::Fill).height(Length::Fill).boxed(),
                 self.dash_detail_panel(conn_id),
             ])
-            .into(),
-            None => content.into(),
+            .boxed(),
+            None => content.boxed(),
         }
     }
 
@@ -222,7 +223,7 @@ impl Oryxis {
     /// itself touches the host.
     fn dash_card(&self, conn_id: uuid::Uuid) -> Element<'_, Message> {
         let Some(conn) = self.connections.iter().find(|c| c.id == conn_id) else {
-            return Space::new().into();
+            return Space::new().boxed();
         };
         // Both the link and the window belong to the MACHINE (issue
         // #156): the cards of rows that point at one server show the
@@ -242,13 +243,13 @@ impl Oryxis {
 
         let latest = self.monitor_sample(&conn_id);
 
-        let mut body = column![].spacing(8);
+        let mut body = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(8);
         match link {
             Some(DashLink::Failed { via, error, .. }) => {
                 body = body.push(
                     text(self.dash_via_prefixed(*via, conn_id, error))
                         .size(11)
-                        .color(OryxisColors::t().error),
+                        .color(OryxisColors::t().error).boxed(),
                 );
             }
             _ => {
@@ -302,7 +303,7 @@ impl Oryxis {
                     body = body.push(
                         text(stats.join("   "))
                             .size(11)
-                            .color(OryxisColors::t().text_secondary),
+                            .color(OryxisColors::t().text_secondary).boxed(),
                     );
                 } else {
                     body = body.push(
@@ -312,7 +313,7 @@ impl Oryxis {
                             _ => t("monitor_dash_connecting"),
                         })
                         .size(11)
-                        .color(OryxisColors::t().text_muted),
+                        .color(OryxisColors::t().text_muted).boxed(),
                     );
                 }
             }
@@ -322,19 +323,19 @@ impl Oryxis {
             Some(secs) => text(fmt_uptime(secs))
                 .size(10)
                 .color(OryxisColors::t().text_muted)
-                .into(),
-            None => Space::new().into(),
+                .boxed(),
+            None => Space::new().boxed(),
         };
 
         let inner = column![
             dir_row(vec![
-                text(dot).size(10).color(dot_color).into(),
-                Space::new().width(6).into(),
+                text(dot).size(10).color(dot_color).boxed(),
+                Space::new().width(6).boxed(),
                 text(conn.label.clone())
                     .size(13)
                     .color(OryxisColors::t().text_primary)
                     .width(Length::Fill)
-                    .into(),
+                    .boxed(),
                 uptime,
             ])
             .align_y(iced::Alignment::Center),
@@ -371,7 +372,7 @@ impl Oryxis {
         self.content_action_slot(
             crate::keynav::RowAction::activate(msg),
             10.0,
-            card.into(),
+            card.boxed(),
         )
     }
 
@@ -432,7 +433,7 @@ impl Oryxis {
                 MonitorMessage::DashCloseDetail,
             )),
             6.0,
-            crate::views::terminal::icon_tooltip(close_btn.into(), crate::i18n::t("close")),
+            crate::views::terminal::icon_tooltip(close_btn.boxed(), crate::i18n::t("close")),
         );
 
         // The vitals themselves come from the SAME renderer as the
@@ -456,8 +457,7 @@ impl Oryxis {
                         OryxisColors::t().accent,
                     ),
                 ),
-            ]
-            .into(),
+            ].boxed(),
             _ => match self.monitor_vitals_body(
                 conn_id,
                 super::sidebar_monitor::MonitorVitalsSurface::Dashboard,
@@ -469,7 +469,7 @@ impl Oryxis {
                 })
                 .size(12)
                 .color(OryxisColors::t().text_muted)
-                .into(),
+                .boxed(),
             },
         };
 
@@ -491,10 +491,9 @@ impl Oryxis {
                     text(t("monitor_dash_sampled_via").replacen("{host}", &name, 1))
                         .size(11)
                         .color(OryxisColors::t().text_muted),
-                ]
-                .into()
+                ].boxed()
             }
-            _ => Space::new().into(),
+            _ => Space::new().boxed(),
         };
 
         // Explicit connect action: the one place the dashboard opens a
@@ -518,7 +517,7 @@ impl Oryxis {
                         .size(15)
                         .color(OryxisColors::t().text_primary)
                         .width(Length::Fill)
-                        .into(),
+                        .boxed(),
                     close,
                 ])
                 .align_y(iced::Alignment::Center),
@@ -541,7 +540,7 @@ impl Oryxis {
             },
             ..Default::default()
         })
-        .into()
+        .boxed()
     }
 }
 
@@ -639,7 +638,7 @@ impl Oryxis {
                         ..Default::default()
                     }
                 })
-                .into(),
+                .boxed(),
             )
         };
         const W_CPU: f32 = 70.0;
@@ -679,19 +678,19 @@ impl Oryxis {
                     .font(iced::Font::MONOSPACE)
                     .color(OryxisColors::t().text_primary)
                     .width(Length::Fixed(width))
-                    .into()
+                    .boxed()
             };
             let host_cell: Element<'_, Message> = dir_row(vec![
-                text("●").size(9).color(dot_color).into(),
-                Space::new().width(6).into(),
+                text("●").size(9).color(dot_color).boxed(),
+                Space::new().width(6).boxed(),
                 text(conn.label.clone())
                     .size(12)
                     .color(OryxisColors::t().text_primary)
-                    .into(),
+                    .boxed(),
             ])
             .align_y(iced::Alignment::Center)
             .width(Length::Fill)
-            .into();
+            .boxed();
             let mem_text = match latest.and_then(|s| s.mem) {
                 Some(m) if m.total > 0 => format!(
                     "{} / {}",
@@ -751,10 +750,10 @@ impl Oryxis {
             table = table.push(self.content_action_slot(
                 crate::keynav::RowAction::activate(msg),
                 6.0,
-                row.into(),
+                row.boxed(),
             ));
         }
-        table.into()
+        table.boxed()
     }
 }
 
@@ -787,5 +786,5 @@ fn dash_view_toggle_button(list_view: bool) -> Element<'static, Message> {
             ..Default::default()
         }
     });
-    crate::views::terminal::icon_tooltip(btn.into(), crate::i18n::t("toggle_view"))
+    crate::views::terminal::icon_tooltip(btn.boxed(), crate::i18n::t("toggle_view"))
 }

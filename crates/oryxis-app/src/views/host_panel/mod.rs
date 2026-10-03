@@ -1,5 +1,6 @@
 //! Host editor / connection editor side panel.
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::{button, column, container, pick_list, scrollable, text, text_editor, text_input, Space};
 use iced::widget::button::Status as BtnStatus;
@@ -36,7 +37,7 @@ mod terminal_settings;
 /// because `panel_nav_slot` records at build time an ungated build would
 /// record invisible Tab targets. Each gated builder resolves to this.
 fn empty<'a>() -> Element<'a, Message> {
-    Space::new().into()
+    Space::new().boxed()
 }
 
 impl Oryxis {
@@ -99,8 +100,8 @@ impl Oryxis {
         // first Down target instead of the form.
         let panel_header = container(
             dir_row(vec![
-                text(title).size(16).color(OryxisColors::t().text_primary).into(),
-                Space::new().width(Length::Fill).into(),
+                text(title).size(16).color(OryxisColors::t().text_primary).boxed(),
+                Space::new().width(Length::Fill).boxed(),
                 button(text("\u{00D7}").size(20).color(OryxisColors::t().text_muted))
                     .on_press(Message::Editor(EditorMessage::EditorCancel))
                     .padding(Padding { top: 4.0, right: 8.0, bottom: 4.0, left: 8.0 })
@@ -108,7 +109,7 @@ impl Oryxis {
                         background: Some(Background::Color(Color::TRANSPARENT)),
                         border: Border::default(),
                         ..Default::default()
-                    }).into(),
+                    }).boxed(),
             ]).align_y(iced::Alignment::Center),
         )
         // top 12 (not 16): the taller ×-button row centres the title, so a
@@ -155,7 +156,7 @@ impl Oryxis {
                 Space::new().height(GROUP_GAP),
                 panel_divider(),
                 Space::new().height(GROUP_GAP),
-            ].into()
+            ].boxed()
         };
 
         // Host card: label, parent group, then the connection target.
@@ -172,13 +173,13 @@ impl Oryxis {
             .push(group_sep())
             .push(section_header(t("connection")));
         if let Some(hr) = hostname_row {
-            host_col = host_col.push(Space::new().height(ROW_GAP)).push(hr);
+            host_col = host_col.push(Space::new().height(ROW_GAP).boxed()).push(hr);
         }
         if let Some(pr) = protocol_row {
-            host_col = host_col.push(Space::new().height(ROW_GAP)).push(pr);
+            host_col = host_col.push(Space::new().height(ROW_GAP).boxed()).push(pr);
         }
         if let Some(ct) = cloud_transport_row {
-            host_col = host_col.push(Space::new().height(ROW_GAP)).push(ct);
+            host_col = host_col.push(Space::new().height(ROW_GAP).boxed()).push(ct);
         }
         let host_section = panel_section(host_col);
 
@@ -203,17 +204,17 @@ impl Oryxis {
         // the label; everything else appends the "[22] port" field.
         let proto_header = if !self.editor_form.protocol.uses_network_port() {
             dir_row(vec![
-                text(proto_label).size(14).color(OryxisColors::t().accent).into(),
-                Space::new().width(Length::Fill).into(),
+                text(proto_label).size(14).color(OryxisColors::t().accent).boxed(),
+                Space::new().width(Length::Fill).boxed(),
             ])
             .align_y(iced::Alignment::Center)
         } else {
             dir_row(vec![
-                text(proto_label).size(14).color(OryxisColors::t().accent).into(),
-                Space::new().width(Length::Fill).into(),
+                text(proto_label).size(14).color(OryxisColors::t().accent).boxed(),
+                Space::new().width(Length::Fill).boxed(),
                 port_input,
-                Space::new().width(8).into(),
-                text(t("port")).size(12).color(OryxisColors::t().text_muted).into(),
+                Space::new().width(8).boxed(),
+                text(t("port")).size(12).color(OryxisColors::t().text_muted).boxed(),
             ])
             .align_y(iced::Alignment::Center)
         };
@@ -236,11 +237,11 @@ impl Oryxis {
                 column![proto_header]
                     .push(group_sep())
                     .push(section_header(t("credentials")))
-                    .push(Space::new().height(ROW_GAP))
+                    .push(Space::new().height(ROW_GAP).boxed())
                     .push(cred_items)
                     .push(group_sep())
                     .push(section_header(t("mosh_section")))
-                    .push(Space::new().height(ROW_GAP))
+                    .push(Space::new().height(ROW_GAP).boxed())
                     .push(mosh_block),
             )
         } else if is_serial {
@@ -252,7 +253,7 @@ impl Oryxis {
                 column![proto_header]
                     .push(group_sep())
                     .push(section_header(t("serial_line")))
-                    .push(Space::new().height(ROW_GAP))
+                    .push(Space::new().height(ROW_GAP).boxed())
                     .push(serial_params_block),
             )
         } else if is_rd {
@@ -263,11 +264,11 @@ impl Oryxis {
                 column![proto_header]
                     .push(group_sep())
                     .push(section_header(t("credentials")))
-                    .push(Space::new().height(ROW_GAP))
+                    .push(Space::new().height(ROW_GAP).boxed())
                     .push(cred_items)
                     .push(group_sep())
                     .push(section_header(t("remote_desktop")))
-                    .push(Space::new().height(ROW_GAP))
+                    .push(Space::new().height(ROW_GAP).boxed())
                     .push(rd_block),
             )
         } else if is_local {
@@ -278,7 +279,7 @@ impl Oryxis {
                 column![proto_header]
                     .push(group_sep())
                     .push(section_header(t("local_shell")))
-                    .push(Space::new().height(ROW_GAP))
+                    .push(Space::new().height(ROW_GAP).boxed())
                     .push(local_block),
             )
         } else {
@@ -297,15 +298,15 @@ impl Oryxis {
                     iced_fonts::lucide::triangle_alert()
                         .size(13)
                         .color(OryxisColors::t().warning)
-                        .into(),
-                    Space::new().width(8).into(),
+                        .boxed(),
+                    Space::new().width(8).boxed(),
                     text(if is_raw { t("raw_cleartext_note") } else { t("telnet_cleartext_note") })
                         .size(11)
                         .color(OryxisColors::t().text_muted)
-                        .into(),
+                        .boxed(),
                 ])
                 .align_y(iced::Alignment::Center)
-                .into()
+                .boxed()
             });
             let mut telnet_col = column![proto_header];
             // Raw has no credentials block at all, so it also skips the
@@ -314,19 +315,19 @@ impl Oryxis {
                 telnet_col = telnet_col
                     .push(group_sep())
                     .push(section_header(t("credentials")))
-                    .push(Space::new().height(ROW_GAP))
+                    .push(Space::new().height(ROW_GAP).boxed())
                     .push(cred_items);
             }
             if let Some(tls) = tls_block {
-                telnet_col = telnet_col.push(Space::new().height(ROW_GAP)).push(tls);
+                telnet_col = telnet_col.push(Space::new().height(ROW_GAP).boxed()).push(tls);
             }
             telnet_col = telnet_col
-                .push(Space::new().height(ROW_GAP))
+                .push(Space::new().height(ROW_GAP).boxed())
                 .push(row_address_family)
-                .push(Space::new().height(ROW_GAP))
+                .push(Space::new().height(ROW_GAP).boxed())
                 .push(row_mac_address);
             if let Some(note) = cleartext_note {
-                telnet_col = telnet_col.push(Space::new().height(GROUP_GAP)).push(note);
+                telnet_col = telnet_col.push(Space::new().height(GROUP_GAP).boxed()).push(note);
             }
             panel_section(telnet_col)
         };
@@ -352,45 +353,45 @@ impl Oryxis {
                 // show a key picker; the other methods need no extra
                 // input here (password lives in Credentials).
                 if let Some(k) = ssh_key_row {
-                    col = col.push(Space::new().height(ROW_GAP)).push(k);
+                    col = col.push(Space::new().height(ROW_GAP).boxed()).push(k);
                 }
                 // Below the vault-key picker, which is the precedence
                 // the resolver applies: a linked key wins, and the disk
                 // only fills the gap it leaves.
-                col.push(Space::new().height(ROW_GAP))
+                col.push(Space::new().height(ROW_GAP).boxed())
                     .push(disk_key_block)
-                    .push(Space::new().height(ROW_GAP))
+                    .push(Space::new().height(ROW_GAP).boxed())
                     .push(row_agent_fwd)
-                    .push(Space::new().height(ROW_GAP))
+                    .push(Space::new().height(ROW_GAP).boxed())
                     .push(row_x11_fwd)
-                    .push(Space::new().height(ROW_GAP))
+                    .push(Space::new().height(ROW_GAP).boxed())
                     .push(totp_block)
-                    .into()
+                    .boxed()
             })
         });
         let network_section = is_ssh.then(|| {
             self.hp_section(S::Network, || {
                 let row_chaining = self.hp_row_chaining(true);
-                let proxy_rows: Element<'_, Message> = self.build_proxy_rows().into();
+                let proxy_rows: Element<'_, Message> = self.build_proxy_rows().boxed();
                 let pf_items = self.hp_pf_items(true);
                 let row_keepalive = self.hp_row_keepalive(true);
                 let row_address_family = self.hp_row_address_family(true, false);
                 let row_mac_address = self.hp_row_mac_address(true);
                 let row_auto_title = self.hp_row_auto_title(true);
                 column![row_chaining]
-                    .push(Space::new().height(ROW_GAP))
+                    .push(Space::new().height(ROW_GAP).boxed())
                     .push(proxy_rows)
-                    .push(Space::new().height(ROW_GAP))
+                    .push(Space::new().height(ROW_GAP).boxed())
                     .push(pf_items)
-                    .push(Space::new().height(ROW_GAP))
+                    .push(Space::new().height(ROW_GAP).boxed())
                     .push(row_keepalive)
-                    .push(Space::new().height(ROW_GAP))
+                    .push(Space::new().height(ROW_GAP).boxed())
                     .push(row_address_family)
-                    .push(Space::new().height(ROW_GAP))
+                    .push(Space::new().height(ROW_GAP).boxed())
                     .push(row_mac_address)
-                    .push(Space::new().height(ROW_GAP))
+                    .push(Space::new().height(ROW_GAP).boxed())
                     .push(row_auto_title)
-                    .into()
+                    .boxed()
             })
         });
         // Compatibility (P2): the four legacy-algorithm pickers (SSH
@@ -399,13 +400,13 @@ impl Oryxis {
         // pane, so the whole section drops out for it).
         let compat_section = (!is_rd).then(|| {
             self.hp_section(S::Compatibility, || {
-                let mut col = column![];
+                let mut col = iced::widget::Column::<iced::Element<'_, _>>::new();
                 if is_ssh {
                     col = col
                         .push(self.algo_overrides_section())
                         .push(group_sep());
                 }
-                col.push(self.hp_advanced_terminal_items()).into()
+                col.push(self.hp_advanced_terminal_items()).boxed()
             })
         });
         // A local host has an Integration section too, reduced to the
@@ -419,7 +420,7 @@ impl Oryxis {
                 column![env_items]
                     .push(group_sep())
                     .push(startup_block)
-                    .into()
+                    .boxed()
             })
         });
         let integration_section = is_ssh.then(|| {
@@ -433,7 +434,7 @@ impl Oryxis {
                 let startup_block = self.hp_startup_block(true);
                 let login_script_block = self.hp_login_script_block(true);
                 column![row_mcp, row_monitor, row_monitor_disks, row_sftp_initial_path, row_zmodem_drops]
-                    .push(Space::new().height(ROW_GAP))
+                    .push(Space::new().height(ROW_GAP).boxed())
                     .push(env_items)
                     .push(group_sep())
                     .push(startup_block)
@@ -444,7 +445,7 @@ impl Oryxis {
                     // `dispatch_ssh/session`).
                     .push(group_sep())
                     .push(login_script_block)
-                    .into()
+                    .boxed()
             })
         });
         // Terminal section: appearance + session logging, every
@@ -456,13 +457,13 @@ impl Oryxis {
             let row_privacy_mode = self.hp_row_privacy_mode();
             let row_sidebar_auto_open = self.hp_row_sidebar_auto_open();
             column![appearance_items]
-                .push(Space::new().height(GROUP_GAP))
+                .push(Space::new().height(GROUP_GAP).boxed())
                 .push(row_session_logging)
-                .push(Space::new().height(GROUP_GAP))
+                .push(Space::new().height(GROUP_GAP).boxed())
                 .push(row_privacy_mode)
-                .push(Space::new().height(GROUP_GAP))
+                .push(Space::new().height(GROUP_GAP).boxed())
                 .push(row_sidebar_auto_open)
-                .into()
+                .boxed()
         });
 
         // ── Error ──
@@ -473,11 +474,11 @@ impl Oryxis {
         // spacing would open a stray 8px band above the buttons when
         // there is no error to show.
         let panel_error: Element<'_, Message> = if let Some(err) = &self.host_panel_error {
-            container(Element::from(text(err.clone()).size(11).color(OryxisColors::t().error)))
+            container(text(err.clone()).size(11).color(OryxisColors::t().error).boxed())
                 .padding(Padding { top: 4.0, right: 16.0, bottom: 12.0, left: 16.0 })
-                .into()
+                .boxed()
         } else {
-            Space::new().into()
+            Space::new().boxed()
         };
         // Built last: the footer buttons render below every card, so
         // their keyboard rows must record after them.
@@ -500,9 +501,9 @@ impl Oryxis {
         .into_iter()
         .flatten()
         {
-            form_col = form_col.push(Space::new().height(10)).push(section);
+            form_col = form_col.push(Space::new().height(10).boxed()).push(section);
         }
-        form_col = form_col.push(Space::new().height(10)).push(terminal_section);
+        form_col = form_col.push(Space::new().height(10).boxed()).push(terminal_section);
         let form_scroll = scrollable(
             form_col.padding(Padding { top: 0.0, right: 16.0, bottom: 16.0, left: 16.0 }),
         )
@@ -515,14 +516,14 @@ impl Oryxis {
             panel_content = panel_content.push(pr);
         }
         let panel_content = panel_content
-            .push(form_scroll)
+            .push(form_scroll.boxed())
             .push(
                 container(bottom)
-                    .padding(Padding { top: 8.0, right: 16.0, bottom: 16.0, left: 16.0 }),
+                    .padding(Padding { top: 8.0, right: 16.0, bottom: 16.0, left: 16.0 }).boxed(),
             )
             .height(Length::Fill);
 
-        crate::widgets::side_panel_frame(panel_content.into(), OryxisColors::t().bg_surface, self.panel_width)
+        crate::widgets::side_panel_frame(panel_content.boxed(), OryxisColors::t().bg_surface, self.panel_width)
     }
 }
 
@@ -530,7 +531,7 @@ impl Oryxis {
 /// (General / Connection / Credentials / Authentication / ...). Keeps
 /// the cards visually labeled so the form reads as semantic groups.
 fn section_header<'a>(label: &'a str) -> Element<'a, Message> {
-    text(label).size(12).color(OryxisColors::t().text_muted).into()
+    text(label).size(12).color(OryxisColors::t().text_muted).boxed()
 }
 
 /// Full-width "click to open the theme picker" tile, painted in a
@@ -558,15 +559,15 @@ fn terminal_theme_trigger<'a>(
                 border: Border { radius: Radius::from(5.0), ..Default::default() },
                 ..Default::default()
             })
-            .into()
+            .boxed()
         })
         .collect();
     button(
         container(
             dir_row(vec![
-                text(label).size(13).color(fg).into(),
-                Space::new().width(Length::Fill).into(),
-                iced::widget::Row::with_children(swatches).spacing(4).into(),
+                text(label).size(13).color(fg).boxed(),
+                Space::new().width(Length::Fill).boxed(),
+                iced::widget::Row::with_children(swatches).spacing(4).boxed(),
             ])
             .align_y(iced::Alignment::Center),
         )
@@ -581,5 +582,5 @@ fn terminal_theme_trigger<'a>(
         border: Border { radius: Radius::from(8.0), ..Default::default() },
         ..Default::default()
     })
-    .into()
+    .boxed()
 }

@@ -1,5 +1,6 @@
 //! Bottom status bar, connection state, keepalive info, and host summary.
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::button::Status as BtnStatus;
 use iced::widget::{button, column, container, text, Space};
@@ -96,18 +97,18 @@ impl Oryxis {
         let spacer_leads = align_left && crate::i18n::is_rtl_layout();
         let mut items: Vec<Element<'_, Message>> = Vec::new();
         if spacer_leads {
-            items.push(Space::new().width(Length::Fill).into());
+            items.push(Space::new().width(Length::Fill).boxed());
         }
         if self.prefs.status_show_connection {
-            items.push(text(status_text).size(12).color(status_color).into());
+            items.push(text(status_text).size(12).color(status_color).boxed());
             // Leading-aligned: keep a gap between the label and the cluster
             // that the flexible spacer used to provide.
             if align_left {
-                items.push(Space::new().width(16).into());
+                items.push(Space::new().width(16).boxed());
             }
         }
         if !align_left {
-            items.push(Space::new().width(Length::Fill).into());
+            items.push(Space::new().width(Length::Fill).boxed());
         }
 
         // Terminal-status segments read from the focused pane: latency
@@ -133,7 +134,7 @@ impl Oryxis {
                 };
                 if let Some(segment) = segment {
                     items.push(segment);
-                    items.push(Space::new().width(12).into());
+                    items.push(Space::new().width(12).boxed());
                 }
             }
             if self.prefs.status_show_dimensions
@@ -146,7 +147,7 @@ impl Oryxis {
                         format!("{c}×{r}"),
                         OryxisColors::t().text_secondary,
                     ));
-                    items.push(Space::new().width(12).into());
+                    items.push(Space::new().width(12).boxed());
                 }
             }
             if self.prefs.status_show_cwd
@@ -164,7 +165,7 @@ impl Oryxis {
                     shown,
                     OryxisColors::t().text_secondary,
                 ));
-                items.push(Space::new().width(12).into());
+                items.push(Space::new().width(12).boxed());
             }
         }
         // Tab surface segments (issue #61, widened for the SFTP
@@ -180,11 +181,11 @@ impl Oryxis {
                 let current = self.tab_surface(idx);
                 for (n, surface) in surfaces.into_iter().enumerate() {
                     if n > 0 {
-                        items.push(Space::new().width(2).into());
+                        items.push(Space::new().width(2).boxed());
                     }
                     items.push(mode_segment_btn(idx, surface, surface == current));
                 }
-                items.push(Space::new().width(10).into());
+                items.push(Space::new().width(10).boxed());
             }
         }
         // Broadcast input segment (C2): a single toggle for the active
@@ -199,7 +200,7 @@ impl Oryxis {
             && tab.broadcast_capable()
         {
             items.push(broadcast_segment_btn(idx, tab.broadcast));
-            items.push(Space::new().width(10).into());
+            items.push(Space::new().width(10).boxed());
         }
         // Login automation progress (issue #122). Present only while a
         // script is actually running, which is a few seconds at connect,
@@ -214,9 +215,9 @@ impl Oryxis {
                 )
                 .size(11)
                 .color(OryxisColors::t().accent)
-                .into(),
+                .boxed(),
             );
-            items.push(Space::new().width(10).into());
+            items.push(Space::new().width(10).boxed());
         }
         // Host vitals (issue #83, the MobaXterm-style bar): the same
         // samples the sidebar Monitor tab renders, condensed to one line.
@@ -329,7 +330,7 @@ impl Oryxis {
                             }),
                             iced::widget::tooltip::Position::Top,
                         )
-                        .into(),
+                        .boxed(),
                     );
                 } else {
                     seg.push(badge);
@@ -337,7 +338,7 @@ impl Oryxis {
             }
             for el in seg {
                 items.push(el);
-                items.push(Space::new().width(12).into());
+                items.push(Space::new().width(12).boxed());
             }
         }
         // Privacy Mode chip (issue #78): visible whenever masking is
@@ -350,7 +351,7 @@ impl Oryxis {
                 self.privacy_global_active(),
                 self.privacy.session_override.is_some(),
             ));
-            items.push(Space::new().width(10).into());
+            items.push(Space::new().width(10).boxed());
         }
         // The version is opt-out too; hidden it leaves the trailing edge
         // clean.
@@ -359,14 +360,14 @@ impl Oryxis {
                 text(concat!("Oryxis v", env!("CARGO_PKG_VERSION")))
                     .size(12)
                     .color(OryxisColors::t().text_muted)
-                    .into(),
+                    .boxed(),
             );
         }
         // Left-aligned: the flexible spacer trails the cluster instead,
         // pushing everything to the physical left edge (under RTL it was
         // pushed at the head above, `dir_row`'s reversal moves it here).
         if align_left && !spacer_leads {
-            items.push(Space::new().width(Length::Fill).into());
+            items.push(Space::new().width(Length::Fill).boxed());
         }
         let bar = container(
             crate::widgets::dir_row(items)
@@ -379,7 +380,7 @@ impl Oryxis {
             ..Default::default()
         });
 
-        column![top_hairline, bar].into()
+        column![top_hairline, bar].boxed()
     }
 }
 
@@ -525,12 +526,12 @@ fn vital(label: &str, value: String, color: Color) -> Element<'static, Message> 
         text(label.to_string())
             .size(11)
             .color(OryxisColors::t().text_muted)
-            .into(),
-        Space::new().width(4).into(),
-        text(value).size(11).color(color).into(),
+            .boxed(),
+        Space::new().width(4).boxed(),
+        text(value).size(11).color(color).boxed(),
     ])
     .align_y(iced::Alignment::Center)
-    .into()
+    .boxed()
 }
 
 /// One half of the status-bar Terminal/Files segment. The active half
@@ -566,7 +567,7 @@ fn mode_segment_btn<'a>(
     if !active {
         btn = btn.on_press(Message::Tabs(TabsMessage::ShowTabSurface(idx, surface)));
     }
-    btn.into()
+    btn.boxed()
 }
 
 /// Privacy Mode chip in the status bar (issue #78). Accent-tinted
@@ -610,7 +611,7 @@ fn privacy_segment_btn(masking: bool, overridden: bool) -> Element<'static, Mess
                 ..Default::default()
             }
         })
-        .into()
+        .boxed()
 }
 
 /// Broadcast-input toggle in the status bar (C2). A single button
@@ -646,7 +647,7 @@ fn broadcast_segment_btn(idx: usize, armed: bool) -> Element<'static, Message> {
                 ..Default::default()
             }
         })
-        .into()
+        .boxed()
 }
 
 #[cfg(test)]

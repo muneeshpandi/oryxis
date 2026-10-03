@@ -27,6 +27,7 @@
 //!   `update` nothing is being drawn and the accessors return the
 //!   fields, which is what makes them safe to use anywhere.
 
+use iced::Widget as _;
 use std::cell::Cell;
 
 use iced::window;
@@ -347,7 +348,7 @@ impl Oryxis {
         if self.extra_windows.contains_key(&id) {
             let _pass = ViewPass::begin(Viewing::Extra(id));
             self.view()
-                .map(move |m| Message::InWindow(id, Box::new(m)))
+                .map(move |m| Message::InWindow(id, Box::new(m))).boxed()
         } else {
             // Any other id is the main window, which keeps the harness
             // (its emulator owns a single window) and a window on its

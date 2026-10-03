@@ -4,6 +4,7 @@
 //! rows come from `Oryxis::palette_rows`, each carrying its own resolved
 //! `Message` so activation never re-derives by index.
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::button::Status as BtnStatus;
 use iced::widget::{button, column, container, scrollable, text, text_input, Space};
@@ -29,7 +30,7 @@ fn category_glyph(cat: PaletteCategory) -> Element<'static, Message> {
     let glyph: Element<'static, Message> = container(g.size(13).color(color))
         .center_x(Length::Fixed(20.0))
         .center_y(Length::Fixed(20.0))
-        .into();
+        .boxed();
     crate::views::terminal::icon_tooltip(glyph, t(cat.label_key()))
 }
 
@@ -48,9 +49,9 @@ impl Oryxis {
                     .color(OryxisColors::t().text_muted),
             )
             .padding(20)
-            .into()
+            .boxed()
         } else {
-            let mut col = column![].spacing(2);
+            let mut col = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(2);
             for row in rows {
                 col = col.push(self.palette_row(row));
             }
@@ -62,7 +63,7 @@ impl Oryxis {
             }))
             .id(iced::widget::Id::new("palette-scroll"))
             .height(Length::Fixed(420.0))
-            .into()
+            .boxed()
         };
 
         // ── Search header ──────────────────────────────────────────────
@@ -92,7 +93,7 @@ impl Oryxis {
             },
             ..Default::default()
         })
-        .into();
+        .boxed();
         // Rendered from the LIVE binding map like the row chips, so macOS
         // shows Cmd and a rebind stays correct; unbound drops the hint.
         let shortcut_hint: Element<'_, Message> = match self
@@ -104,8 +105,8 @@ impl Oryxis {
             Some(badge) if !badge.is_empty() => text(badge)
                 .size(11)
                 .color(OryxisColors::t().text_muted)
-                .into(),
-            _ => Space::new().into(),
+                .boxed(),
+            _ => Space::new().boxed(),
         };
 
         let search_header = container(
@@ -113,12 +114,12 @@ impl Oryxis {
                 iced_fonts::lucide::search()
                     .size(13)
                     .color(OryxisColors::t().text_muted)
-                    .into(),
-                Space::new().width(8).into(),
+                    .boxed(),
+                Space::new().width(8).boxed(),
                 pill,
-                Space::new().width(8).into(),
-                container(search_input).width(Length::Fill).into(),
-                Space::new().width(12).into(),
+                Space::new().width(8).boxed(),
+                container(search_input).width(Length::Fill).boxed(),
+                Space::new().width(12).boxed(),
                 shortcut_hint,
             ])
             .align_y(iced::Alignment::Center),
@@ -155,7 +156,7 @@ impl Oryxis {
 
         // Bare card; `widgets::modal_overlay` (the caller) owns centering,
         // the absorbing scrim, and the click-trap.
-        dialog.into()
+        dialog.boxed()
     }
 
     fn palette_row<'a>(&self, row: PaletteRow) -> Element<'a, Message> {
@@ -188,15 +189,15 @@ impl Oryxis {
                 },
                 ..Default::default()
             })
-            .into(),
-            _ => Space::new().into(),
+            .boxed(),
+            _ => Space::new().boxed(),
         };
 
         let content = dir_row(vec![
             category_glyph(row.category),
-            Space::new().width(8).into(),
-            text(row.label).size(13).color(label_color).into(),
-            Space::new().width(Length::Fill).into(),
+            Space::new().width(8).boxed(),
+            text(row.label).size(13).color(label_color).boxed(),
+            Space::new().width(Length::Fill).boxed(),
             chip,
         ])
         .align_y(iced::Alignment::Center);
@@ -208,7 +209,7 @@ impl Oryxis {
             return container(content)
                 .padding(Padding { top: 6.0, right: 12.0, bottom: 6.0, left: 12.0 })
                 .width(Length::Fill)
-                .into();
+                .boxed();
         }
 
         let msg = row.message.clone();
@@ -232,7 +233,7 @@ impl Oryxis {
                     ..Default::default()
                 }
             })
-            .into();
+            .boxed();
 
         self.modal_nav_slot(
             crate::keynav::RowAction::activate(Message::Tabs(TabsMessage::PaletteActivate(Box::new(

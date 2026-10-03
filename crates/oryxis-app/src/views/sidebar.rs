@@ -2,6 +2,7 @@
 //! `nav_orientation`) rendered on the leading edge of the vault content,
 //! plus the local-shell picker modal.
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::button::Status as BtnStatus;
 use iced::widget::{button, column, container, scrollable, text, tooltip, Space};
@@ -90,16 +91,16 @@ impl Oryxis {
         // name + chevron when expanded.
         let badge_inner: Element<'_, Message> = if expanded {
             dir_row(vec![
-                iced_fonts::lucide::lock().size(14).color(OryxisColors::t().accent).into(),
-                Space::new().width(8).into(),
-                text("Personal").size(13).color(OryxisColors::t().text_primary).into(),
-                Space::new().width(Length::Fill).into(),
-                iced_fonts::lucide::chevron_down().size(12).color(OryxisColors::t().text_muted).into(),
+                iced_fonts::lucide::lock().size(14).color(OryxisColors::t().accent).boxed(),
+                Space::new().width(8).boxed(),
+                text("Personal").size(13).color(OryxisColors::t().text_primary).boxed(),
+                Space::new().width(Length::Fill).boxed(),
+                iced_fonts::lucide::chevron_down().size(12).color(OryxisColors::t().text_muted).boxed(),
             ])
             .align_y(iced::Alignment::Center)
-            .into()
+            .boxed()
         } else {
-            iced_fonts::lucide::lock().size(16).color(OryxisColors::t().accent).into()
+            iced_fonts::lucide::lock().size(16).color(OryxisColors::t().accent).boxed()
         };
         let badge_pad = if expanded {
             Padding { top: 8.0, right: 12.0, bottom: 8.0, left: 12.0 }
@@ -135,10 +136,10 @@ impl Oryxis {
         // Vault badge only when there's more than one vault to switch.
         let mut col_items: Vec<Element<'_, Message>> = Vec::new();
         if self.show_vault_switcher() {
-            col_items.push(vault_badge.into());
+            col_items.push(vault_badge.boxed());
         }
-        col_items.push(nav.into());
-        col_items.push(footer.into());
+        col_items.push(nav.boxed());
+        col_items.push(footer.boxed());
         let content = iced::widget::Column::with_children(col_items).width(Length::Fill);
 
         let width = if expanded {
@@ -153,7 +154,7 @@ impl Oryxis {
                 background: Some(Background::Color(OryxisColors::t().bg_sidebar)),
                 ..Default::default()
             })
-            .into()
+            .boxed()
     }
 }
 
@@ -206,7 +207,7 @@ fn rail_item<'a>(
                 }),
             tooltip::Position::Right,
         )
-        .into()
+        .boxed()
     }
 }
 
@@ -225,9 +226,9 @@ fn rail_toggle_item<'a>(expanded: bool) -> Element<'a, Message> {
             button(
                 container(
                     dir_row(vec![
-                        icon.size(16).color(muted).into(),
-                        Space::new().width(10).into(),
-                        text(crate::i18n::t("collapse")).size(13).color(muted).into(),
+                        icon.size(16).color(muted).boxed(),
+                        Space::new().width(10).boxed(),
+                        text(crate::i18n::t("collapse")).size(13).color(muted).boxed(),
                     ])
                     .align_y(iced::Alignment::Center),
                 )
@@ -242,7 +243,7 @@ fn rail_toggle_item<'a>(expanded: bool) -> Element<'a, Message> {
             .style(rail_btn_style(false, false)),
         )
         .padding(Padding { top: 0.0, right: 8.0, bottom: 0.0, left: 8.0 })
-        .into()
+        .boxed()
     } else {
         tooltip(
             container(
@@ -268,7 +269,7 @@ fn rail_toggle_item<'a>(expanded: bool) -> Element<'a, Message> {
                 }),
             tooltip::Position::Right,
         )
-        .into()
+        .boxed()
     }
 }
 
@@ -329,7 +330,7 @@ fn collapsed_nav_btn<'a>(
     .width(Length::Fill)
     .center_x(Length::Fill)
     .padding(Padding { top: 0.0, right: 8.0, bottom: 0.0, left: 8.0 })
-    .into()
+    .boxed()
 }
 
 /// Icon + label nav row for the expanded rail.
@@ -349,9 +350,9 @@ fn expanded_nav_btn<'a>(
         button(
             container(
                 dir_row(vec![
-                    icon.size(16).color(fg).into(),
-                    Space::new().width(10).into(),
-                    text(label).size(13).color(fg).into(),
+                    icon.size(16).color(fg).boxed(),
+                    Space::new().width(10).boxed(),
+                    text(label).size(13).color(fg).boxed(),
                 ])
                 .align_y(iced::Alignment::Center),
             )
@@ -373,7 +374,7 @@ fn expanded_nav_btn<'a>(
         .style(rail_btn_style(is_active, kb_selected)),
     )
     .padding(Padding { top: 0.0, right: 8.0, bottom: 0.0, left: 8.0 })
-    .into()
+    .boxed()
 }
 
 impl Oryxis {
@@ -382,7 +383,7 @@ impl Oryxis {
     /// footer jumps to the management card in Settings → Terminal.
     pub(crate) fn view_local_shell_picker(&self) -> Element<'_, Message> {
         let entries = self.local_terminals.as_deref();
-        let mut list = column![].spacing(2);
+        let mut list = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(2);
 
         // Probe still in flight, show a hint instead of an empty
         // dropdown so the user knows the picker is loading rather
@@ -399,7 +400,7 @@ impl Oryxis {
                     right: 16.0,
                     bottom: 8.0,
                     left: 12.0,
-                }),
+                }).boxed(),
             );
         }
 
@@ -430,12 +431,12 @@ impl Oryxis {
                                     },
                                     ..Default::default()
                                 })
-                                .into(),
-                            Space::new().width(10).into(),
+                                .boxed(),
+                            Space::new().width(10).boxed(),
                             text(entry.label.clone())
                                 .size(13)
                                 .color(OryxisColors::t().text_primary)
-                                .into(),
+                                .boxed(),
                         ])
                         .align_y(iced::Alignment::Center),
                     )
@@ -467,7 +468,7 @@ impl Oryxis {
                         },
                         ..Default::default()
                     }
-                }),
+                }).boxed(),
             );
         }
         let header = container(
@@ -502,12 +503,12 @@ impl Oryxis {
                         iced_fonts::lucide::plus()
                             .size(14)
                             .color(OryxisColors::t().accent)
-                            .into(),
-                        Space::new().width(8).into(),
+                            .boxed(),
+                        Space::new().width(8).boxed(),
                         text(crate::i18n::t("add_terminal"))
                             .size(13)
                             .color(OryxisColors::t().accent)
-                            .into(),
+                            .boxed(),
                     ])
                     .align_y(iced::Alignment::Center),
                 )
@@ -574,6 +575,6 @@ impl Oryxis {
         )
         .on_press(Message::NoOp);
         // Bare card; `widgets::modal_overlay` (the caller) centers + scrims.
-        dialog.into()
+        dialog.boxed()
     }
 }

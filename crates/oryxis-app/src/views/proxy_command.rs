@@ -11,6 +11,7 @@
 //! decides whether a process runs, and two copies of that wording are
 //! two chances for one of them to describe it wrong.
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::{button, column, container, text, Column, Space};
 use iced::{Background, Border, Color, Element, Length, Padding};
@@ -32,14 +33,14 @@ use crate::widgets::dir_row;
 pub(crate) fn proxy_command_body(
     query: &oryxis_ssh::ProxyCommandQuery,
     endpoint: &str,
-) -> Column<'static, Message> {
+) -> Column<iced::Element<'static, Message>> {
     column![]
         .push(
             text(t("proxy_cmd_desc").replace("{host}", endpoint))
                 .size(13)
-                .color(OryxisColors::t().text_secondary),
+                .color(OryxisColors::t().text_secondary).boxed(),
         )
-        .push(Space::new().height(12))
+        .push(Space::new().height(12).boxed())
         .push(
             container(
                 text(query.command.clone())
@@ -57,19 +58,19 @@ pub(crate) fn proxy_command_body(
                     width: 1.0,
                 },
                 ..Default::default()
-            }),
+            }).boxed(),
         )
-        .push(Space::new().height(12))
+        .push(Space::new().height(12).boxed())
         .push(
             text(t("proxy_cmd_warning"))
                 .size(12)
-                .color(OryxisColors::t().text_muted),
+                .color(OryxisColors::t().text_muted).boxed(),
         )
-        .push(Space::new().height(12))
+        .push(Space::new().height(12).boxed())
         .push(
             text(t("proxy_cmd_question"))
                 .size(13)
-                .color(OryxisColors::t().text_secondary),
+                .color(OryxisColors::t().text_secondary).boxed(),
         )
 }
 
@@ -145,9 +146,9 @@ impl Oryxis {
                     Message::Ssh(SshMessage::SshProxyCommandReject),
                     false,
                 )
-                .into(),
+                .boxed(),
             ),
-            Space::new().width(8).into(),
+            Space::new().width(8).boxed(),
             self.modal_nav_slot(
                 RowAction::activate(Message::Ssh(SshMessage::SshProxyCommandOnce)),
                 8.0,
@@ -157,20 +158,20 @@ impl Oryxis {
                     Message::Ssh(SshMessage::SshProxyCommandOnce),
                     true,
                 )
-                .into(),
+                .boxed(),
             ),
-            Space::new().width(Length::Fill).into(),
+            Space::new().width(Length::Fill).boxed(),
             // Accent-filled: the ring needs the contrast colour or it
             // vanishes into the fill.
             self.modal_nav_slot(
                 RowAction::activate(Message::Ssh(SshMessage::SshProxyCommandAlways)),
                 8.0,
                 true,
-                always.into(),
+                always.boxed(),
             ),
         ])
         .align_y(iced::Alignment::Center)
-        .into()
+        .boxed()
     }
 
     /// Standalone card, for every dial that has no connect-progress
@@ -179,7 +180,7 @@ impl Oryxis {
     /// the two can never both claim the screen.
     pub(crate) fn view_proxy_command_modal(&self) -> Element<'_, Message> {
         let Some(query) = self.pending_proxy_command.as_ref() else {
-            return Space::new().into();
+            return Space::new().boxed();
         };
         let endpoint = format!("{}:{}", query.target_host, query.target_port);
         let card = container(
@@ -207,6 +208,6 @@ impl Oryxis {
         });
 
         // Bare card; `widgets::modal_overlay` (the caller) centers + scrims.
-        card.into()
+        card.boxed()
     }
 }

@@ -3,6 +3,7 @@
 //! file stays focused on the terminal pane + the sidebar shell. The shared
 //! `chat_header_btn` chrome helper stays in `terminal.rs` (pub(crate)).
 
+use iced::Widget as _;
 use iced::border::Radius;
 use iced::widget::button::Status as BtnStatus;
 use iced::widget::{button, column, container, scrollable, text, MouseArea, Space};
@@ -29,8 +30,8 @@ impl Oryxis {
         let new_btn = button(
             container(
                 dir_row(vec![
-                    iced_fonts::lucide::plus().size(12).color(c.button_text).into(),
-                    Space::new().width(6).into(),
+                    iced_fonts::lucide::plus().size(12).color(c.button_text).boxed(),
+                    Space::new().width(6).boxed(),
                     text(t("snippet_btn"))
                         .size(11)
                         .font(iced::Font {
@@ -38,7 +39,7 @@ impl Oryxis {
                             ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
                         })
                         .color(c.button_text)
-                        .into(),
+                        .boxed(),
                 ])
                 .align_y(iced::Alignment::Center),
             )
@@ -63,7 +64,7 @@ impl Oryxis {
         // control is recorded into the sidebar keyboard layer (display
         // order), so Tab reaches them.
         let stab = crate::state::TerminalSidebarTab::Snippets;
-        let header_row: iced::widget::Row<'_, Message> = if self.sidebar_search_open {
+        let header_row: iced::widget::Row<iced::Element<'_, Message>> = if self.sidebar_search_open {
             dir_row(vec![
                 self.sidebar_nav_slot(
                     crate::keynav::SidebarRow::input(iced::widget::Id::new(
@@ -77,9 +78,9 @@ impl Oryxis {
                         .padding(8)
                         .size(13)
                         .style(crate::widgets::rounded_input_style)
-                        .into(),
+                        .boxed(),
                 ),
-                Space::new().width(6).into(),
+                Space::new().width(6).boxed(),
                 self.sidebar_nav_slot(
                     crate::keynav::SidebarRow::button(Message::Ai(AiMessage::ToggleSidebarSearch)),
                     stab,
@@ -118,7 +119,7 @@ impl Oryxis {
                     ..Default::default()
                 }
             })
-            .into();
+            .boxed();
             let filter_btn = crate::views::terminal::icon_tooltip(
                 filter_btn,
                 t("snippet_tag_filter_tip"),
@@ -130,23 +131,23 @@ impl Oryxis {
                     crate::keynav::SidebarRow::button(Message::Snippet(SnippetMessage::ShowSnippetPanel)),
                     stab,
                     6.0,
-                    new_btn.into(),
+                    new_btn.boxed(),
                 ),
-                Space::new().width(Length::Fill).into(),
+                Space::new().width(Length::Fill).boxed(),
                 self.sidebar_nav_slot(
                     crate::keynav::SidebarRow::button(Message::Snippet(SnippetMessage::ToggleSnippetTagFilter)),
                     stab,
                     6.0,
                     filter_btn,
                 ),
-                Space::new().width(2).into(),
+                Space::new().width(2).boxed(),
                 self.sidebar_nav_slot(
                     crate::keynav::SidebarRow::button(Message::Ai(AiMessage::ToggleSidebarSort)),
                     stab,
                     6.0,
                     chat_header_btn(sort_glyph(self.snippets_sort), Message::Ai(AiMessage::ToggleSidebarSort)),
                 ),
-                Space::new().width(2).into(),
+                Space::new().width(2).boxed(),
                 self.sidebar_nav_slot(
                     crate::keynav::SidebarRow::button(Message::Ai(AiMessage::ToggleSidebarSearch)),
                     stab,
@@ -181,9 +182,9 @@ impl Oryxis {
                 button(
                     container(
                         dir_row(vec![
-                            iced_fonts::lucide::shield_check().size(13).color(c.accent).into(),
-                            Space::new().width(8).into(),
-                            text(t("apply_sudo_password")).size(12).color(c.text_primary).into(),
+                            iced_fonts::lucide::shield_check().size(13).color(c.accent).boxed(),
+                            Space::new().width(8).boxed(),
+                            text(t("apply_sudo_password")).size(12).color(c.text_primary).boxed(),
                         ])
                         .align_y(iced::Alignment::Center),
                     )
@@ -207,13 +208,13 @@ impl Oryxis {
                         ..Default::default()
                     }
                 })
-                .into(),
+                .boxed(),
             );
             container(btn)
                 .padding(Padding { top: 0.0, right: 12.0, bottom: 8.0, left: 12.0 })
-                .into()
+                .boxed()
         } else {
-            Space::new().into()
+            Space::new().boxed()
         };
 
         // Sort then filter, carrying original indices so Run/Paste/Edit
@@ -255,7 +256,7 @@ impl Oryxis {
             })
             .collect();
 
-        let mut list = column![]
+        let mut list = iced::widget::Column::<iced::Element<'_, _>>::new()
             .spacing(6)
             .padding(Padding { top: 0.0, right: 12.0, bottom: 12.0, left: 12.0 });
         // Rows are recorded into the sidebar keynav layer; the
@@ -280,11 +281,11 @@ impl Oryxis {
                         iced_fonts::lucide::arrow_left()
                             .size(13)
                             .color(c.accent)
-                            .into(),
-                        Space::new().width(8).into(),
-                        iced_fonts::lucide::folder().size(13).color(c.accent).into(),
-                        Space::new().width(6).into(),
-                        text(open.clone()).size(12).color(c.text_primary).into(),
+                            .boxed(),
+                        Space::new().width(8).boxed(),
+                        iced_fonts::lucide::folder().size(13).color(c.accent).boxed(),
+                        Space::new().width(6).boxed(),
+                        text(open.clone()).size(12).color(c.text_primary).boxed(),
                     ])
                     .align_y(iced::Alignment::Center),
                 )
@@ -308,7 +309,7 @@ impl Oryxis {
                 crate::keynav::SidebarRow::button(Message::Snippet(SnippetMessage::CloseSidebarSnippetGroup)),
                 stab,
                 8.0,
-                back.into(),
+                back.boxed(),
             ));
             snippet_rows = visible
                 .iter()
@@ -347,8 +348,8 @@ impl Oryxis {
             let folder = button(
                 container(
                     dir_row(vec![
-                        iced_fonts::lucide::folder().size(14).color(c.accent).into(),
-                        Space::new().width(8).into(),
+                        iced_fonts::lucide::folder().size(14).color(c.accent).boxed(),
+                        Space::new().width(8).boxed(),
                         column![
                             text(name.clone()).size(13).color(c.text_primary),
                             text(crate::i18n::snippet_count(count))
@@ -357,11 +358,11 @@ impl Oryxis {
                         ]
                         .spacing(2)
                         .width(Length::Fill)
-                        .into(),
+                        .boxed(),
                         iced_fonts::lucide::chevron_right()
                             .size(13)
                             .color(c.text_muted)
-                            .into(),
+                            .boxed(),
                     ])
                     .align_y(iced::Alignment::Center),
                 )
@@ -387,7 +388,7 @@ impl Oryxis {
                 crate::keynav::SidebarRow::list_button(Message::Snippet(SnippetMessage::OpenSidebarSnippetGroup(name))),
                 stab,
                 8.0,
-                folder.into(),
+                folder.boxed(),
             ));
         }
         let any_rows = !snippet_rows.is_empty();
@@ -443,7 +444,7 @@ impl Oryxis {
         // Always a Stack, the list at layer 0: wrapping it only while the
         // sort popover is up re-parented the list on every open and close,
         // which reset its scroll to the top.
-        let mut stack = iced::widget::Stack::new().push(base);
+        let mut stack = iced::widget::Stack::<iced::Element<'_, _>>::new().push(base.boxed());
         if self.sidebar_sort_open {
             use crate::state::{ListSort, SortMenuKind};
             let menu = container(column![
@@ -502,10 +503,10 @@ impl Oryxis {
                 container(Space::new()).width(Length::Fill).height(Length::Fill),
             )
             .on_press(Message::Ai(AiMessage::ToggleSidebarSort))
-            .into();
-            stack = stack.push(backdrop).push(positioned);
+            .boxed();
+            stack = stack.push(backdrop).push(positioned.boxed());
         }
-        stack.into()
+        stack.boxed()
     }
 
     /// Compact New / Edit snippet form rendered inline in the Snippets
@@ -522,8 +523,8 @@ impl Oryxis {
 
         let header = dir_row(vec![
             chat_header_btn(iced_fonts::lucide::arrow_left(), Message::Snippet(SnippetMessage::HideSnippetPanel)),
-            Space::new().width(6).into(),
-            text(title).size(14).color(c.text_primary).into(),
+            Space::new().width(6).boxed(),
+            text(title).size(14).color(c.text_primary).boxed(),
         ])
         .align_y(iced::Alignment::Center);
 
@@ -533,7 +534,7 @@ impl Oryxis {
                 .padding(8)
                 .size(13)
                 .style(crate::widgets::rounded_input_style)
-                .into();
+                .boxed();
         // Same type-ahead combo as the host editor's Parent Group and
         // the vault snippet panel: existing groups filter as you type,
         // a new name is accepted as-is.
@@ -550,14 +551,14 @@ impl Oryxis {
         .input_style(crate::widgets::rounded_input_style)
         .menu_style(crate::widgets::combo_menu_style)
         .width(Length::Fill)
-        .into();
+        .boxed();
         let tags_input: Element<'_, Message> =
             iced::widget::text_input(t("tags_placeholder"), &self.snippet_form.tags_input)
                 .on_input(|v| Message::Snippet(SnippetMessage::SnippetTagsChanged(v)))
                 .padding(8)
                 .size(13)
                 .style(crate::widgets::rounded_input_style)
-                .into();
+                .boxed();
         // Multi-line, auto-grows with content; container caps the height
         // (~8 lines) and then it scrolls internally.
         let command_input: Element<'_, Message> = container(
@@ -570,12 +571,12 @@ impl Oryxis {
                 .style(crate::widgets::rounded_editor_style),
         )
         .height(Length::Shrink.max(180.0))
-        .into();
+        .boxed();
 
         let error: Element<'_, Message> = if let Some(err) = &self.snippet_form.error {
-            text(err.clone()).size(11).color(c.error).into()
+            text(err.clone()).size(11).color(c.error).boxed()
         } else {
-            Space::new().into()
+            Space::new().boxed()
         };
 
         let save = button(
@@ -640,10 +641,10 @@ impl Oryxis {
                 },
                 ..Default::default()
             });
-            form = form.push(Space::new().height(8)).push(delete);
+            form = form.push(Space::new().height(8).boxed()).push(delete.boxed());
         }
 
-        form.width(Length::Fill).height(Length::Fill).into()
+        form.width(Length::Fill).height(Length::Fill).boxed()
     }
 }
 
@@ -665,7 +666,7 @@ fn sidebar_placeholder<'a>(label: &'a str) -> Element<'a, Message> {
         .center_x(Length::Fill)
         .padding(Padding { top: 40.0, right: 12.0, bottom: 0.0, left: 12.0 })
         .width(Length::Fill)
-        .into()
+        .boxed()
 }
 
 /// An icon action with a tooltip, used for the floating snippet-row
@@ -690,7 +691,7 @@ fn action_btn<'a>(
             }),
         iced::widget::tooltip::Position::Top,
     )
-    .into()
+    .boxed()
 }
 
 /// One row in the Snippets tab. Label + a single ellipsized line of the
@@ -728,7 +729,7 @@ fn snippet_row<'a>(
     // The category marker doubles as the per-host memory: "installed
     // here" is a hint, not a lock, so the row stays runnable.
     if let Some(ran) = install {
-        info = info.push(match ran {
+        info = info.push((match ran {
             Some(at) => text(format!(
                 "{} \u{b7} {}",
                 t("snippet_installed_here"),
@@ -737,7 +738,7 @@ fn snippet_row<'a>(
             .size(10)
             .color(c.success),
             None => text(t("snippet_install_badge")).size(10).color(c.warning),
-        });
+        }).boxed());
     }
 
     let card = container(info)
@@ -760,24 +761,24 @@ fn snippet_row<'a>(
             .align_y(iced::Alignment::Center),
         )
         .padding(Padding { top: 3.0, right: 5.0, bottom: 3.0, left: 5.0 })
-        .style(|_| container::Style {
+        .style(|_: &iced::Theme| container::Style {
             background: Some(Background::Color(OryxisColors::t().bg_selected)),
             border: Border { radius: Radius::from(8.0), ..Default::default() },
             ..Default::default()
         });
-        let overlay = container(actions)
+        let overlay = container::<_, iced::Theme>(actions)
             .width(Length::Fill)
             .height(Length::Fill)
             .align_x(iced::alignment::Horizontal::Right)
             .align_y(iced::alignment::Vertical::Center)
             .padding(Padding { top: 0.0, right: 6.0, bottom: 0.0, left: 0.0 });
-        iced::widget::Stack::new().push(card).push(overlay).into()
+        iced::widget::Stack::<iced::Element<'_, _>>::new().push(card.boxed()).push(overlay.boxed()).boxed()
     } else {
-        card.into()
+        card.boxed()
     };
 
     MouseArea::new(row_el)
         .on_enter(Message::Tabs(TabsMessage::SnippetCardHovered(idx)))
         .on_exit(Message::Tabs(TabsMessage::SnippetCardUnhovered(idx)))
-        .into()
+        .boxed()
 }

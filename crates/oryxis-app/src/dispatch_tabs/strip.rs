@@ -87,7 +87,7 @@ impl Oryxis {
                 // we translate them via scroll_by here. Sign flip so
                 // wheel-down brings later tabs into view (matches the
                 // direction Chrome/VS Code use).
-                return iced::widget::operation::scroll_by(
+                return iced::widget::operation::scrollable::scroll_by(
                     iced::widget::Id::new("tab-scroll"),
                     iced::widget::scrollable::AbsoluteOffset { x: -dy, y: 0.0 },
                     iced::widget::operation::Animation::Instant,

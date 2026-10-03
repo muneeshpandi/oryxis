@@ -192,7 +192,7 @@ impl Oryxis {
             // Shrink height, NEVER .height(0): a zero-FIXED axis makes the
             // child void and the fork's push() drops it, silently deleting
             // this Fill spacer (and un-pinning the action cluster).
-            return Space::new().width(Length::Fill).into();
+            return Space::new().width(Length::Fill).boxed();
         }
         // Force the icon whenever the floating field owns the input id, so
         // the inline field is never mounted at the same time (duplicate
@@ -207,12 +207,12 @@ impl Oryxis {
             // stays pinned right. A bare `dir_row` is a `Shrink` Row, which
             // would swallow the inner Fill spacer, so force Fill here.
             return crate::widgets::dir_row(vec![
-                Space::new().width(Length::Fill).into(),
+                Space::new().width(Length::Fill).boxed(),
                 crate::widgets::toolbar_search_icon(overlay_open),
             ])
             .align_y(iced::Alignment::Center)
             .width(Length::Fill)
-            .into();
+            .boxed();
         }
         self.vault_search_field()
     }
@@ -226,7 +226,7 @@ impl Oryxis {
             // Shrink height, NEVER .height(0): a zero-FIXED axis makes the
             // child void and the fork's push() drops it, silently deleting
             // this Fill spacer (and un-pinning the action cluster).
-            return Space::new().width(Length::Fill).into();
+            return Space::new().width(Length::Fill).boxed();
         }
         // `ph_key` / `id` are static; only `value` borrows from `self`,
         // so they're kept in separate bindings (a shared tuple lifetime
@@ -277,7 +277,7 @@ impl Oryxis {
                     self.monitor_dash.search.as_str(),
                     |v| Message::Monitor(crate::app::MonitorMessage::DashSearchChanged(v)),
                 ),
-                _ => return Space::new().into(),
+                _ => return Space::new().boxed(),
             };
         let id: &'static str = match self.cur_view() {
             View::Dashboard => "search-dashboard",
@@ -333,7 +333,7 @@ impl Oryxis {
         // and iced rebuilds the subtree state on a type change, which
         // drops the input's focus mid-typing (reported on `rpi@1`, the
         // first keystroke where `user@host` parses).
-        let mut stack = iced::widget::Stack::new().push(field).width(Length::Fill);
+        let mut stack = iced::widget::Stack::<iced::Element<'_, _>>::new().push(field.boxed()).width(Length::Fill);
         if quick_hint {
             // Same floating-chip pattern as the picker's hotkey affordance:
             // a Stack overlay, so the chip takes no clicks and focus-on-click
@@ -358,7 +358,7 @@ impl Oryxis {
                 .align_x(iced::alignment::Horizontal::Right)
                 .align_y(iced::alignment::Vertical::Center)
                 .padding(Padding { top: 0.0, right: 10.0, bottom: 0.0, left: 0.0 });
-            stack = stack.push(chip_overlay);
+            stack = stack.push(chip_overlay.boxed());
         }
         if content_chip {
             // Toggle chip: accent-filled while on (like the tag-filter
@@ -401,7 +401,7 @@ impl Oryxis {
             let chip = crate::views::terminal::icon_tooltip(
                 self.keynav_toolbar_ring(
                     crate::keynav::ToolbarItem::SearchContent,
-                    chip_btn.into(),
+                    chip_btn.boxed(),
                 ),
                 crate::i18n::t("history_search_content"),
             );
@@ -425,9 +425,9 @@ impl Oryxis {
                 .align_x(align)
                 .align_y(iced::alignment::Vertical::Center)
                 .padding(pad);
-            stack = stack.push(chip_overlay);
+            stack = stack.push(chip_overlay.boxed());
         }
-        stack.into()
+        stack.boxed()
     }
 
     /// Workspace mode contextual sub-nav: horizontal pill row with
@@ -489,7 +489,7 @@ impl Oryxis {
                     ..Default::default()
                 }
             })
-            .into();
+            .boxed();
             // Keyboard focus ring (matches the pill's 6px radius;
             // always wrapped, see select_ring_opt).
             crate::widgets::select_ring_opt(
@@ -518,17 +518,17 @@ impl Oryxis {
                 iced_fonts::lucide::lock()
                     .size(13)
                     .color(OryxisColors::t().accent)
-                    .into(),
-                Space::new().width(6).into(),
+                    .boxed(),
+                Space::new().width(6).boxed(),
                 text("Personal")
                     .size(12)
                     .color(OryxisColors::t().text_primary)
-                    .into(),
-                Space::new().width(6).into(),
+                    .boxed(),
+                Space::new().width(6).boxed(),
                 iced_fonts::lucide::chevron_down()
                     .size(12)
                     .color(OryxisColors::t().text_muted)
-                    .into(),
+                    .boxed(),
             ])
             .align_y(iced::Alignment::Center),
         )
@@ -543,7 +543,7 @@ impl Oryxis {
             },
             ..Default::default()
         })
-        .into();
+        .boxed();
 
         // Settings gear pinned at the trailing edge, outside the
         // scrollable, so it never scrolls out of reach (mirrors how the
@@ -578,7 +578,7 @@ impl Oryxis {
                 ..Default::default()
             }
         })
-        .into();
+        .boxed();
 
         // "…" overflow button (priority+): opens the menu with the
         // destinations that didn't fit. Sits right after the visible
@@ -588,7 +588,7 @@ impl Oryxis {
         // out of the row and the settings gear would change child index
         // whenever the "…" appears (see main_layout's slot skeleton note).
         let overflow_btn: Element<'_, Message> = if overflow_defs.is_empty() {
-            Space::new().into()
+            Space::new().boxed()
         } else {
             let open = self.panels.subnav_overflow;
             button(
@@ -620,18 +620,18 @@ impl Oryxis {
                     ..Default::default()
                 }
             })
-            .into()
+            .boxed()
         };
 
         let mut row_items: Vec<Element<'_, Message>> = Vec::new();
         // Vault switcher chip only when there's more than one vault.
         if self.show_vault_switcher() {
             row_items.push(vault_chip);
-            row_items.push(Space::new().width(8).into());
+            row_items.push(Space::new().width(8).boxed());
         }
-        row_items.push(pills.into());
+        row_items.push(pills.boxed());
         row_items.push(overflow_btn);
-        row_items.push(Space::new().width(Length::Fill).into());
+        row_items.push(Space::new().width(Length::Fill).boxed());
         row_items.push(settings_gear);
         let row_inner = dir_row(row_items).align_y(iced::Alignment::Center);
         // Vertical padding equals the left padding so the chip sits with
@@ -651,7 +651,7 @@ impl Oryxis {
                 ..Default::default()
             });
         // No bottom separator: the gradient already blends into content.
-        row_content.into()
+        row_content.boxed()
     }
 
     /// Estimated rendered width of one sub-nav pill, by label key.
