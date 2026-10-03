@@ -194,15 +194,22 @@ impl Oryxis {
             column![
                 // A quick-connect label embeds `user@host`, so the label
                 // is redacted like every other string on this screen.
+                // Both lines break inside a word: a long hostname or an
+                // IPv6 literal is one unbreakable token, and it would
+                // run over the trailing "Edit Host" instead of wrapping.
                 text(self.redact_progress(progress, &progress.label))
-                    .size(16).color(OryxisColors::t().text_primary),
+                    .size(16).color(OryxisColors::t().text_primary)
+                    .wrapping(iced::widget::text::Wrapping::WordOrGlyph),
                 Space::new().height(2),
                 text(self.redact_progress(progress, &progress.hostname))
-                    .size(12).color(OryxisColors::t().text_muted),
+                    .size(12).color(OryxisColors::t().text_muted)
+                    .wrapping(iced::widget::text::Wrapping::WordOrGlyph),
             ]
             .width(Length::Fill)
             .align_x(crate::widgets::dir_align_x())
             .into(),
+            // Keeps a wrapped title off the trailing controls.
+            Space::new().width(12).into(),
         ];
         if self.progress_privacy_on(progress) {
             // Same eye affordance as Logs / Known Hosts, so the masked
