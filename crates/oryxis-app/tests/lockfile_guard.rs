@@ -2,8 +2,9 @@
 //!
 //! `gpu-allocator 0.28` accepts `windows >=0.58,<=0.62`, a range that
 //! spans semver-incompatible majors, so a full re-resolution is free
-//! to unify it onto the `windows 0.61` that tauri-winrt-notification
-//! (via notify-rust) pins. wgpu-hal 29 compiles its DX12 suballocator
+//! to unify it onto any other `windows` major the lock happens to
+//! carry (0.61 came in through notify-rust's Windows backend until
+//! that moved to 0.62). wgpu-hal 29 compiles its DX12 suballocator
 //! against `windows 0.62` types, so that unification breaks the
 //! Windows build (ID3D12Device / D3D12_RESOURCE_DESC mismatches),
 //! and only on Windows, which local Linux gates never see. It has
@@ -85,9 +86,9 @@ fn gpu_allocator_binds_windows_062() {
     assert!(
         resolved.starts_with("0.62"),
         "gpu-allocator resolved onto windows {resolved} instead of 0.62; \
-         this breaks the Windows DX12 build against wgpu-hal 29. Fix with \
-         `cargo update -p tauri-winrt-notification` (or re-pin the edge in \
-         Cargo.lock) before pushing."
+         this breaks the Windows DX12 build against wgpu-hal 29. Find the \
+         package that brought the other major into Cargo.lock and re-pin \
+         the edge before pushing."
     );
 }
 

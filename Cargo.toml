@@ -209,17 +209,3 @@ serialport = { git = "https://github.com/wilsonglasser/serialport-rs" }
 # so this needs no patch of ours; it points straight at them while we
 # validate, and becomes a fork of our own only if it has to stay.
 arboard = { git = "https://github.com/1Password/arboard" }
-
-# The last edge holding `windows` 0.61 in the lock: notify-rust (our
-# non-Windows notification backend) declares winrt-notification ^0.7, and
-# the 0.7 line pins `windows` 0.61. The edge never compiles here, since
-# notify-rust is cfg(not(windows)), but the LOCK is the union of every
-# target, so 0.61 sat there available for the resolver to hand to
-# gpu-allocator, whose own range (>=0.53, <=0.62) accepts either. That is
-# the exact accident 25ae5b27 and 967d7c5d fixed by hand, and a plain
-# `cargo update` re-created it. Our fork is 0.7.3 with `windows` bumped to
-# 0.62 and `on_activated` keeping its `FnMut` bound, so it satisfies ^0.7
-# honestly; upstream's own 0.8 does the bump but breaks that bound. With
-# 0.61 out of the lock the wrong answer stops existing, which beats
-# detecting it after the fact.
-tauri-winrt-notification = { git = "https://github.com/wilsonglasser/winrt-notification", branch = "windows-0.62" }

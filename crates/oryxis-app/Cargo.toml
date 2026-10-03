@@ -199,14 +199,13 @@ libc = "0.2"
 
 # Native OS notifications everywhere except Windows. On Windows this crate
 # is just a thin wrapper over `tauri-winrt-notification`, so the Windows
-# half calls that backend directly below rather than through it. The 0.7
-# line notify-rust requires used to pin `windows` 0.61, a second major next
-# to the 0.62 that wgpu-hal, gpu-allocator and our own Win32 code use,
-# which is what broke the Windows build in 25ae5b27; the patch in the root
-# manifest moves that line to 0.62, so the requirement no longer costs
-# anything and this stays cfg-gated only because the direct call is better.
+# half calls that backend directly below rather than through it. Since
+# 4.18.1 notify-rust requires the backend's 0.8 line, which sits on the
+# same `windows` 0.62 as wgpu-hal, gpu-allocator and our own Win32 code,
+# so the requirement costs nothing and this stays cfg-gated only because
+# the direct call is better.
 [target.'cfg(not(target_os = "windows"))'.dependencies]
-notify-rust = "4"
+notify-rust = "4.18.1"
 
 # ShellExecuteW for the auto-updater. CreateProcess (what
 # `Command::new().spawn()` uses) ignores the installer manifest and fails
@@ -246,12 +245,10 @@ windows = { version = "0.62", features = [
 ] }
 # The toast backend notify-rust itself uses on Windows, called directly so
 # the toast carries our AppUserModelID instead of the `POWERSHELL_APP_ID`
-# fallback the wrapper picks. Same 0.7 line notify-rust requires, patched
-# in the root manifest onto `windows` 0.62, so one version of this crate
-# serves both edges and the build has a single major of `windows`. Taking
-# upstream's 0.8 here instead would leave two versions of this crate in the
-# graph and 0.61 still in the lock. See the note on the not(windows) block.
-tauri-winrt-notification = "0.7"
+# fallback the wrapper picks. Same 0.8 line notify-rust requires, so one
+# version of this crate serves both edges and the build has a single major
+# of `windows`. See the note on the not(windows) block.
+tauri-winrt-notification = "0.8"
 # Cross-platform tray icon, but only built on Windows. macOS and
 # Linux need different lifecycle conventions (LSUIElement on macOS,
 # SNI/AppIndicator on Linux), deferred to a later release.
