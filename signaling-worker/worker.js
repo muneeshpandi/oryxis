@@ -34,6 +34,12 @@
  *                   sender so the client can demux multi-peer streams
  *     Response 204: no message landed within wait_ms
  *
+ *   Every long-poll window costs KV `list` requests (about 25 per
+ *   110 s window), far past the Workers Free allowance of 1,000 per
+ *   day for a single idle device. Set the `RELAY_DISABLED` variable
+ *   to "true" to serve discovery only: the relay routes then answer
+ *   404, which clients treat as permanent and stop polling.
+ *
  * All requests require: Authorization: Bearer <SIGNALING_TOKEN>
  * Set the token via: wrangler secret put SIGNALING_TOKEN
  *
@@ -171,6 +177,12 @@ export default {
       // ── Relay (KV-backed queue, no TOFU race profile) ──
 
       const relayMatch = path.match(/^\/relay\/([^/]+)\/inbox$/);
+      if (relayMatch && env.RELAY_DISABLED === "true") {
+        // 404 is the status the client reads as "this relay will
+        // never serve an inbox", so it stops polling instead of
+        // backing off and coming back.
+        return json({ error: "Relay disabled" }, 404, corsHeaders);
+      }
       if (relayMatch) {
         const recipientId = relayMatch[1];
         if (!isValidUuid(recipientId)) {

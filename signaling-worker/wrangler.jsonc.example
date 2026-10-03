@@ -7,6 +7,11 @@
     "enabled": true
   },
 
+  // Uncomment on the Workers Free plan: the relay long-poll spends
+  // KV list requests far past the free daily allowance, and with
+  // this set the Worker serves discovery only (relay routes 404).
+  // "vars": { "RELAY_DISABLED": "true" },
+
   // To deploy:
   // 1. cp wrangler.jsonc.example wrangler.jsonc
   // 2. wrangler login
@@ -45,8 +50,10 @@
       // First migration: introduce the DeviceRegistry class. Bumping
       // the schema later (rename, delete) requires a new tag entry,
       // never edit `v1` in place.
+      // SQLite-backed: the only Durable Object storage backend the
+      // Workers Free plan accepts.
       "tag": "v1",
-      "new_classes": ["DeviceRegistry"]
+      "new_sqlite_classes": ["DeviceRegistry"]
     }
   ]
 }
