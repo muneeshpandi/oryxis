@@ -136,7 +136,7 @@ impl Oryxis {
         let pins_here = side && self.prefs.pinned_tabs_top_bar;
 
         let mut cluster_items: Vec<Element<'_, Message>> = Vec::new();
-        if self.active_tab.is_some() {
+        if self.cur_active_tab().is_some() {
             for toggle_side in self.sidebar_toggle_sides() {
                 cluster_items.push(sidebar_btn(toggle_side, SIDEBAR_BUTTON_WIDTH, BAR_HEIGHT));
                 cluster_items.push(Space::new().width(2).into());
@@ -205,7 +205,7 @@ impl Oryxis {
                 &ctx.privacy_terms,
             )
         {
-            let gx = (self.mouse_position.x - ghost_w / 2.0).max(0.0);
+            let gx = (self.cur_mouse().x - ghost_w / 2.0).max(0.0);
             let positioned: Element<'_, Message> = iced::widget::Column::new()
                 .push(Space::new().height(7.0))
                 .push(
@@ -320,7 +320,7 @@ impl Oryxis {
         let mut session_widths = vec![TAB_MIN_WIDTH; self.tabs.len()];
         let mut max_inactive_content = TAB_MIN_WIDTH;
         for (i, tab) in self.tabs.iter().enumerate() {
-            if self.active_tab == Some(i) {
+            if self.cur_active_tab() == Some(i) {
                 session_widths[i] = TAB_NATURAL_WIDTH;
             } else {
                 let cw = tab_content_width(
@@ -402,7 +402,7 @@ impl Oryxis {
         if crate::views::chrome::NATIVE_FRAME {
             return iced::widget::Row::new();
         }
-        let max_icon = if self.window_maximized {
+        let max_icon = if self.cur_maximized() {
             iced_fonts::codicon::chrome_restore()
         } else {
             iced_fonts::codicon::chrome_maximize()
@@ -462,7 +462,7 @@ impl Oryxis {
     /// used to be. `bottom` is the bottom-docked strip, whose burger
     /// and chrome live in the slim top bar.
     fn approx_strip_width(&self, bottom: bool) -> f32 {
-        let toggle_count = if self.active_tab.is_some() {
+        let toggle_count = if self.cur_active_tab().is_some() {
             self.sidebar_toggle_sides().len()
         } else {
             0
@@ -479,7 +479,7 @@ impl Oryxis {
             toggle_count,
             window_controls_width(self.traffic_light_inset()),
         );
-        (self.window_size.width - reserved - area_tabs_total - 12.0).max(120.0)
+        (self.cur_window_size().width - reserved - area_tabs_total - 12.0).max(120.0)
     }
 
     /// Build the tab strip bar. `bottom == false` is the classic combined
@@ -488,7 +488,7 @@ impl Oryxis {
     /// half living in `view_top_chrome_bar` instead.
     fn tab_strip_bar(&self, bottom: bool) -> Element<'_, Message> {
         let n_tabs = self.tabs.len();
-        let active_idx = self.active_tab;
+        let active_idx = self.cur_active_tab();
 
         // For compaction we need a rough estimate of the strip's width
         // (active tab natural, inactives shrink to fit).
@@ -768,7 +768,7 @@ impl Oryxis {
             // #102) only make sense inside a connection tab, so skip
             // them on the navigation views where there's no terminal
             // session to attach a panel to.
-            if self.active_tab.is_some() {
+            if self.cur_active_tab().is_some() {
                 for toggle_side in self.sidebar_toggle_sides() {
                     cluster_items
                         .push(sidebar_btn(toggle_side, SIDEBAR_BUTTON_WIDTH, BAR_HEIGHT));
@@ -813,7 +813,7 @@ impl Oryxis {
             .then(|| self.strip_drag_ghost_el(drag_uniform_w, compact_pins, &ctx.privacy_terms))
             .flatten();
         if let Some((ghost, ghost_w)) = drag_ghost_el {
-            let gx = (self.mouse_position.x - ghost_w / 2.0).max(0.0);
+            let gx = (self.cur_mouse().x - ghost_w / 2.0).max(0.0);
             let positioned: Element<'_, Message> = iced::widget::Column::new()
                 .push(Space::new().height(7.0))
                 .push(
@@ -930,13 +930,13 @@ impl Oryxis {
             }
         };
         let mut order: Vec<StripEntry> = Vec::new();
-        order.extend(self.tab_order.iter().filter(|r| pinned_of(r)).filter_map(to_entry));
-        order.extend(self.tab_order.iter().filter(|r| !pinned_of(r)).filter_map(to_entry));
+        order.extend(self.cur_tab_order().iter().filter(|r| pinned_of(r)).filter_map(to_entry));
+        order.extend(self.cur_tab_order().iter().filter(|r| !pinned_of(r)).filter_map(to_entry));
         order
     }
 
     pub(crate) fn tab_scroll_to_active(&self) -> iced::Task<Message> {
-        let Some(active_idx) = self.active_tab else {
+        let Some(active_idx) = self.cur_active_tab() else {
             return iced::Task::none();
         };
         if self.tabs.is_empty() {
@@ -964,7 +964,7 @@ impl Oryxis {
                 .filter(|&&e| !(pins_top && self.strip_entry_pinned(e)))
                 .position(|&e| e == StripEntry::Terminal(active_idx))
                 .unwrap_or(active_idx) as f32;
-            let viewport_h = (self.window_size.height - BAR_HEIGHT - 40.0).max(120.0);
+            let viewport_h = (self.cur_window_size().height - BAR_HEIGHT - 40.0).max(120.0);
             let y = (preceding * row_pitch - viewport_h / 2.0 + row_pitch / 2.0).max(0.0);
             return iced::widget::operation::scroll_to(
                 iced::widget::Id::new("tab-scroll"),

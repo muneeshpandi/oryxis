@@ -249,7 +249,7 @@ impl Oryxis {
 
                 let cp_id = cp.id;
                 cloud_nav.push(crate::keynav::NavItem::CloudAccount(cp_id));
-                let kb_selected = self.keynav.selected_in(crate::keynav::FocusZone::Content)
+                let kb_selected = self.kn().selected_in(crate::keynav::FocusZone::Content)
                     == Some(crate::keynav::NavItem::CloudAccount(cp_id));
                 // Floating ⋮ kebab in a Stack overlay (trailing corner)
                 // so it doesn't take inline width inside the dir_row.
@@ -349,7 +349,7 @@ impl Oryxis {
             let nav_width = self.vault_rail_width();
             let panel_width = if self.cloud_form.visible { self.panel_width } else { 0.0 };
             let available =
-                (self.window_size.width
+                (self.cur_window_size().width
                 - nav_width
                 - self.side_strip_reserve()
                 - panel_width

@@ -99,7 +99,7 @@ impl Oryxis {
                 // the terminal surface is the one on screen; the hybrid Files
                 // (SFTP) mode is excluded, since it has its own remote filter,
                 // reached through `active_view_search_id` below.
-                if let Some(tab) = self.active_tab.and_then(|i| self.tabs.get(i))
+                if let Some(tab) = self.cur_active_tab().and_then(|i| self.tabs.get(i))
                     && !tab.files_mode
                 {
                     return self.update(Message::Terminal(TerminalMessage::TerminalSearchOpen));

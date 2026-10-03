@@ -97,8 +97,8 @@ impl Oryxis {
         // Close Others or Reconnect focus a tab without touching
         // `active_view`), so the gate is the same expression the
         // keyboard / mouse / palette routers use, not a per-view check.
-        let terminal_on_screen = self.active_view == crate::state::View::Terminal
-            || self.active_tab.is_some();
+        let terminal_on_screen = self.cur_view() == crate::state::View::Terminal
+            || self.cur_active_tab().is_some();
         if !terminal_on_screen {
             return Task::none();
         }
@@ -110,11 +110,11 @@ impl Oryxis {
         let connecting_here = self
             .connecting
             .as_ref()
-            .is_some_and(|cp| Some(cp.tab_idx) == self.active_tab);
+            .is_some_and(|cp| Some(cp.tab_idx) == self.cur_active_tab());
         if connecting_here {
             return Task::none();
         }
-        let Some(tab_idx) = self.active_tab else {
+        let Some(tab_idx) = self.cur_active_tab() else {
             return Task::none();
         };
         let Some(tab) = self.tabs.get(tab_idx) else {
@@ -139,7 +139,7 @@ impl Oryxis {
             .map(|p| (p.id, crate::state::TerminalTab::pane_hit_bounds(p, headers)))
             .collect();
         let pane_id =
-            pane_under(self.mouse_position, &rects).unwrap_or_else(|| tab.active().id);
+            pane_under(self.cur_mouse(), &rects).unwrap_or_else(|| tab.active().id);
         let Some(pane) = tab.pane_grid.panes.values().find(|p| p.id == pane_id) else {
             return Task::none();
         };

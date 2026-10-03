@@ -31,7 +31,7 @@ impl Oryxis {
         //    the pending capture so the next keystroke doesn't
         //    silently rebind something on another screen.
         if self.editing_hotkey.is_some() {
-            let on_shortcuts_editor = self.active_view == View::Settings
+            let on_shortcuts_editor = self.cur_view() == View::Settings
                 && self.settings_section == crate::state::SettingsSection::Shortcuts;
             if !on_shortcuts_editor {
                 self.editing_hotkey = None;
@@ -115,7 +115,7 @@ impl Oryxis {
         //    the same build. `active_tab` is cleared on every
         //    navigation into the vault / settings / SFTP surfaces, so
         //    it is exactly the "keys route to a PTY" signal.
-        let in_terminal = self.active_view == View::Terminal || self.active_tab.is_some();
+        let in_terminal = self.cur_view() == View::Terminal || self.cur_active_tab().is_some();
         // Whether the PTY actually owns plain control sequences right
         // now: a hybrid tab in Files mode hides the terminal and gates
         // its byte routing off, so Ctrl+letter bindings (Ctrl+F search)
@@ -427,9 +427,9 @@ impl Oryxis {
                 // ClosePane already falls back to closing the whole
                 // tab when it's the last pane. Elsewhere there are no
                 // panes, so close the active tab directly.
-                if self.active_view == View::Terminal || self.active_tab.is_some() {
+                if self.cur_view() == View::Terminal || self.cur_active_tab().is_some() {
                     Task::done(Message::Terminal(TerminalMessage::ClosePane(None)))
-                } else if let Some(idx) = self.active_tab {
+                } else if let Some(idx) = self.cur_active_tab() {
                     Task::done(Message::Tabs(TabsMessage::CloseTab(idx)))
                 } else {
                     Task::none()
@@ -445,7 +445,7 @@ impl Oryxis {
                     .map(|c| c.id)
                 {
                     Task::done(Message::Editor(EditorMessage::EditConnection(id)))
-                } else if let Some(qid) = self.active_tab.and_then(|i| {
+                } else if let Some(qid) = self.cur_active_tab().and_then(|i| {
                     self.tabs.get(i).and_then(|t| match &t.active().origin {
                         crate::state::PaneOrigin::QuickHost(qid) => Some(*qid),
                         _ => None,
@@ -482,7 +482,7 @@ impl Oryxis {
                 // the whole round trip, which is what a split needs and
                 // what a zoomed console needs even more (there the other
                 // pane is not on screen to be clicked).
-                if let Some(idx) = self.active_tab
+                if let Some(idx) = self.cur_active_tab()
                     && self.tabs.get(idx).is_some_and(|t| t.console_pane().is_some())
                 {
                     let target = match self.tab_surface(idx) {
@@ -495,7 +495,7 @@ impl Oryxis {
                     .active_tab
                     .and_then(|idx| self.tab_console_target(idx))
                 {
-                    Some((conn, dir)) => match self.active_tab {
+                    Some((conn, dir)) => match self.cur_active_tab() {
                         Some(idx) => self.open_sftp_console_in_tab(idx, conn, dir),
                         None => self.open_sftp_console(conn, dir),
                     },
@@ -632,7 +632,7 @@ impl Oryxis {
             },
             // Hybrid tab: Terminal <-> Files for the focused tab (the
             // handler no-ops for tabs without a live SSH session).
-            ToggleTabFiles => match self.active_tab {
+            ToggleTabFiles => match self.cur_active_tab() {
                 Some(idx) => Task::done(Message::Tabs(TabsMessage::ToggleTabFilesMode(idx))),
                 None => Task::none(),
             },
@@ -657,7 +657,7 @@ impl Oryxis {
             },
             // Broadcast input: arm / disarm fan-out across the focused
             // tab's panes.
-            ToggleBroadcastInput => match self.active_tab {
+            ToggleBroadcastInput => match self.cur_active_tab() {
                 Some(idx) => Task::done(Message::Terminal(TerminalMessage::ToggleTabBroadcast(idx))),
                 None => Task::none(),
             },
@@ -666,7 +666,7 @@ impl Oryxis {
             // On a split tab that handler restarts the focused PANE
             // (issue #208); the choice lives there so this chord and the
             // menu row cannot disagree about it.
-            ReconnectTab => match self.active_tab {
+            ReconnectTab => match self.cur_active_tab() {
                 Some(idx) => Task::done(Message::Tabs(TabsMessage::ReconnectTab(idx))),
                 None => Task::none(),
             },
@@ -704,7 +704,7 @@ impl Oryxis {
                 let forward = matches!(action, VaultSectionNext);
                 let Some(next) = crate::keynav::movement::linear_move(
                     &sections,
-                    Some(self.active_view),
+                    Some(self.cur_view()),
                     forward,
                 ) else {
                     return Task::none();

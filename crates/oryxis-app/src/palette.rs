@@ -227,7 +227,7 @@ impl Oryxis {
         // ── Generated hotkey rows ──────────────────────────────────────
         // Every editable action (drops the 3 digit/arrow families) minus
         // the palette's own opener (activating it would just re-open).
-        let in_terminal = self.active_view == View::Terminal || self.active_tab.is_some();
+        let in_terminal = self.cur_view() == View::Terminal || self.cur_active_tab().is_some();
         for &action in HotkeyAction::all() {
             if !action.primary_editable() || action == HotkeyAction::ShowCommandPalette {
                 continue;

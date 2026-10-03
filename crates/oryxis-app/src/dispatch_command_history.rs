@@ -265,7 +265,7 @@ impl Oryxis {
         // one), and yanking a background pane's viewport out from under
         // a reader is the bug scroll-on-input exists to avoid. Same gate
         // `snap_tab_to_live_edge` documents for the AI-exec path.
-        let snap = self.prefs.scrollback_reset_keypress && self.active_tab == Some(tab_idx);
+        let snap = self.prefs.scrollback_reset_keypress && self.cur_active_tab() == Some(tab_idx);
         if self.tabs.get(tab_idx).is_some_and(|t| t.files_mode) {
             return;
         }
@@ -292,7 +292,7 @@ impl Oryxis {
     /// bug this whole path exists to avoid. So the snap is gated on the tab
     /// being the visible terminal.
     pub(crate) fn snap_tab_to_live_edge(&self, tab_idx: usize) {
-        if !self.prefs.scrollback_reset_keypress || self.active_tab != Some(tab_idx) {
+        if !self.prefs.scrollback_reset_keypress || self.cur_active_tab() != Some(tab_idx) {
             return;
         }
         if let Some(tab) = self.tabs.get(tab_idx)

@@ -38,7 +38,7 @@ impl Oryxis {
                     // Without this the flag sticks true and silently
                     // disables Ctrl+Tab MRU, IME routing and sidebar
                     // keynav. The tab keeps running in the background.
-                    if self.active_tab.is_some() {
+                    if self.cur_active_tab().is_some() {
                         self.active_tab = None;
                         self.active_view = crate::state::View::Dashboard;
                     }

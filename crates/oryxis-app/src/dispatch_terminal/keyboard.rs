@@ -69,8 +69,8 @@ impl Oryxis {
                 {
                     tracing::debug!(
                         ?key,
-                        view = ?self.active_view,
-                        tab = ?self.active_tab,
+                        view = ?self.cur_view(),
+                        tab = ?self.cur_active_tab(),
                         pick_open = self.keynav.pick_open,
                         modal = self.any_modal_blocks_input(),
                         panel = self.panels.host_panel,
@@ -267,7 +267,7 @@ impl Oryxis {
                 // instead of leaking a literal \t. Same focus-chain
                 // mechanism as the host editor above. Covers both the
                 // set-password and change-password forms.
-                if self.active_view == crate::state::View::Settings
+                if self.cur_view() == crate::state::View::Settings
                     && self.settings_section == crate::state::SettingsSection::Security
                     && (self.vault_ui.show_password_form || self.vault_ui.change_password_open)
                     && let keyboard::Event::KeyPressed { key, modifiers, .. } = &event
@@ -376,8 +376,8 @@ impl Oryxis {
                 let connecting_here = self
                     .connecting
                     .as_ref()
-                    .is_some_and(|cp| Some(cp.tab_idx) == self.active_tab);
-                if let Some(tab_idx) = self.active_tab
+                    .is_some_and(|cp| Some(cp.tab_idx) == self.cur_active_tab());
+                if let Some(tab_idx) = self.cur_active_tab()
                     && !connecting_here
                     && let keyboard::Event::KeyPressed {
                         key,

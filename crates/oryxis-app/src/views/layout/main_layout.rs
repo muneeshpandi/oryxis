@@ -20,8 +20,8 @@ impl Oryxis {
         let resize_overlay: Option<Element<'_, Message>> =
             // macOS: AppKit's frame resizes the window from its own
             // edges (`chrome::NATIVE_FRAME`); ours would double them.
-            if self.window_maximized
-                || self.window_fullscreen
+            if self.cur_maximized()
+                || self.cur_fullscreen()
                 || crate::views::chrome::NATIVE_FRAME
             {
                 None
@@ -320,6 +320,19 @@ impl Oryxis {
         base: Element<'a, Message>,
         resize_overlay: Option<Element<'a, Message>>,
     ) -> Element<'a, Message> {
+        // One floating layer in the app, drawn in the window it was
+        // raised from. Same tree shape as the "nothing is up" tail of
+        // this function, so the content keeps its position.
+        if !self.floats_here() {
+            return wrap_with_resize(
+                Stack::new()
+                    .push(base)
+                    .width(Length::Fill)
+                    .height(Length::Fill)
+                    .into(),
+                resize_overlay,
+            );
+        }
         // SFTP close-guard: the close button lives in the always-visible tab
         // strip, so this modal must render globally (not just on the SFTP
         // surface) or a close click from a terminal would set the pending
@@ -917,7 +930,7 @@ impl Oryxis {
     ) -> Element<'a, Message> {
         const TOP_HOVER_ZONE: f32 = 60.0;
         const HINT_BANNER_HEIGHT: f32 = 32.0;
-        let in_top_zone = self.mouse_position.y < TOP_HOVER_ZONE;
+        let in_top_zone = self.cur_mouse().y < TOP_HOVER_ZONE;
 
         let mut layers = Stack::new()
             .push(content)

@@ -319,7 +319,7 @@ impl Oryxis {
             // corner so it doesn't take inline width. Always mounted with
             // a transparent glyph + no-hover bg when not active so the
             // surrounding MouseArea bounds stay stable.
-            let key_kb_selected = self.keynav.selected_in(crate::keynav::FocusZone::Content)
+            let key_kb_selected = self.kn().selected_in(crate::keynav::FocusZone::Content)
                 == Some(crate::keynav::NavItem::Key(idx));
             let key_show_dots = self.hover.key_card == Some(idx)
                 || self.keys_ui.context_menu == Some(idx)
@@ -472,7 +472,7 @@ impl Oryxis {
         // plus ~12 px reserved for the scrollbar gutter on the trailing
         // edge. Keep this in sync with the `padding` set on the
         // scrollable column further down.
-        let available = (self.window_size.width
+        let available = (self.cur_window_size().width
             - nav_width
             - self.side_strip_reserve()
             - panel_width
@@ -554,7 +554,7 @@ impl Oryxis {
 
             // Floating ⋮ kebab in a Stack overlay on the trailing corner,
             // same pattern as host / key cards.
-            let id_kb_selected = self.keynav.selected_in(crate::keynav::FocusZone::Content)
+            let id_kb_selected = self.kn().selected_in(crate::keynav::FocusZone::Content)
                 == Some(crate::keynav::NavItem::Identity(idx));
             let id_show_dots = self.hover.identity_card == Some(idx)
                 || self.identity_context_menu == Some(idx)

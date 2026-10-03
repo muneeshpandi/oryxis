@@ -86,7 +86,7 @@ impl Oryxis {
     /// command. Single-line pastes, and every paste when the guard is off, go
     /// straight to the session.
     ///
-    /// The target tab is a parameter, not `self.active_tab`: clipboard reads
+    /// The target tab is a parameter, not `self.cur_active_tab()`: clipboard reads
     /// resolve one or more `update()`s after the gesture that asked for them
     /// (the runtime performs them off-thread, and an RDS / delayed-rendering
     /// clipboard owner can hold `GetClipboardData` for a long time), so every
@@ -164,7 +164,7 @@ impl Oryxis {
     pub(crate) fn paste_clipboard_into_active(&mut self) -> Task<Message> {
         // Capture the target tab NOW, not when the text comes back, and
         // capture its id rather than its index: see `paste_text_into_tab`.
-        let Some(tab_id) = self.active_tab.and_then(|i| self.tabs.get(i)).map(|t| t._id) else {
+        let Some(tab_id) = self.cur_active_tab().and_then(|i| self.tabs.get(i)).map(|t| t._id) else {
             paste_trace("request", "no active tab", "", None);
             return Task::none();
         };
@@ -199,7 +199,7 @@ impl Oryxis {
             }
             // -- Split panes --
             TerminalMessage::FocusPane(pane) => {
-                if let Some(tab_idx) = self.active_tab
+                if let Some(tab_idx) = self.cur_active_tab()
                     && let Some(tab) = self.tabs.get_mut(tab_idx)
                 {
                     // A composition interrupted mid-way (focus clicks onto
@@ -237,7 +237,7 @@ impl Oryxis {
                 return self.sidebar_files_sync();
             }
             TerminalMessage::ResizePane(ev) => {
-                if let Some(tab_idx) = self.active_tab
+                if let Some(tab_idx) = self.cur_active_tab()
                     && let Some(tab) = self.tabs.get_mut(tab_idx)
                 {
                     tab.pane_grid.resize(ev.split, ev.ratio);
@@ -256,7 +256,7 @@ impl Oryxis {
                 // because a pane handle is minted per grid and unique
                 // only within one.
                 if let iced::widget::pane_grid::DragEvent::Picked { pane } = ev {
-                    if let Some(id) = self.active_tab.and_then(|i| self.tabs.get(i)).map(|t| t._id)
+                    if let Some(id) = self.cur_active_tab().and_then(|i| self.tabs.get(i)).map(|t| t._id)
                     {
                         self.pane_drag_from = Some((id, pane));
                     }
@@ -271,7 +271,7 @@ impl Oryxis {
                 }
                 self.pane_drag_from = None;
                 if let iced::widget::pane_grid::DragEvent::Dropped { pane, target } = ev
-                    && let Some(tab_idx) = self.active_tab
+                    && let Some(tab_idx) = self.cur_active_tab()
                     && let Some(tab) = self.tabs.get_mut(tab_idx)
                 {
                     // Nothing leaves the tab, so none of the bookkeeping a
@@ -302,7 +302,7 @@ impl Oryxis {
                 // pane (a host, or a local shell). The selection routes into
                 // a split via `pending_pane_split` instead of a new tab.
                 self.overlay = None; // dismiss the `+` hover popover if open
-                if let Some(tab_idx) = self.active_tab
+                if let Some(tab_idx) = self.cur_active_tab()
                     && let Some(tab) = self.tabs.get(tab_idx)
                 {
                     self.pending_pane_split = Some((tab._id, tab.focused, axis));
@@ -486,7 +486,7 @@ impl Oryxis {
                 return self.note_pane_ended(pane_id, crate::state::PaneEndVerdict::Exited(exit));
             }
             TerminalMessage::FocusPaneDir(dir) => {
-                if let Some(tab_idx) = self.active_tab
+                if let Some(tab_idx) = self.cur_active_tab()
                     && let Some(tab) = self.tabs.get_mut(tab_idx)
                 {
                     tab.focus_adjacent(dir);
@@ -495,7 +495,7 @@ impl Oryxis {
             TerminalMessage::ToggleMaximizePane(target) => {
                 // Dismiss the tab context menu when its row fired this.
                 self.overlay = None;
-                let Some(tab_idx) = target.or(self.active_tab) else {
+                let Some(tab_idx) = target.or(self.cur_active_tab()) else {
                     return Task::none();
                 };
                 if target.is_some() {
@@ -697,7 +697,7 @@ impl Oryxis {
             }
             // ── Scrollback find-bar (C1) ──
             TerminalMessage::TerminalSearchOpen => {
-                if let Some(idx) = self.active_tab
+                if let Some(idx) = self.cur_active_tab()
                     && let Some(tab) = self.tabs.get_mut(idx)
                 {
                     let pane = tab.active_mut();
@@ -716,7 +716,7 @@ impl Oryxis {
                 }
             }
             TerminalMessage::TerminalSearchInput(v) => {
-                if let Some(idx) = self.active_tab
+                if let Some(idx) = self.cur_active_tab()
                     && let Some(tab) = self.tabs.get_mut(idx)
                 {
                     let pane = tab.active_mut();
@@ -727,7 +727,7 @@ impl Oryxis {
                 }
             }
             TerminalMessage::TerminalSearchStep(forward) => {
-                if let Some(idx) = self.active_tab
+                if let Some(idx) = self.cur_active_tab()
                     && let Some(tab) = self.tabs.get_mut(idx)
                     && let Ok(mut state) = tab.active_mut().terminal.lock()
                 {
@@ -735,7 +735,7 @@ impl Oryxis {
                 }
             }
             TerminalMessage::TerminalSearchClose => {
-                if let Some(idx) = self.active_tab
+                if let Some(idx) = self.cur_active_tab()
                     && let Some(tab) = self.tabs.get_mut(idx)
                 {
                     let pane = tab.active_mut();
@@ -823,7 +823,7 @@ impl Oryxis {
                 // press was: a `MouseArea` reports the button, not the
                 // point. No selection travels, because the header is not
                 // the grid and nothing was selected by clicking it.
-                let at = self.mouse_position;
+                let at = self.cur_mouse();
                 return self.update(Message::Terminal(
                     TerminalMessage::ShowTerminalContextMenu(pane_id, at.x, at.y, None),
                 ));
@@ -1008,14 +1008,14 @@ impl Oryxis {
             // routing as keystrokes; without this the widget's local-PTY
             // fallback would never reach the remote session.
             TerminalMessage::TerminalInput(bytes) => {
-                if let Some(tab_idx) = self.active_tab {
+                if let Some(tab_idx) = self.cur_active_tab() {
                     self.write_input_to_tab(tab_idx, &bytes);
                 }
             }
             TerminalMessage::TerminalMouseCaptureHint => {
                 // Mark the focused pane so HintMode::Once retires the hint
                 // (harmless under Always, where the view ignores the flag).
-                if let Some(tab_idx) = self.active_tab
+                if let Some(tab_idx) = self.cur_active_tab()
                     && let Some(tab) = self.tabs.get_mut(tab_idx)
                 {
                     tab.active_mut().mouse_hint_shown = true;
@@ -1029,7 +1029,7 @@ impl Oryxis {
                 // a toast at the moment it missed (replaces the old hover
                 // tooltip). Mark the focused pane so HintMode::Once retires
                 // it (harmless under Always, where the view ignores the flag).
-                if let Some(tab_idx) = self.active_tab
+                if let Some(tab_idx) = self.cur_active_tab()
                     && let Some(tab) = self.tabs.get_mut(tab_idx)
                 {
                     tab.active_mut().link_hint_shown = true;
@@ -1080,11 +1080,11 @@ impl Oryxis {
                 // away from an in-flight / failed connect keeps its IME
                 // commits (the old app-global `connecting.is_none()` ate
                 // them until the connecting tab was closed).
-                if let Some(tab_idx) = self.active_tab
+                if let Some(tab_idx) = self.cur_active_tab()
                     && !self
                         .connecting
                         .as_ref()
-                        .is_some_and(|cp| Some(cp.tab_idx) == self.active_tab)
+                        .is_some_and(|cp| Some(cp.tab_idx) == self.cur_active_tab())
                 {
                     let bytes = text.into_bytes();
                     self.write_input_to_tab(tab_idx, &bytes);
@@ -1098,7 +1098,7 @@ impl Oryxis {
                 } else if trace_ime {
                     tracing::debug!(
                         len = commit_len,
-                        no_tab = self.active_tab.is_none(),
+                        no_tab = self.cur_active_tab().is_none(),
                         "ime-commit dropped: connecting tab or no tab"
                     );
                 }
@@ -1125,7 +1125,7 @@ impl Oryxis {
                 {
                     return Task::none();
                 }
-                if let Some(tab_idx) = self.active_tab
+                if let Some(tab_idx) = self.cur_active_tab()
                     && let Some(tab) = self.tabs.get(tab_idx)
                     && let Ok(mut state) = tab.active().terminal.lock()
                 {
@@ -1147,7 +1147,7 @@ impl Oryxis {
     /// Clear the IME preedit of the focused pane of the active tab. Called
     /// when a composition commits so a stale overlay can never linger.
     fn clear_focused_pane_preedit(&mut self) {
-        if let Some(tab_idx) = self.active_tab
+        if let Some(tab_idx) = self.cur_active_tab()
             && let Some(tab) = self.tabs.get(tab_idx)
             && let Ok(mut state) = tab.active().terminal.lock()
         {

@@ -91,7 +91,7 @@ impl Oryxis {
         if !self.terminal_surface_visible() || self.sftp_surface_visible() {
             return ResolvedAppearance::default();
         }
-        match self.active_tab.and_then(|idx| self.tabs.get(idx)) {
+        match self.cur_active_tab().and_then(|idx| self.tabs.get(idx)) {
             Some(tab) => self.resolve_terminal_appearance(&tab.label),
             None => ResolvedAppearance::default(),
         }

@@ -322,8 +322,8 @@ impl Oryxis {
         // Picker box footprint, used to clamp it inside the window.
         const PW: f32 = 238.0;
         const PH: f32 = 340.0;
-        let x = anchor.x.min((self.window_size.width - PW).max(0.0)).max(0.0);
-        let y = anchor.y.min((self.window_size.height - PH).max(0.0)).max(0.0);
+        let x = anchor.x.min((self.cur_window_size().width - PW).max(0.0)).max(0.0);
+        let y = anchor.y.min((self.cur_window_size().height - PH).max(0.0)).max(0.0);
         let positioned = column![
             Space::new().height(y),
             row![Space::new().width(x), card_trap],

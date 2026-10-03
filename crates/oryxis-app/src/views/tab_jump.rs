@@ -48,7 +48,7 @@ impl Oryxis {
                 &privacy_terms,
             );
             had_match = true;
-            let is_active = self.active_tab == Some(idx);
+            let is_active = self.cur_active_tab() == Some(idx);
             // Match the tab-bar's OS-coloured badge so users recognise
             // the same visual cue from the strip up here, including the
             // local-shell and cloud-brand fallbacks (so ECS / K8s tabs get

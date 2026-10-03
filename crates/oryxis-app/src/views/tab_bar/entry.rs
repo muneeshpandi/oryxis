@@ -46,9 +46,9 @@ impl Oryxis {
     /// out on purpose - it lives in the burger menu so it doesn't take
     /// a permanent slot.
     pub(crate) fn home_area_tab(&self, solid_fill: bool) -> Element<'_, Message> {
-        let nav_active = self.active_tab.is_none();
+        let nav_active = self.cur_active_tab().is_none();
         let in_vault_area = matches!(
-            self.active_view,
+            self.cur_view(),
             View::Dashboard
                 | View::Keys
                 | View::Snippets
@@ -115,15 +115,15 @@ impl Oryxis {
         entry: StripEntry,
         slot: usize,
     ) -> Element<'_, Message> {
-        let active_idx = self.active_tab;
+        let active_idx = self.cur_active_tab();
         let number = self.tab_number_at(slot);
         // Terminal and SFTP tabs share one strip; SFTP tabs are active
         // only while the SFTP surface itself is up.
-        let sftp_surface = self.active_tab.is_none() && self.active_view == View::Sftp;
+        let sftp_surface = self.cur_active_tab().is_none() && self.cur_view() == View::Sftp;
         if let StripEntry::Panel(kind) = entry {
             // Same active rule as the SFTP tabs: it owns the strip slot
             // only while its own surface is the one showing.
-            let is_active = self.active_tab.is_none() && self.active_view == kind.view();
+            let is_active = self.cur_active_tab().is_none() && self.cur_view() == kind.view();
             let label = crate::i18n::t(kind.label_key());
             let width = ctx.uniform_w.unwrap_or_else(|| {
                 if ctx.dragging_any {

@@ -98,7 +98,7 @@ impl Oryxis {
                 // entering it (re-)establishes every link right away.
                 // Captured before `active_view` moves.
                 let mut dash_tasks: Vec<Task<Message>> = Vec::new();
-                if self.active_view == View::Monitoring && view != View::Monitoring {
+                if self.cur_view() == View::Monitoring && view != View::Monitoring {
                     dash_tasks.push(self.dash_leave());
                 }
                 self.active_view = view;
@@ -304,7 +304,7 @@ impl Oryxis {
                         };
                         (lead, b.y + b.height + 6.0)
                     } else {
-                        (self.mouse_position.x, self.mouse_position.y + 26.0)
+                        (self.cur_mouse().x, self.cur_mouse().y + 26.0)
                     };
                     self.overlay = Some(OverlayState {
                         content: OverlayContent::HostTagFilter,
@@ -366,12 +366,12 @@ impl Oryxis {
                         x: if bounds.width > 0.0 {
                             bounds.x
                         } else {
-                            self.mouse_position.x
+                            self.cur_mouse().x
                         },
                         y: if bounds.height > 0.0 {
                             bounds.y + bounds.height + 6.0
                         } else {
-                            self.mouse_position.y + 26.0
+                            self.cur_mouse().y + 26.0
                         },
                     });
                 }
@@ -522,7 +522,7 @@ impl Oryxis {
                     let strip_left = self.side_strip_left_offset();
                     let strip_right = self.side_strip_reserve() - strip_left;
                     let x = if crate::i18n::is_rtl_layout() {
-                        (self.window_size.width - panel - pad - strip_right).max(menu_w)
+                        (self.cur_window_size().width - panel - pad - strip_right).max(menu_w)
                     } else {
                         self.vault_rail_width() + strip_left + pad
                     };

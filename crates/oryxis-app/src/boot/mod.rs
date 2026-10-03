@@ -18,7 +18,7 @@ mod persist;
 impl Oryxis {
     pub fn boot() -> (Self, Task<Message>) {
         // CLI hand-off: if the parent process started us with `--connect
-        // <uuid>` (the path "Duplicate in New Window" takes), capture that
+        // <uuid>` (the path a JumpList entry takes), capture that
         // ID now and dispatch a `ConnectSsh` once the vault is open.
         let pending_auto_connect = AUTO_CONNECT.get().copied();
         // OS `oryxis://` scheme launch with no running instance to
@@ -462,6 +462,13 @@ impl Oryxis {
                 active_sftp: None,
                 hybrid_sftp_owner: None,
                 tab_order: Vec::new(),
+                extra_windows: std::collections::BTreeMap::new(),
+                window_ctx: None,
+                pending_focus_main: false,
+                input_window: None,
+                float_window: None,
+                keynav_scratch: crate::keynav::KeyNavState::default(),
+                batch_dial_windows: std::collections::HashMap::new(),
                 tab_mru: Vec::new(),
                 tab_cycle: None,
                 routing_sftp: None,
@@ -738,6 +745,15 @@ impl Oryxis {
         // after boot. When the vault is locked, we defer until VaultUnlock
         // succeeds (handled in that branch).
         let mut tasks = vec![task];
+        // The app is a daemon: no window exists until one is opened.
+        // First in the batch, so every boot task that talks to "our
+        // window" finds it. The id is known synchronously; the task
+        // only performs the open.
+        if let Some(settings) = crate::app::MAIN_WINDOW_SETTINGS.get() {
+            let (id, open) = iced::window::open(settings.clone());
+            crate::app::set_main_window(id);
+            tasks.insert(0, open.discard());
+        }
         // The app's own fetches (release lookup, the CJK face the
         // language needs). NOT on a first run: the onboarding offers
         // offline mode a few slides in, and a request already in flight

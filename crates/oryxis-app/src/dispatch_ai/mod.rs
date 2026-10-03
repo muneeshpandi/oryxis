@@ -366,7 +366,7 @@ impl Oryxis {
     /// user-gesture stop path (Stop button, closing the sidebar, reset):
     /// those always act on the tab the user is looking at.
     pub(crate) fn abort_active_chat_task(&mut self) {
-        if let Some(idx) = self.active_tab
+        if let Some(idx) = self.cur_active_tab()
             && let Some(tab) = self.tabs.get_mut(idx)
         {
             if let Some(handle) = tab.chat_task.take() {
@@ -410,7 +410,7 @@ impl Oryxis {
     /// explicitly approves a command) so a fresh turn starts with a clean
     /// streak and repeat history.
     fn reset_chat_auto_run_guard(&mut self) {
-        if let Some(idx) = self.active_tab
+        if let Some(idx) = self.cur_active_tab()
             && let Some(tab) = self.tabs.get_mut(idx)
         {
             tab.chat_auto_run_history.clear();

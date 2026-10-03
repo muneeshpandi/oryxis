@@ -13,7 +13,7 @@ impl Oryxis {
     pub(super) fn handle_ai_sidebar(&mut self, message: AiMessage) -> Task<Message> {
         match message {
             AiMessage::ToggleSidebarRegion(side) => {
-                let toggled_to = if let Some(idx) = self.active_tab
+                let toggled_to = if let Some(idx) = self.cur_active_tab()
                     && let Some(tab) = self.tabs.get_mut(idx)
                 {
                     tab.sidebar_open[side.idx()] = !tab.sidebar_open[side.idx()];
@@ -169,7 +169,7 @@ impl Oryxis {
                 // the MouseMoved handler computes the delta against
                 // these.
                 self.chat_ui.sidebar_drag =
-                    Some((side, self.mouse_position.x, self.chat_ui.sidebar_width[side.idx()]));
+                    Some((side, self.cur_mouse().x, self.chat_ui.sidebar_width[side.idx()]));
             }
             AiMessage::ChatSidebarResizeStop => {
                 // Global left-release: a drag-out that never crossed

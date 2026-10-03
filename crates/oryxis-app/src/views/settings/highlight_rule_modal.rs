@@ -41,7 +41,7 @@ impl Oryxis {
         match self.highlight_rule_form.scope {
             crate::state::RuleScope::Host => self.side_panel_open() && self.panels.host_panel,
             crate::state::RuleScope::Global => {
-                self.active_tab.is_none() && self.active_view == crate::state::View::Settings
+                self.cur_active_tab().is_none() && self.cur_view() == crate::state::View::Settings
             }
         }
     }

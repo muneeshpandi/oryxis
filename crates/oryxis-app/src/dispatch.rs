@@ -47,6 +47,12 @@ impl Oryxis {
         // message, dropped on every exit path. No-op unless the debug
         // logging toggle is on.
         let _stall_guard = crate::stall_watchdog::message_guard(&message);
+        // From an extra window: run it with that window's strip, active
+        // tab and geometry swapped in (see `window_ctx`).
+        let message = match message {
+            Message::InWindow(id, inner) => return self.update_in_window(id, *inner),
+            other => other,
+        };
         // Sync the cursor position from the event listener's atomics.
         // CursorMoved is only forwarded as a message while something
         // consumes continuous positions (see `mouse_interest` below), so
@@ -58,8 +64,15 @@ impl Oryxis {
         // vault auto-lock idle clock (the 30 s AutoLockTick is itself a
         // message, so a moving-but-not-clicking user is registered here
         // before the lock decision runs).
-        let live_mouse = crate::subscription::live_mouse_position();
-        if live_mouse != self.mouse_position {
+        let (live_window, live_mouse) = crate::subscription::live_mouse();
+        // The position is in the coordinates of the window the cursor is
+        // over, so it only means something to that window.
+        let here = match (live_window, self.window_ctx.as_ref().map(|c| c.id)) {
+            (Some(live), Some(current)) => live == current,
+            (Some(live), None) => !self.extra_windows.contains_key(&live),
+            (None, current) => current.is_none(),
+        };
+        if here && live_mouse != self.cur_mouse() {
             self.mouse_position = live_mouse;
             self.sftp.suppress_hover = false;
             self.last_user_activity = std::time::Instant::now();
@@ -109,6 +122,7 @@ impl Oryxis {
         // against the post-dispatch answer below, that is the "the
         // drawer just left" edge the auto-save writes on.
         let editor_visible_before = self.host_editor_visible();
+        let floats_before = self.float_signature();
         // SFTP async-continuation messages target a specific tab that may no
         // longer be focused. Swap the owning tab's state into `self.sftp` for
         // the duration so the (unchanged) handlers route to the right tab,
@@ -135,6 +149,20 @@ impl Oryxis {
         // form (opening another host, the vault locking, the window
         // closing) flush inside their own handler, before the reset;
         // this net then finds the form clean and does nothing.
+        // An extra window's values are in the per-window fields: every
+        // hook below is about the main window's state (the editor
+        // drawer, the dashboard selection, the persisted strip), so
+        // they stand down and `update_in_window` runs them once the
+        // main window's values are back. The strip order is the one
+        // thing this window needs kept in step.
+        // A menu, a modal or a drag that this message raised belongs
+        // to the window it was raised from.
+        self.claim_floats(floats_before);
+        if self.window_ctx.is_some() {
+            self.reconcile_tab_order();
+            self.reconcile_tab_mru();
+            return task;
+        }
         if editor_visible_before && !self.host_editor_visible() {
             self.editor_flush_on_close();
         }
@@ -175,7 +203,7 @@ impl Oryxis {
         // selection goes with it, the way every other exit from the mode
         // takes it (the toggle, Esc): a selection with no mode would keep
         // the bar up over cards that dial again.
-        if self.dash_multi_select && self.active_view != crate::state::View::Dashboard {
+        if self.dash_multi_select && self.cur_view() != crate::state::View::Dashboard {
             self.dash_multi_select = false;
             self.dash_selection.clear();
         }
@@ -236,6 +264,9 @@ impl Oryxis {
         // A batch connect from the host list (issue #230) drains the same
         // way and under the same in-flight rule, one dial at a time.
         extra.extend(self.advance_batch_dials());
+        // Extra windows: close the ones left without a tab, bring the
+        // main window forward when one of its verbs was used elsewhere.
+        extra.extend(self.window_housekeeping());
         // An inline rename whose row a listing moved gets its focus back
         // (see `inline_edit_focus`), whichever arm replaced the listing.
         extra.extend(self.refocus_displaced_inline_edits());
@@ -279,7 +310,7 @@ impl Oryxis {
             let arm = self.drag_out_arm.as_ref()?;
             match arm.stage {
                 crate::drag_out::DragOutStage::Armed(_)
-                    if arm.press.distance(self.mouse_position)
+                    if arm.press.distance(self.cur_mouse())
                         >= crate::drag_out::DRAG_THRESHOLD =>
                 {
                     DragOutStep::Resolve
@@ -342,14 +373,22 @@ impl Oryxis {
     /// can't be detected; side-by-side, the ordinary way to drag a file
     /// somewhere, works.
     fn cursor_outside_window(&self) -> bool {
+        self.cursor_beyond_window(0.0)
+    }
+
+    /// [`Self::cursor_outside_window`] with a margin: the cursor is at
+    /// least `margin` logical pixels past an edge. What a gesture that
+    /// ENDS something uses (a tab torn off into its own window), so a
+    /// drag that only brushes the edge does not count.
+    pub(crate) fn cursor_beyond_window(&self, margin: f32) -> bool {
         // A window that never reported its size yet would read as
         // "cursor outside" for every position.
-        self.window_size.width > 1.0
-            && self.window_size.height > 1.0
-            && (self.mouse_position.x < 0.0
-                || self.mouse_position.y < 0.0
-                || self.mouse_position.x > self.window_size.width
-                || self.mouse_position.y > self.window_size.height)
+        self.cur_window_size().width > 1.0
+            && self.cur_window_size().height > 1.0
+            && (self.cur_mouse().x < -margin
+                || self.cur_mouse().y < -margin
+                || self.cur_mouse().x > self.cur_window_size().width + margin
+                || self.cur_mouse().y > self.cur_window_size().height + margin)
     }
 
     /// Whether anything in the app currently consumes continuous cursor
@@ -416,6 +455,9 @@ impl Oryxis {
         // Replaced the old 34-deep `try_handler!` fall-through chain (Step C of
         // the Message sub-enum conversion).
         match message {
+            // Reached only by a handler that re-dispatches a wrapped
+            // message; `update` unwraps the ones iced delivers.
+            Message::InWindow(id, inner) => self.update_in_window(id, *inner),
             Message::KnownHost(m) => self.handle_known_hosts(m),
             Message::RemoteDesktop(m) => self.handle_remote_desktop(m),
             Message::SessionGroup(m) => self.handle_session_group(m),

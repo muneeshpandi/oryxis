@@ -153,7 +153,7 @@ impl Oryxis {
         // An open overlay (the header kebab menu) owns the keys: Esc
         // must dismiss the menu, not the player, and Space must not
         // toggle playback underneath it.
-        if self.active_view != crate::state::View::History
+        if self.cur_view() != crate::state::View::History
             || self.any_modal_blocks_input()
             || self.overlay.is_some()
         {

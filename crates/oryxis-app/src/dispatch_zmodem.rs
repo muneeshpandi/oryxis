@@ -373,12 +373,9 @@ impl Oryxis {
     /// transfer (this window's or another's) holds the folder, so it can
     /// never touch a live dialog's files. Called at boot for an open
     /// vault and at the unlock otherwise, which is where the offer can
-    /// be shown. A child window (`--inherit-vault`) leaves it to the
-    /// window that spawned it, so the same files are not offered twice.
+    /// be shown.
     pub(crate) fn zmodem_sweep_task(&mut self) -> Option<Task<Message>> {
-        if std::mem::replace(&mut self.zmodem_swept, true)
-            || crate::app::AUTO_PASSWORD.get().is_some()
-        {
+        if std::mem::replace(&mut self.zmodem_swept, true) {
             return None;
         }
         let staging = crate::zmodem_delivery::staging_dir()?;

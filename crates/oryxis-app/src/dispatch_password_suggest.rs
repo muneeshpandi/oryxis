@@ -262,7 +262,7 @@ impl Oryxis {
         if !self.terminal_surface_visible() {
             return None;
         }
-        let tab = self.tabs.get(self.active_tab?)?;
+        let tab = self.tabs.get(self.cur_active_tab()?)?;
         if tab.files_mode {
             return None;
         }
@@ -339,7 +339,7 @@ impl Oryxis {
             password_suggest_layout, password_suggest_row_height, password_suggest_row_top,
             password_suggest_rows_height, PASSWORD_SUGGEST_SCROLL_ID,
         };
-        let window_h = self.window_size.height;
+        let window_h = self.cur_window_size().height;
         let Some(OverlayContent::PasswordSuggest {
             entries, scroll, ..
         }) = self.overlay.as_mut().map(|o| &mut o.content)

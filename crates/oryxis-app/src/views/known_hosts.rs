@@ -112,7 +112,7 @@ impl Oryxis {
         );
 
         for (idx, kh) in self.known_hosts.iter().enumerate() {
-            let kb_selected = self.keynav.selected_in(crate::keynav::FocusZone::Content)
+            let kb_selected = self.kn().selected_in(crate::keynav::FocusZone::Content)
                 == Some(crate::keynav::NavItem::KnownHost(idx));
             let fp_short = if kh.fingerprint.len() > 40 {
                 format!("{}...", &kh.fingerprint[..40])

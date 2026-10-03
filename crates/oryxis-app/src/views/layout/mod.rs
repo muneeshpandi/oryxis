@@ -59,10 +59,10 @@ impl Oryxis {
     /// `active_side_panel` without building the element, so callers (e.g.
     /// the sub-nav width budget) can branch without the render cost.
     pub(crate) fn side_panel_open(&self) -> bool {
-        if self.active_tab.is_some() {
+        if self.cur_active_tab().is_some() {
             return false;
         }
-        match self.active_view {
+        match self.cur_view() {
             View::Dashboard => {
                 self.cloud_discover.visible
                     || self.cloud_dynamic_form.visible
@@ -98,9 +98,9 @@ impl Oryxis {
     /// current view is one of the vault sub-sections. Gates the vault nav
     /// (horizontal sub-nav strip or vertical rail).
     pub(crate) fn in_vault_area(&self) -> bool {
-        self.active_tab.is_none()
+        self.cur_active_tab().is_none()
             && matches!(
-                self.active_view,
+                self.cur_view(),
                 View::Dashboard
                     | View::Keys
                     | View::Snippets
@@ -120,7 +120,7 @@ impl Oryxis {
     /// background but not their gaps, and a gap onto the desktop reads
     /// as a rendering bug rather than as an effect.
     pub(crate) fn terminal_surface_visible(&self) -> bool {
-        self.active_tab.is_some() && !self.connect_progress_on_screen()
+        self.cur_active_tab().is_some() && !self.connect_progress_on_screen()
     }
 
     /// The connect-progress card is the content on screen: the active
@@ -130,7 +130,7 @@ impl Oryxis {
     pub(crate) fn connect_progress_on_screen(&self) -> bool {
         self.connecting
             .as_ref()
-            .is_some_and(|cp| Some(cp.tab_idx) == self.active_tab)
+            .is_some_and(|cp| Some(cp.tab_idx) == self.cur_active_tab())
     }
 
     /// The alpha the terminal backdrop is painted with right now, or
@@ -193,10 +193,10 @@ impl Oryxis {
     /// `view_terminal`, so this returns `None` whenever a session tab is
     /// active.
     pub(crate) fn active_side_panel(&self) -> Option<Element<'_, Message>> {
-        if self.active_tab.is_some() {
+        if self.cur_active_tab().is_some() {
             return None;
         }
-        match self.active_view {
+        match self.cur_view() {
             View::Dashboard => {
                 if self.cloud_discover.visible {
                     Some(self.view_cloud_discover_panel())
@@ -254,7 +254,7 @@ impl Oryxis {
         if !self.host_accent_enabled() {
             return OryxisColors::t().accent;
         }
-        if let Some(idx) = self.active_tab
+        if let Some(idx) = self.cur_active_tab()
             && let Some(tab) = self.tabs.get(idx)
         {
             let label = tab.label.trim_end_matches(" (disconnected)");
@@ -286,8 +286,8 @@ impl Oryxis {
         }
         // SFTP surface focused: breathe the active SFTP tab's host colour so the
         // bar wash glows the same as a terminal tab on that host.
-        if self.active_tab.is_none()
-            && self.active_view == View::Sftp
+        if self.cur_active_tab().is_none()
+            && self.cur_view() == View::Sftp
             && let Some(i) = self.active_sftp
             && let Some(tab) = self.sftp_tabs.get(i)
         {
@@ -323,7 +323,7 @@ impl Oryxis {
         } else if self.terminal_surface_visible() {
             self.view_terminal()
         } else {
-            match self.active_view {
+            match self.cur_view() {
                 View::Dashboard => self.view_dashboard(),
                 View::Keys => self.view_keys(),
                 View::Snippets => self.view_snippets(),
@@ -359,7 +359,7 @@ impl Oryxis {
     /// is about the underlying data set being empty, which is when we
     /// hide the search box entirely and let the empty state speak.
     pub(crate) fn active_view_search_empty(&self) -> bool {
-        match self.active_view {
+        match self.cur_view() {
             View::Dashboard => {
                 self.connections.is_empty()
                     && self.groups.is_empty()
@@ -381,10 +381,10 @@ impl Oryxis {
     /// the live `panel_width`. Mirrors `active_side_panel`'s conditions cheaply
     /// (no Element built) for the responsive-toolbar width budget.
     pub(crate) fn vault_panel_open(&self) -> bool {
-        if self.active_tab.is_some() {
+        if self.cur_active_tab().is_some() {
             return false;
         }
-        match self.active_view {
+        match self.cur_view() {
             View::Dashboard => {
                 self.cloud_discover.visible
                     || self.cloud_dynamic_form.visible

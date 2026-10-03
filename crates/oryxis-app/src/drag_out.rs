@@ -192,7 +192,7 @@ pub(crate) fn launch(prepared: Prepared) -> iced::Task<crate::messages::Message>
     // `window::run` takes an `Fn` closure, so the one-shot payload
     // travels in a take-once slot.
     let slot = Arc::new(std::sync::Mutex::new(Some(prepared)));
-    iced::window::oldest()
+    crate::app::main_window()
         .and_then(move |id| {
             let slot = slot.clone();
             iced::window::run(id, move |window| {

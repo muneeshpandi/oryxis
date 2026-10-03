@@ -70,8 +70,7 @@ impl Oryxis {
             TabsMessage::ReconnectTab(idx) => return self.handle_reconnect_tab(idx),
             TabsMessage::DuplicateTab(idx) => return self.handle_duplicate_tab(idx),
             TabsMessage::DuplicateInNewWindow(idx) => {
-                self.overlay = None;
-                self.spawn_oryxis_child(Some(idx));
+                return self.duplicate_in_new_window(idx);
             }
             TabsMessage::TabDragToEnd => {
                 // Trailing drop zone: the live-slide only ever moves the
@@ -136,7 +135,7 @@ impl Oryxis {
                 // ordinary path (opening a host from the Dashboard pushes
                 // a tab and leaves the view where it was), so the popover
                 // was dead exactly where splitting is most wanted.
-                if (self.active_tab.is_some() || !self.closed_tabs.is_empty())
+                if (self.cur_active_tab().is_some() || !self.closed_tabs.is_empty())
                     && !matches!(
                         self.overlay.as_ref().map(|o| &o.content),
                         Some(OverlayContent::SplitMenu)

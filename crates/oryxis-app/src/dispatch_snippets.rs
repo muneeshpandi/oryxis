@@ -12,7 +12,7 @@ impl Oryxis {
     /// the focused pane isn't a saved host or the host has no tags.
     /// Drives the snippet sidebar's filter-by-host-tags toggle.
     pub(crate) fn focused_host_tags_lower(&self) -> Option<Vec<String>> {
-        let tab = self.active_tab.and_then(|i| self.tabs.get(i))?;
+        let tab = self.cur_active_tab().and_then(|i| self.tabs.get(i))?;
         let tags: Vec<String> = match &tab.active().origin {
             crate::state::PaneOrigin::Host(id) => self
                 .connections
@@ -282,7 +282,7 @@ impl Oryxis {
                         };
                         (lead, b.y + b.height + 6.0)
                     } else {
-                        (self.mouse_position.x, self.mouse_position.y + 26.0)
+                        (self.cur_mouse().x, self.cur_mouse().y + 26.0)
                     };
                     self.overlay = Some(OverlayState {
                         content: OverlayContent::SnippetTagFilter,

@@ -42,7 +42,7 @@ impl Oryxis {
                 // Read off `self` with the modifiers, for the same
                 // reason: the arm below is built while the pane borrow
                 // is live.
-                let press_pos = self.mouse_position;
+                let press_pos = self.cur_mouse();
                 let Some(pane) = self.active_pane_mut() else {
                     return Task::none();
                 };
@@ -284,7 +284,7 @@ impl Oryxis {
                 // (or by a navigate when the session already exists),
                 // with home fallback if the path stopped existing.
                 self.overlay = None;
-                let Some(tab_idx) = self.active_tab else {
+                let Some(tab_idx) = self.cur_active_tab() else {
                     return Task::none();
                 };
                 self.sftp_open_at_path = (!path.is_empty()).then_some(path);

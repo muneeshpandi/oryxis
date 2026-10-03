@@ -405,10 +405,7 @@ impl Oryxis {
         self.update_ready = None;
         self.persist_before_exit();
         self.drain_plugins_before_exit().then(|_| {
-            iced::window::latest().then(|id_opt| match id_opt {
-                Some(id) => iced::window::close(id),
-                None => Task::none(),
-            })
+            iced::exit()
         })
     }
 }

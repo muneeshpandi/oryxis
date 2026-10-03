@@ -86,7 +86,7 @@ impl Oryxis {
             // render (which runs after this block) so its rows can
             // highlight. Value-compared, so `t(label_key)` must equal
             // the row's own `t(...)` label (true for every index key).
-            *self.keynav.settings_match_labels.borrow_mut() = results
+            *self.kn().settings_match_labels.borrow_mut() = results
                 .iter()
                 .filter(|(e, _)| e.section == self.settings_section)
                 .map(|(e, _)| t(e.label_key))
@@ -101,11 +101,11 @@ impl Oryxis {
             // Record the section list for the keyboard router (SubNav
             // zone): dynamic set (feature toggles hide sections), so it
             // comes from this exact list, not the enum.
-            *self.keynav.subnav_items.borrow_mut() = items
+            *self.kn().subnav_items.borrow_mut() = items
                 .iter()
                 .map(|(_, s)| crate::keynav::NavItem::SettingsSection(*s))
                 .collect();
-            let kb_sel = match self.keynav.selected_in(crate::keynav::FocusZone::SubNav) {
+            let kb_sel = match self.kn().selected_in(crate::keynav::FocusZone::SubNav) {
                 Some(crate::keynav::NavItem::SettingsSection(s)) => Some(s),
                 _ => None,
             };

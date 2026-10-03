@@ -235,7 +235,7 @@ impl Oryxis {
         };
         // Clicking a background tab's chip brings the tab to front,
         // whichever surface it lands on (the Files toggle's own rule).
-        let select = if self.active_tab != Some(idx) {
+        let select = if self.cur_active_tab() != Some(idx) {
             self.update(Message::Tabs(TabsMessage::SelectTab(idx)))
         } else {
             iced::Task::none()

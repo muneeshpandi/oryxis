@@ -143,7 +143,7 @@ impl Oryxis {
                     .chat_history
                     .push(pending_tool_bubble(command, thought_signature));
                 self.tabs[idx].chat_loading = false;
-                if Some(idx) == self.active_tab && self.chat_ui.scroll_at_bottom {
+                if Some(idx) == self.cur_active_tab() && self.chat_ui.scroll_at_bottom {
                     return chat_scroll_to_end();
                 }
             }
@@ -164,7 +164,7 @@ impl Oryxis {
                     .chat_history
                     .push(pending_tool_bubble(command, thought_signature));
                 self.tabs[idx].chat_loading = false;
-                if Some(idx) == self.active_tab && self.chat_ui.scroll_at_bottom {
+                if Some(idx) == self.cur_active_tab() && self.chat_ui.scroll_at_bottom {
                     return chat_scroll_to_end();
                 }
             }
@@ -174,7 +174,7 @@ impl Oryxis {
                 // command: a Play click on an older code block must not
                 // silently swallow a different command still awaiting a
                 // decision (#4).
-                let Some(idx) = self.active_tab else {
+                let Some(idx) = self.cur_active_tab() else {
                     return Task::none();
                 };
                 let tab_id = self.tabs.get(idx).map(|t| t._id);
@@ -206,7 +206,7 @@ impl Oryxis {
                 }
             }
             AiMessage::ChatToolApproveAlways(command) => {
-                let Some(idx) = self.active_tab else {
+                let Some(idx) = self.cur_active_tab() else {
                     return Task::none();
                 };
                 let tab_id = self.tabs.get(idx).map(|t| t._id);
@@ -253,7 +253,7 @@ impl Oryxis {
                 // refusal so the next user turn tells the model the command
                 // was declined (otherwise it tends to re-propose the same
                 // one). No stream is spawned; the user can also just type.
-                if let Some(idx) = self.active_tab
+                if let Some(idx) = self.cur_active_tab()
                     && let Some(tab) = self.tabs.get_mut(idx)
                 {
                     if let Some(last) = tab.chat_history.last()
@@ -351,7 +351,7 @@ impl Oryxis {
                         "[terminal session is not connected; command not sent]",
                     ));
                     tab.chat_loading = false;
-                    if Some(idx) == self.active_tab && self.chat_ui.scroll_at_bottom {
+                    if Some(idx) == self.cur_active_tab() && self.chat_ui.scroll_at_bottom {
                         return chat_scroll_to_end();
                     }
                     return Task::none();

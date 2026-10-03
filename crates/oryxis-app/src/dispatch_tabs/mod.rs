@@ -11,6 +11,7 @@ mod icon_picker;
 mod launch;
 mod lifecycle;
 mod merge;
+mod new_window;
 mod ordering;
 mod selection;
 mod window;
@@ -82,6 +83,10 @@ impl Oryxis {
                 | TabsMessage::WindowFullscreenToggle
                 | TabsMessage::FullscreenHintHide
                 | TabsMessage::SpawnNewWindow
+                | TabsMessage::ConnectHostsInNewWindow(..)
+                | TabsMessage::MoveTabToNewWindow(..)
+                | TabsMessage::DetachTabAt(..)
+                | TabsMessage::MoveTabToMainWindow(..)
             ) => self.handle_tabs_window(m),
             m @ (
                 TabsMessage::CardHovered(..)

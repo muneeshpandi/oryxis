@@ -9,11 +9,15 @@ project uses [SemVer](https://semver.org/spec/v2.0.0.html).
 ### Added
 - Security keys sign natively, no ssh-agent: Ed25519-SK and ECDSA-SK on Windows, Linux and macOS, with PIN, and a hardware-only Security Key method (#236, #237, by @Rulio723).
 - The MCP plugin 0.1.6 reads hosts set to Security Key, and refuses them: a touch needs a person at the keyboard.
+- Tabs move between windows with their session intact: drag a tab out of the window, or use "Move to New Window" / "Move to Main Window" on the tab menu. Extra windows hold terminal tabs; Settings and the vault stay in the main one.
+- Drag a host card (or a selection) out of the window to connect it in a new one, or use "Connect in New Window" on the card menu.
 
 ### Changed
+- Every window is the same app: a new window no longer starts a second process with its own settings, sync and update check. Closing an extra window returns its tabs to the main one.
 - A command proxy line runs as `exec <line>`, the way OpenSSH runs it, and stopping a dial ends the proxy together with anything it started.
 
 ### Fixed
+- "Duplicate in New Window" works for a local terminal and a cloud exec session, not only saved hosts.
 - A command proxy that logs in first (an expired SSO session, a browser URL) no longer fails the dial; its output shows on the connect card (#223, reported by @guptakanishka90).
 - A host-key or command-proxy prompt no longer times the connection out while you read it; closing the connect card stops the dial and its proxy.
 

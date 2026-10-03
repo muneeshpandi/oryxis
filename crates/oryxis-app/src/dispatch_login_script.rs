@@ -353,7 +353,7 @@ impl Oryxis {
     /// Progress line for the status bar: `Some((step, total))` while a
     /// script is running on the focused pane.
     pub(crate) fn login_script_progress(&self) -> Option<(usize, usize)> {
-        let tab = self.tabs.get(self.active_tab?)?;
+        let tab = self.tabs.get(self.cur_active_tab()?)?;
         let run = tab.active().login_script.as_ref()?;
         (!run.runner.is_done()).then(|| run.runner.progress())
     }

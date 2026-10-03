@@ -68,7 +68,7 @@ impl Oryxis {
         // route goes through `ChangeView`, which lands focus in the
         // sidebar search and would pull it out of the panel we just
         // opened. The long way stays for any caller that is elsewhere.
-        if self.active_view == View::Settings {
+        if self.cur_view() == View::Settings {
             Task::done(Message::Settings(SettingsMessage::ChangeSettingsSection(
                 section,
             )))
@@ -501,7 +501,7 @@ impl Oryxis {
                 }
             }
             SettingsMessage::ThemeEditorOpenPicker(slot) => {
-                self.theme_ui.color_popover = Some((slot, self.mouse_position));
+                self.theme_ui.color_popover = Some((slot, self.cur_mouse()));
             }
             SettingsMessage::ThemeEditorClosePicker => {
                 self.theme_ui.color_popover = None;
@@ -608,7 +608,7 @@ impl Oryxis {
                 }
             }
             SettingsMessage::UiThemeEditorOpenPicker(idx) => {
-                self.ui_color_popover = Some((idx, self.mouse_position));
+                self.ui_color_popover = Some((idx, self.cur_mouse()));
             }
             SettingsMessage::UiThemeEditorClosePicker => {
                 self.ui_color_popover = None;

@@ -372,7 +372,7 @@ impl Oryxis {
         if !self.monitor_host_opted_in(&conn_id) {
             return None;
         }
-        let idx = self.active_tab?;
+        let idx = self.cur_active_tab()?;
         let pane = self.tabs.get(idx)?.active();
         let ssh = pane.session.as_ref().and_then(|s| s.ssh())?;
         ssh.is_alive().then(|| (conn_id, ssh.clone()))
@@ -407,7 +407,7 @@ impl Oryxis {
     /// Quick-connect / local / cloud panes have no vault row to carry the
     /// opt-in flag, so they can't be monitored.
     pub(crate) fn monitor_pane_connection(&self) -> Option<Uuid> {
-        let idx = self.active_tab?;
+        let idx = self.cur_active_tab()?;
         match self.tabs.get(idx)?.active().origin {
             crate::state::PaneOrigin::Host(id) => Some(id),
             _ => None,

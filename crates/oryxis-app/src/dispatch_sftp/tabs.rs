@@ -145,8 +145,8 @@ impl Oryxis {
             SftpMessage::ShowSftpTabMenu(idx) => {
                 self.overlay = Some(crate::state::OverlayState {
                     content: crate::state::OverlayContent::SftpTabActions(idx),
-                    x: self.mouse_position.x,
-                    y: self.mouse_position.y,
+                    x: self.cur_mouse().x,
+                    y: self.cur_mouse().y,
                 });
             }
             SftpMessage::SftpTabHovered(idx) => {

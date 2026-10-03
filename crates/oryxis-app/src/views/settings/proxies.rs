@@ -34,7 +34,7 @@ impl Oryxis {
             let summary = format!("{}, {}:{}", kind_label, pi.host, pi.port);
             let id = pi.id;
             proxy_nav.push(vec![crate::keynav::NavItem::Proxy(id)]);
-            let kb_selected = self.keynav.selected_in(crate::keynav::FocusZone::Content)
+            let kb_selected = self.kn().selected_in(crate::keynav::FocusZone::Content)
                 == Some(crate::keynav::NavItem::Proxy(id));
             let edit_btn = button(text(crate::i18n::t("edit")).size(12))
                 .on_press(Message::ProxyIdentity(ProxyIdentityMessage::ShowProxyIdentityForm(Some(id))))

@@ -11,7 +11,7 @@ impl Oryxis {
         } else {
             0.0
         };
-        (self.window_size.width
+        (self.cur_window_size().width
             - self.vault_rail_width()
             - self.side_strip_reserve()
             - panel
@@ -35,7 +35,7 @@ impl Oryxis {
     /// (every action, inline, with the gaps between them). Single source
     /// of truth for both the collapse tiers and the floating-field width.
     pub(crate) fn toolbar_cluster_width(&self) -> f32 {
-        match self.active_view {
+        match self.cur_view() {
             View::Dashboard => {
                 // Grid/list toggle only shows above a single grid column.
                 let nav_width = self.vault_rail_width();
@@ -45,7 +45,7 @@ impl Oryxis {
                     0.0
                 };
                 let available =
-                    (self.window_size.width
+                    (self.cur_window_size().width
                     - nav_width
                     - self.side_strip_reserve()
                     - panel
@@ -116,7 +116,7 @@ impl Oryxis {
     /// per char so a long / CJK folder name yields the search to its min
     /// before the name itself clips.
     pub(crate) fn toolbar_leading_width(&self) -> f32 {
-        if self.active_view != View::Dashboard {
+        if self.cur_view() != View::Dashboard {
             return 0.0;
         }
         let Some(gid) = self.active_group else {
@@ -233,7 +233,7 @@ impl Oryxis {
         // would force the static `id` down to `self`'s lifetime, and
         // `Id::new` needs `'static`).
         let (ph_key, value, on_input): (&'static str, &str, fn(String) -> Message) =
-            match self.active_view {
+            match self.cur_view() {
                 View::Dashboard => (
                     // Advertises the ad-hoc connect: this field doubles as
                     // the quick-connect entry point (Enter on a parseable
@@ -279,7 +279,7 @@ impl Oryxis {
                 ),
                 _ => return Space::new().into(),
             };
-        let id: &'static str = match self.active_view {
+        let id: &'static str = match self.cur_view() {
             View::Dashboard => "search-dashboard",
             View::Keys => "search-keys",
             View::Snippets => "search-snippets",
@@ -295,12 +295,12 @@ impl Oryxis {
         // the field. Enter itself is consumed by the keyboard router
         // (`keynav_activate`), which already owns plain Enter in the vault
         // area; wiring `.on_submit` here too would double-dispatch.
-        let quick_hint = self.active_view == View::Dashboard
+        let quick_hint = self.cur_view() == View::Dashboard
             && self.dashboard_quick_connect_target(&self.host_search).is_some();
         // History only: the "search in session content" toggle floats
         // inside the field's trailing edge, so it travels with the
         // search box (including into the collapsed-search overlay).
-        let content_chip = self.active_view == View::History;
+        let content_chip = self.cur_view() == View::History;
         let rtl = crate::i18n::is_rtl_layout();
 
         // Vertical padding tuned so the field's height matches the
@@ -438,17 +438,17 @@ impl Oryxis {
         // Record the full logical pill order (inline + overflow) for
         // the keyboard router: arrows walk the complete list; landing
         // on an overflowed destination auto-opens the "…" menu.
-        *self.keynav.subnav_items.borrow_mut() = self
+        *self.kn().subnav_items.borrow_mut() = self
             .subnav_pill_defs()
             .iter()
             .map(|(_, v)| crate::keynav::NavItem::SubNav(*v))
             .collect();
-        let kb_sel = match self.keynav.selected_in(crate::keynav::FocusZone::SubNav) {
+        let kb_sel = match self.kn().selected_in(crate::keynav::FocusZone::SubNav) {
             Some(crate::keynav::NavItem::SubNav(v)) => Some(v),
             _ => None,
         };
         let pill = move |label_key: &'static str, view: View| -> Element<'_, Message> {
-            let is_active = self.active_view == view;
+            let is_active = self.cur_view() == view;
             let fg = if is_active {
                 OryxisColors::t().accent
             } else {
@@ -548,7 +548,7 @@ impl Oryxis {
         // Settings gear pinned at the trailing edge, outside the
         // scrollable, so it never scrolls out of reach (mirrors how the
         // top strip docks the "+").
-        let settings_active = self.active_view == View::Settings;
+        let settings_active = self.cur_view() == View::Settings;
         let settings_gear: Element<'_, Message> = button(
             container(
                 iced_fonts::lucide::settings()
@@ -715,7 +715,7 @@ impl Oryxis {
         // its hairline) never belongs to this budget. Without the
         // reserve the pills overflow the row edge and wrap instead of
         // collapsing into the "…".
-        let avail = (self.window_size.width
+        let avail = (self.cur_window_size().width
             - flank
             - panel_reserve
             - self.side_strip_reserve())
@@ -736,7 +736,7 @@ impl Oryxis {
         // If the active view spilled into the overflow, swap it back in
         // (demoting the last inline pill) so the current location stays
         // highlighted in the strip.
-        if let Some(pos) = overflow.iter().position(|(_, v)| *v == self.active_view) {
+        if let Some(pos) = overflow.iter().position(|(_, v)| *v == self.cur_view()) {
             let active = overflow.remove(pos);
             if let Some(last) = inline.pop() {
                 overflow.insert(0, last);

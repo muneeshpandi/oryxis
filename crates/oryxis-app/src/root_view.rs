@@ -19,7 +19,7 @@ impl Oryxis {
             // First-run welcome / onboarding carousel, full page.
             VaultState::NeedSetup => crate::views::vault::with_chrome(
                 self.view_onboarding_page(),
-                self.window_maximized,
+                self.cur_maximized(),
             ),
             VaultState::Locked => self.view_vault_unlock(),
             VaultState::Unlocked => self.view_main(),
@@ -41,7 +41,10 @@ impl Oryxis {
             // The gate is `update_modal_shown`, shared with
             // `is_modal_open` so the keyboard layer sees exactly what is
             // drawn.
-            if self.update_modal_shown() {
+            if !self.floats_here() {
+                // Drawn once, in the window it was raised from.
+                None
+            } else if self.update_modal_shown() {
                 Some((self.view_update_modal(), None, 40.0))
             } else if self.local_shell_picker_open {
                 Some((
@@ -179,8 +182,8 @@ impl Oryxis {
         // Also 0 where AppKit draws the frame: its window has a rounded,
         // shadowed edge of its own, and a square 1 px line inside that
         // mask reads as a cut across the corners.
-        let border_width = if self.window_maximized
-            || self.window_fullscreen
+        let border_width = if self.cur_maximized()
+            || self.cur_fullscreen()
             || crate::views::chrome::NATIVE_FRAME
         {
             0.0

@@ -305,9 +305,8 @@ impl Oryxis {
                 if let crate::state::ProgressOrigin::Quick(id) = origin
                     && let Some(entry) = self.quick_connects.get(&id)
                 {
-                    // Relaunch message so Duplicate Tab can recreate this
-                    // ad-hoc session. "Duplicate in New Window" auto-hides
-                    // on it (a child process cannot resolve an unsaved id).
+                    // Relaunch message so Duplicate Tab (here or in a new
+                    // window) can recreate this ad-hoc session.
                     new_tab.active_mut().relaunch =
                         Some(Box::new(Message::Ssh(SshMessage::QuickConnect(Box::new(entry.clone())))));
                 }

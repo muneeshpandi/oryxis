@@ -21,21 +21,21 @@ impl Oryxis {
     /// rail with tooltips; expanded (`setting_nav_rail_expanded`) = wide
     /// rail with labels.
     pub(crate) fn view_vault_nav_rail(&self) -> Element<'_, Message> {
-        let active = self.active_tab.is_none();
+        let active = self.cur_active_tab().is_none();
         let expanded = self.prefs.nav_rail_expanded;
-        let act = |view: View| active && self.active_view == view;
+        let act = |view: View| active && self.cur_view() == view;
         // Record the section order for the keyboard router (same
         // logical list as the horizontal pills; only one of the two
         // orientations renders per frame) and resolve which entry is
         // keyboard-selected.
-        *self.keynav.subnav_items.borrow_mut() = self
+        *self.kn().subnav_items.borrow_mut() = self
             .subnav_pill_defs()
             .iter()
             .map(|(_, v)| crate::keynav::NavItem::SubNav(*v))
             .collect();
         let kb = |view: View| {
             matches!(
-                self.keynav.selected_in(crate::keynav::FocusZone::SubNav),
+                self.kn().selected_in(crate::keynav::FocusZone::SubNav),
                 Some(crate::keynav::NavItem::SubNav(v)) if v == view
             )
         };
@@ -76,7 +76,7 @@ impl Oryxis {
             iced_fonts::lucide::settings(),
             crate::i18n::t("settings"),
             View::Settings,
-            active && self.active_view == View::Settings,
+            active && self.cur_view() == View::Settings,
             expanded,
             // Settings is not a keynav destination (not in the
             // sub-nav defs), so it never carries the focus ring.

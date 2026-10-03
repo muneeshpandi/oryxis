@@ -750,7 +750,7 @@ impl Oryxis {
                     return Task::none();
                 }
                 let bounds = self.sync.passphrase_field_bounds.get();
-                let pos = crate::subscription::live_mouse_position();
+                let pos = crate::subscription::live_mouse().1;
                 if bounds.width > 0.0 && !bounds.contains(pos) {
                     self.exit_passphrase_edit();
                     return Task::none();

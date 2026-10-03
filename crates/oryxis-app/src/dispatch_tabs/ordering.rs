@@ -44,7 +44,7 @@ impl Oryxis {
             crate::state::PanelKind::Settings => self.settings_scroll.clear(),
             crate::state::PanelKind::NetTools => self.net_tools.reset(),
         }
-        if !(self.active_tab.is_none() && self.active_view == kind.view()) {
+        if !(self.cur_active_tab().is_none() && self.cur_view() == kind.view()) {
             return iced::Task::none();
         }
         // Most-recently-used first, skipping the entry we just dropped.
@@ -72,14 +72,49 @@ impl Oryxis {
             // whole existence test.
             TabRef::Panel(kind) => self.open_panel_tabs.contains(kind),
         });
+        // A tab shown by another window is in that window's strip, not
+        // missing from this one. With a single window the set is empty
+        // and nothing is allocated.
+        let elsewhere = if self.extra_windows.is_empty() && self.window_ctx.is_none() {
+            std::collections::HashSet::new()
+        } else {
+            self.prune_other_window_strips();
+            self.tabs_in_other_windows()
+        };
         for id in self.tabs.iter().map(|t| t._id).collect::<Vec<_>>() {
+            if elsewhere.contains(&id) {
+                continue;
+            }
             if !self.tab_order.iter().any(|r| matches!(r, TabRef::Terminal(x) if *x == id)) {
                 self.place_new_tab_ref(TabRef::Terminal(id));
             }
         }
-        for id in self.sftp_tabs.iter().map(|t| t.id).collect::<Vec<_>>() {
-            if !self.tab_order.iter().any(|r| matches!(r, TabRef::Sftp(x) if *x == id)) {
-                self.tab_order.push(TabRef::Sftp(id));
+        // The active tab is one this window shows. Anything that picked
+        // a tab by index while it sat in another window's strip (an
+        // async completion, a list of every tab) is corrected here
+        // rather than at each site.
+        if let Some(active) = self.active_tab.and_then(|i| self.tabs.get(i)).map(|t| t._id)
+            && elsewhere.contains(&active)
+        {
+            self.active_tab = self.tab_order.iter().find_map(|r| match r {
+                TabRef::Terminal(id) => self.tabs.iter().position(|t| t._id == *id),
+                _ => None,
+            });
+            if self.active_tab.is_none()
+                && self.window_ctx.is_none()
+                && self.active_view == crate::state::View::Terminal
+            {
+                self.active_view = crate::state::View::Dashboard;
+            }
+        }
+        // SFTP tabs belong to the main strip; an extra window's strip is
+        // in `tab_order` while its values are swapped in, and it holds
+        // terminal tabs only.
+        if self.window_ctx.is_none() {
+            for id in self.sftp_tabs.iter().map(|t| t.id).collect::<Vec<_>>() {
+                if !self.tab_order.iter().any(|r| matches!(r, TabRef::Sftp(x) if *x == id)) {
+                    self.tab_order.push(TabRef::Sftp(id));
+                }
             }
         }
     }

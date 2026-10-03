@@ -94,7 +94,7 @@ impl Oryxis {
             origin_side: side,
             items,
             label,
-            press_pos: self.mouse_position,
+            press_pos: self.cur_mouse(),
             active: false,
         });
     }
@@ -158,7 +158,7 @@ impl Oryxis {
             )
         };
         self.drag_out_arm = Some(crate::drag_out::DragOutArm {
-            press: self.mouse_position,
+            press: self.cur_mouse(),
             label: label.to_string(),
             stage: crate::drag_out::DragOutStage::Armed(payload),
         });
@@ -214,8 +214,8 @@ impl Oryxis {
                     path,
                     is_dir,
                     is_background: false,
-                    x: self.mouse_position.x,
-                    y: self.mouse_position.y,
+                    x: self.cur_mouse().x,
+                    y: self.cur_mouse().y,
                 });
             }
             SftpMessage::SftpBackgroundRightClick(side) => {
@@ -233,8 +233,8 @@ impl Oryxis {
                     path: dir,
                     is_dir: true,
                     is_background: true,
-                    x: self.mouse_position.x,
-                    y: self.mouse_position.y,
+                    x: self.cur_mouse().x,
+                    y: self.cur_mouse().y,
                 });
             }
             SftpMessage::SftpRowMenuClose => {
@@ -383,7 +383,7 @@ impl Oryxis {
                 {
                     self.tab_drag = Some(crate::state::TabDrag {
                         from_id: tab._id,
-                        start: self.mouse_position,
+                        start: self.cur_mouse(),
                         active: false,
                     });
                 } else if let Some(idx) = self.hover.sftp_tab.filter(|_| in_tab_strip)
@@ -392,7 +392,7 @@ impl Oryxis {
                     // SFTP tabs arm the same unified reorder drag.
                     self.tab_drag = Some(crate::state::TabDrag {
                         from_id: tab.id,
-                        start: self.mouse_position,
+                        start: self.cur_mouse(),
                         active: false,
                     });
                 } else if let Some(kind) = self.hover.panel_tab.filter(|_| in_tab_strip) {
@@ -401,7 +401,7 @@ impl Oryxis {
                     // and `TabRef::strip_id` answers with the same value.
                     self.tab_drag = Some(crate::state::TabDrag {
                         from_id: kind.tab_id(),
-                        start: self.mouse_position,
+                        start: self.cur_mouse(),
                         active: false,
                     });
                 }
@@ -413,7 +413,7 @@ impl Oryxis {
                 // text_input handles its own caret placement).
                 if self.sidebar_tab_shown(crate::state::TerminalSidebarTab::Files)
                     && !self.cursor_over_sidebar()
-                    && let Some(idx) = self.active_tab
+                    && let Some(idx) = self.cur_active_tab()
                     && let Some(tab) = self.tabs.get_mut(idx)
                 {
                     let files = &mut tab.active_mut().files;

@@ -122,7 +122,7 @@ impl Oryxis {
         body: &str,
         fallback: Option<String>,
     ) -> bool {
-        if self.window_focused {
+        if self.cur_focused() {
             return false;
         }
         // One line, and never the full path of a deep tree: the OS
@@ -219,7 +219,7 @@ impl Oryxis {
                 // (the fallback for an OS notification the desktop refused
                 // is the usual one) would be gone before anyone looked.
                 // The focus-return handler re-stamps the deadline.
-                if self.window_focused
+                if self.cur_focused()
                     && self
                         .toast_deadline
                         .is_some_and(|d| std::time::Instant::now() >= d)

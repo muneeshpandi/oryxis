@@ -56,8 +56,8 @@ impl Oryxis {
             }
         };
         let mut refs: Vec<TabRef> =
-            self.tab_order.iter().copied().filter(|r| pinned_of(r)).collect();
-        refs.extend(self.tab_order.iter().copied().filter(|r| !pinned_of(r)));
+            self.cur_tab_order().iter().copied().filter(|r| pinned_of(r)).collect();
+        refs.extend(self.cur_tab_order().iter().copied().filter(|r| !pinned_of(r)));
         refs
     }
 
@@ -92,19 +92,19 @@ impl Oryxis {
     /// the bug that made Alt+arrow / Ctrl+Tab jump from a stale SFTP slot.
     pub(crate) fn active_tab_ref(&self) -> Option<crate::state::TabRef> {
         use crate::state::TabRef;
-        if self.active_tab.is_none()
-            && self.active_view == View::Sftp
+        if self.cur_active_tab().is_none()
+            && self.cur_view() == View::Sftp
             && let Some(i) = self.active_sftp
         {
             return self.sftp_tabs.get(i).map(|t| TabRef::Sftp(t.id));
         }
-        if let Some(i) = self.active_tab {
+        if let Some(i) = self.cur_active_tab() {
             return self.tabs.get(i).map(|t| TabRef::Terminal(t._id));
         }
         // Same rule as the SFTP arm above: a panel owns the strip slot
         // only while its own surface is the one showing, so Ctrl+Tab can
         // come back to whatever was open before it.
-        if let Some(kind) = crate::state::PanelKind::for_view(self.active_view)
+        if let Some(kind) = crate::state::PanelKind::for_view(self.cur_view())
             && self.panel_tab_open(kind)
         {
             return Some(TabRef::Panel(kind));
@@ -117,7 +117,7 @@ impl Oryxis {
     /// the saved host has since been deleted. Used by Ctrl+P to open
     /// the host editor for the current connection.
     pub(crate) fn active_tab_connection_idx(&self) -> Option<usize> {
-        let tab_idx = self.active_tab?;
+        let tab_idx = self.cur_active_tab()?;
         let tab = self.tabs.get(tab_idx)?;
         let base_label = tab.label.trim_end_matches(" (disconnected)");
         self.connections.iter().position(|c| c.label == base_label)
@@ -127,7 +127,7 @@ impl Oryxis {
     /// current view, or `None` when the view has no search field.
     /// Consumed by `Message::Tabs(TabsMessage::FocusViewSearch)` (Ctrl+F).
     pub(crate) fn active_view_search_id(&self) -> Option<widget::Id> {
-        match self.active_view {
+        match self.cur_view() {
             // First run builds no toolbar, so there is no search field
             // to focus: Ctrl+F no-ops and Tab skips the search zone
             // instead of opening the floating field over an empty

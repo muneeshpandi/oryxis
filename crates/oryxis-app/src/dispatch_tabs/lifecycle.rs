@@ -12,6 +12,21 @@ use crate::state::View;
 
 impl Oryxis {
     pub(super) fn handle_select_tab(&mut self, idx: usize) -> Task<Message> {
+        // A tab another window shows (reached from a list of every tab,
+        // or by a stale follow-up): select it THERE and bring that
+        // window forward, instead of making this window's active tab
+        // one its strip does not hold.
+        if let Some(id) = self.tabs.get(idx).map(|t| t._id) {
+            let owner = self.window_of_tab(id);
+            if owner != self.window_ctx.as_ref().map(|c| c.id) {
+                let focus = match owner.or_else(crate::app::main_window_id) {
+                    Some(w) => iced::window::gain_focus(w),
+                    None => Task::none(),
+                };
+                let select = self.run_in_window(owner, |s| s.handle_select_tab(idx));
+                return Task::batch([select, focus]);
+            }
+        }
         if idx < self.tabs.len() {
             // Lazy reopen: a dormant pinned tab (restored at boot) has
             // no live session; entering it the first time connects.
@@ -23,7 +38,7 @@ impl Oryxis {
             self.panels.session_group_panel = false;
             // Leaving a tab mid-composition clears its preedit so a stale
             // IME overlay can't re-show when the user tabs back.
-            if let Some(old_idx) = self.active_tab
+            if let Some(old_idx) = self.cur_active_tab()
                 && old_idx != idx
                 && let Some(old) = self.tabs.get(old_idx)
                 && let Ok(mut state) = old.active().terminal.lock()
@@ -340,7 +355,9 @@ impl Oryxis {
         }
         let target_id = self.tabs[idx]._id;
         let doomed: Vec<usize> = (0..self.tabs.len())
-            .filter(|&i| self.tabs[i]._id != target_id && !self.tabs[i].pinned)
+            .filter(|&i| {
+                self.tabs[i]._id != target_id && !self.tabs[i].pinned && self.shows_tab(i)
+            })
             .collect();
         let live = self.live_session_count(&doomed);
         if live > 0 && self.prefs.confirm_close_session_tab {
@@ -380,7 +397,8 @@ impl Oryxis {
             // Reverse order so each index is still valid when its
             // turn comes.
             for i in (0..self.tabs.len()).rev() {
-                if self.tabs[i]._id != target_id && !self.tabs[i].pinned {
+                // "Others" are the other tabs of THIS window's strip.
+                if self.tabs[i]._id != target_id && !self.tabs[i].pinned && self.shows_tab(i) {
                     // Each one lands on the reopen stack, exactly as if
                     // it had been closed on its own: a "close others"
                     // that drops a screenful is the case an undo is
@@ -406,7 +424,7 @@ impl Oryxis {
     pub(super) fn handle_close_all_tabs(&mut self) -> Task<Message> {
         self.overlay = None;
         let doomed: Vec<usize> = (0..self.tabs.len())
-            .filter(|&i| !self.tabs[i].pinned)
+            .filter(|&i| !self.tabs[i].pinned && self.shows_tab(i))
             .collect();
         let live = self.live_session_count(&doomed);
         if live > 0 && self.prefs.confirm_close_session_tab {
@@ -433,8 +451,10 @@ impl Oryxis {
             .map(|t| t._id);
         // Pinned tabs survive "close all". Torn down one by one for the
         // reason in `close_other_tabs_now` above.
+        // "All" is every tab of THIS window's strip: another window's
+        // tabs are not on screen here to be closed from here.
         for i in (0..self.tabs.len()).rev() {
-            if !self.tabs[i].pinned {
+            if !self.tabs[i].pinned && self.shows_tab(i) {
                 self.remember_closed_tab(i);
                 self.teardown_tab_at(i);
             }
@@ -444,9 +464,14 @@ impl Oryxis {
             self.clear_terminal_tab_memory();
             self.active_view = View::Dashboard;
             self.connecting = None;
+        } else if let Some(first) = (0..self.tabs.len()).find(|&i| self.shows_tab(i)) {
+            self.active_tab = Some(first);
+            self.remember_terminal_tab_focus(first);
+            self.reanchor_connecting_after_filter(connecting_id);
         } else {
-            self.active_tab = Some(0);
-            self.remember_terminal_tab_focus(0);
+            // Only other windows still hold tabs.
+            self.active_tab = None;
+            self.active_view = View::Dashboard;
             self.reanchor_connecting_after_filter(connecting_id);
         }
         Task::none()

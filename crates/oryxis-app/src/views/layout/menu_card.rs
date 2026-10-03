@@ -137,16 +137,16 @@ impl Oryxis {
     /// applied at once (WoL + SSH URL on the tree = 7 rows, not 6).
     pub(crate) fn host_actions_menu_rows(&self, id: uuid::Uuid, dashboard: bool) -> f32 {
         use oryxis_core::models::connection::ConnectionProtocol;
-        // The collapsed selection menu the builder returns below: three
+        // The collapsed selection menu the builder returns below: four
         // items, whatever this host itself would have offered. Same
         // predicate as the builder, or the menu is laid out for the wrong
         // height.
         if dashboard && self.card_menu_collapses_to_selection(id) {
-            return 3.0;
+            return 4.0;
         }
         let conn = self.connections.iter().find(|c| c.id == id);
         let protocol = conn.map(|c| c.protocol).unwrap_or(ConnectionProtocol::Ssh);
-        let mut rows = 3.0; // Connect + Edit + Duplicate
+        let mut rows = 4.0; // Connect + Connect in new window + Edit + Duplicate
         if protocol == ConnectionProtocol::Ssh {
             rows += 1.0; // Share
             if self.sftp_enabled {
@@ -213,6 +213,12 @@ impl Oryxis {
                     OryxisColors::t().success,
                 ),
                 self.menu_item_owned(
+                    iced_fonts::lucide::external_link(),
+                    crate::i18n::t("connect_n_hosts_new_window").replace("{n}", &n.to_string()),
+                    Message::Tabs(TabsMessage::ConnectHostsInNewWindow(ids.clone())),
+                    OryxisColors::t().text_secondary,
+                ),
+                self.menu_item_owned(
                     iced_fonts::lucide::folder_input(),
                     crate::i18n::t("move_n_to_group").replace("{n}", &n.to_string()),
                     Message::Tabs(TabsMessage::MoveHostsPick(move_ids)),
@@ -261,6 +267,7 @@ impl Oryxis {
         );
         let mut items = column![
             self.menu_item(iced_fonts::lucide::play(), crate::i18n::t("connect"), by_idx(|i| Message::Ssh(SshMessage::ConnectSsh(i))), OryxisColors::t().success),
+            self.menu_item(iced_fonts::lucide::external_link(), crate::i18n::t("connect_new_window"), Message::Tabs(TabsMessage::ConnectHostsInNewWindow(vec![id])), OryxisColors::t().text_secondary),
             self.menu_item(iced_fonts::lucide::pencil(), crate::i18n::t("edit"), Message::Editor(EditorMessage::EditConnection(id)), OryxisColors::t().text_secondary),
             self.menu_item(iced_fonts::lucide::copy(), crate::i18n::t("duplicate"), by_idx(|i| Message::Editor(EditorMessage::DuplicateConnection(i))), OryxisColors::t().text_secondary),
         ];

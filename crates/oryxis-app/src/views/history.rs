@@ -1028,7 +1028,7 @@ impl Oryxis {
             TimelineKind::Failure(_) => None,
         };
         let kb_selected = viewable.is_some()
-            && self.keynav.selected_in(crate::keynav::FocusZone::Content)
+            && self.kn().selected_in(crate::keynav::FocusZone::Content)
                 == viewable.map(crate::keynav::NavItem::HistoryLog);
         // Keyboard selection reuses the hover treatment (bg tint) plus
         // the shared ring below.

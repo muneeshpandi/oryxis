@@ -64,7 +64,7 @@ impl Oryxis {
             }
             SftpMessage::SftpColResizeStart(side, col) => {
                 let start_w = self.sftp.pane(side).columns.width.get(col);
-                self.sftp_chrome.col_resize = Some((side, col, self.mouse_position.x, start_w));
+                self.sftp_chrome.col_resize = Some((side, col, self.cur_mouse().x, start_w));
                 self.sftp.close_menus();
             }
             SftpMessage::SftpColAutoFit(side, col) => {
@@ -74,7 +74,7 @@ impl Oryxis {
                 self.sftp_chrome.col_drag = Some(crate::state::SftpColDrag {
                     side,
                     col,
-                    press_x: self.mouse_position.x,
+                    press_x: self.cur_mouse().x,
                     active: false,
                 });
             }
@@ -103,12 +103,12 @@ impl Oryxis {
             SftpMessage::SftpSplitResizeStart => {
                 // Capture the cursor x and current ratio; the MouseMoved
                 // handler computes the delta against these.
-                self.sftp_chrome.split_drag = Some((self.mouse_position.x, self.sftp_chrome.split_ratio));
+                self.sftp_chrome.split_drag = Some((self.cur_mouse().x, self.sftp_chrome.split_ratio));
             }
             SftpMessage::SftpLogResizeStart => {
                 // Capture the cursor y and current log height; the MouseMoved
                 // handler computes the delta against these.
-                self.sftp_chrome.log_drag = Some((self.mouse_position.y, self.sftp.log_height));
+                self.sftp_chrome.log_drag = Some((self.cur_mouse().y, self.sftp.log_height));
             }
             m => return Err(m),
         }

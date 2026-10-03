@@ -88,7 +88,7 @@ impl Oryxis {
                 self.home_area_tab(solid_fill),
                 Space::new().width(Length::Fill).into(),
             ];
-            if self.active_tab.is_some() {
+            if self.cur_active_tab().is_some() {
                 for toggle_side in self.sidebar_toggle_sides() {
                     header.push(sidebar_btn(toggle_side, SIDEBAR_TOGGLE_WIDTH, HEADER_CHROME_H));
                 }
@@ -165,12 +165,12 @@ impl Oryxis {
         // reach them. Past the cap the dock scrolls on its own.
         let pins_h_raw = pins_row_count as f32 * (SIDE_ROW_HEIGHT + TAB_SPACING);
         let pins_h_max =
-            (self.window_size.height * 0.4).max(3.0 * (SIDE_ROW_HEIGHT + TAB_SPACING));
+            (self.cur_window_size().height * 0.4).max(3.0 * (SIDE_ROW_HEIGHT + TAB_SPACING));
         let pins_overflow = pins_h_raw > pins_h_max;
         let head_h = if hide_top_bar { BAR_HEIGHT } else { 0.0 }
             + pins_h_raw.min(pins_h_max);
         let viewport_h =
-            (self.window_size.height - strip_top - head_h - 40.0).max(120.0);
+            (self.cur_window_size().height - strip_top - head_h - 40.0).max(120.0);
         let content_h = (row_count as f32 + 1.0) * (SIDE_ROW_HEIGHT + TAB_SPACING);
         let overflow = content_h > viewport_h;
 
@@ -303,7 +303,7 @@ impl Oryxis {
             && let Some((ghost, _ghost_w)) =
                 self.strip_drag_ghost_el(SIDE_TAB_WIDTH, compact_pins, &ctx.privacy_terms)
         {
-            let gy = (self.mouse_position.y - strip_top - 6.0 - SIDE_ROW_HEIGHT / 2.0)
+            let gy = (self.cur_mouse().y - strip_top - 6.0 - SIDE_ROW_HEIGHT / 2.0)
                 .max(0.0);
             let positioned: Element<'_, Message> = iced::widget::Column::new()
                 .push(Space::new().height(gy))

@@ -23,7 +23,7 @@ impl Oryxis {
     /// Whether the ACTIVE terminal tab's focused pane has a live SSH
     /// session, the transport gate shared by Files / Monitor / Tmux.
     fn active_pane_has_ssh(&self) -> bool {
-        self.active_tab
+        self.cur_active_tab()
             .and_then(|i| self.tabs.get(i))
             .and_then(|t| t.active().session.as_ref().and_then(|s| s.ssh()))
             .is_some()
@@ -32,7 +32,7 @@ impl Oryxis {
     /// Whether the ACTIVE terminal tab's focused pane is a local shell,
     /// which the Files tab serves with the local backend (issue #145).
     fn active_pane_is_local(&self) -> bool {
-        self.active_tab
+        self.cur_active_tab()
             .and_then(|i| self.tabs.get(i))
             .map(|t| t.active())
             .is_some_and(|p| {
@@ -183,7 +183,7 @@ impl Oryxis {
 
     /// `sidebar_region_shown` for the ACTIVE terminal tab.
     pub(crate) fn active_sidebar_shown(&self, side: SidebarSide) -> bool {
-        self.active_tab
+        self.cur_active_tab()
             .and_then(|i| self.tabs.get(i))
             .is_some_and(|t| self.sidebar_region_shown(t, side))
     }
@@ -257,7 +257,7 @@ impl Oryxis {
                     // tab and stays. Computed against the
                     // ALREADY-updated prefs.
                     let collapse_from = !self.sidebar_region_has_tabs(from);
-                    if let Some(idx) = self.active_tab
+                    if let Some(idx) = self.cur_active_tab()
                         && let Some(ttab) = self.tabs.get_mut(idx)
                     {
                         ttab.sidebar_open[to_side.idx()] = true;

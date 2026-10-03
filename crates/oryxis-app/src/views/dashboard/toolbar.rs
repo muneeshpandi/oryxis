@@ -360,7 +360,7 @@ impl Oryxis {
         let nav_width = self.vault_rail_width();
         let panel_open = self.cloud_discover.visible || self.panels.host_panel;
         let panel_width = if panel_open { self.panel_width } else { 0.0 };
-        let available = (self.window_size.width
+        let available = (self.cur_window_size().width
             - nav_width
             - self.side_strip_reserve()
             - panel_width

@@ -300,7 +300,7 @@ impl Oryxis {
 
         let nav_width = self.vault_rail_width();
         let panel_width = if self.panels.snippet_panel { self.panel_width } else { 0.0 };
-        let available = (self.window_size.width
+        let available = (self.cur_window_size().width
             - nav_width
             - self.side_strip_reserve()
             - panel_width
@@ -450,7 +450,7 @@ impl Oryxis {
     /// root and in-group layouts share it.
     fn snippet_card(&self, idx: usize) -> Element<'_, Message> {
         let snip = &self.snippets[idx];
-            let kb_selected = self.keynav.selected_in(crate::keynav::FocusZone::Content)
+            let kb_selected = self.kn().selected_in(crate::keynav::FocusZone::Content)
                 == Some(crate::keynav::NavItem::Snippet(idx));
             // Use host_icon so the snippet badge follows the global
             // `default_host_icon` shape (Circular by default in v0.7)
@@ -606,7 +606,7 @@ self.keynav_ring_content(kb_selected, card_el)
     /// manual-folder cards: badge + name + count + trailing chevron;
     /// click (or Enter) drills into the group.
     fn snippet_group_card(&self, gi: usize, name: &str, count: usize) -> Element<'_, Message> {
-        let kb_selected = self.keynav.selected_in(crate::keynav::FocusZone::Content)
+        let kb_selected = self.kn().selected_in(crate::keynav::FocusZone::Content)
             == Some(crate::keynav::NavItem::SnippetGroup(gi));
         let style = crate::widgets::resolve_host_icon_style(
             None,

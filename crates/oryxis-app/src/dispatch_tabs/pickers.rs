@@ -180,7 +180,7 @@ impl Oryxis {
                 self.icon_picker.icon_search = q;
             }
             TabsMessage::IconPickerOpenColorPopover => {
-                self.icon_color_popover = Some(self.mouse_position);
+                self.icon_color_popover = Some(self.cur_mouse());
             }
             TabsMessage::IconPickerCloseColorPopover => {
                 self.icon_color_popover = None;

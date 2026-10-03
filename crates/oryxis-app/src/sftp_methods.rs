@@ -618,12 +618,12 @@ impl Oryxis {
         let (chat_left, chat_right) = self.sidebar_reserve();
         let left_edge = self.vault_rail_width() + strip_left + chat_left;
         let content_w =
-            (self.window_size.width - left_edge - chat_right - strip_right).max(0.0);
+            (self.cur_window_size().width - left_edge - chat_right - strip_right).max(0.0);
         // Honor the user's resizable split, not a fixed 50/50, so the
         // boundary matches the actual divider position.
         let split = left_edge + content_w * self.sftp_chrome.split_ratio;
-        self.mouse_position.x > split
-            && self.mouse_position.x < self.window_size.width - chat_right - strip_right
+        self.cur_mouse().x > split
+            && self.cur_mouse().x < self.cur_window_size().width - chat_right - strip_right
     }
 
     /// Sidebar-region widths as a `(left, right)` reserve (issue
@@ -631,7 +631,7 @@ impl Oryxis {
     /// region isn't on screen for the active tab.
     fn sidebar_reserve(&self) -> (f32, f32) {
         use crate::state::SidebarSide;
-        let Some(tab) = self.active_tab.and_then(|i| self.tabs.get(i)) else {
+        let Some(tab) = self.cur_active_tab().and_then(|i| self.tabs.get(i)) else {
             return (0.0, 0.0);
         };
         let width = |side: SidebarSide| {
@@ -652,9 +652,9 @@ impl Oryxis {
         let (chat_left, chat_right) = self.sidebar_reserve();
         let left_edge = self.vault_rail_width() + strip_left + chat_left;
         let content_w =
-            (self.window_size.width - left_edge - chat_right - strip_right).max(0.0);
+            (self.cur_window_size().width - left_edge - chat_right - strip_right).max(0.0);
         let split = left_edge + content_w * self.sftp_chrome.split_ratio;
-        self.mouse_position.x > left_edge && self.mouse_position.x < split
+        self.cur_mouse().x > left_edge && self.cur_mouse().x < split
     }
 
     /// Look up whether a path in the given pane points at a directory,
@@ -811,10 +811,10 @@ impl Oryxis {
     /// gate on this instead of `active_view == View::Sftp` so they
     /// work on both surfaces.
     pub(crate) fn sftp_surface_visible(&self) -> bool {
-        if self.active_tab.is_none() && self.active_view == crate::state::View::Sftp {
+        if self.cur_active_tab().is_none() && self.cur_view() == crate::state::View::Sftp {
             return true;
         }
-        self.active_tab
+        self.cur_active_tab()
             .and_then(|i| self.tabs.get(i))
             .is_some_and(|t| t.files_mode)
     }
@@ -846,7 +846,7 @@ impl Oryxis {
             self.hybrid_sftp_owner = None;
             self.sftp = crate::state::SftpState::default();
         }
-        if let Some(tab) = self.active_tab.and_then(|i| self.tabs.get(i))
+        if let Some(tab) = self.cur_active_tab().and_then(|i| self.tabs.get(i))
             && tab.files_mode
             && self.hybrid_sftp_owner != Some(tab._id)
         {
@@ -1112,7 +1112,7 @@ impl Oryxis {
         tab.inherited_pin = None;
         // Back on the terminal surface; select the tab if it wasn't
         // already active (a background close leaves focus).
-        if self.active_tab != Some(idx) {
+        if self.cur_active_tab() != Some(idx) {
             return self.update(Message::Tabs(TabsMessage::SelectTab(idx)));
         }
         Task::none()
@@ -1276,7 +1276,7 @@ impl Oryxis {
         let id = self.sftp_tabs[idx].id;
         let was_owner = self.active_sftp == Some(idx);
         let was_focused_surface =
-            was_owner && self.active_tab.is_none() && self.active_view == crate::state::View::Sftp;
+            was_owner && self.cur_active_tab().is_none() && self.cur_view() == crate::state::View::Sftp;
         self.sftp_tabs.remove(idx);
         self.tab_order
             .retain(|r| !matches!(r, crate::state::TabRef::Sftp(x) if *x == id));

@@ -405,18 +405,21 @@ impl Oryxis {
             };
             items.push(self.menu_item(pin_icon, pin_label, Message::Tabs(TabsMessage::ToggleTabPin(idx)), OryxisColors::t().text_secondary));
         }
-        // "Duplicate in New Window" spawns a fresh process that
-        // can only re-open hosts saved in the vault. ECS Exec /
-        // kubectl tabs are ephemeral dynamic-group sessions (no
-        // saved connection, no uuid to hand the child), flagged
-        // by a `relaunch` message, so hide the item there rather
-        // than open an empty window.
-        let new_window_ok = self
-            .tabs
-            .get(idx)
-            .map(|t| t.active().relaunch.is_none())
-            .unwrap_or(true);
-        if new_window_ok {
+        // The window verbs. A tab moves between windows with its
+        // session untouched (every tab lives in the app, a window only
+        // shows it), so "move" is offered wherever there is somewhere
+        // else to go: out of the main window always, out of an extra
+        // one only while it holds more than this tab.
+        if let Some(tab_id) = self.tabs.get(idx).map(|t| t._id) {
+            let in_extra = self.in_extra_window();
+            if !in_extra || self.cur_tab_order().len() > 1 {
+                items.push(self.menu_item(iced_fonts::lucide::app_window(), crate::i18n::t("move_tab_new_window"), Message::Tabs(TabsMessage::MoveTabToNewWindow(tab_id)), OryxisColors::t().text_secondary));
+            }
+            if in_extra {
+                items.push(self.menu_item(iced_fonts::lucide::log_in(), crate::i18n::t("move_tab_main_window"), Message::Tabs(TabsMessage::MoveTabToMainWindow(tab_id)), OryxisColors::t().text_secondary));
+            }
+        }
+        {
             items.push(self.menu_item(iced_fonts::lucide::external_link(), crate::i18n::t("duplicate_new_window"), Message::Tabs(TabsMessage::DuplicateInNewWindow(idx)), OryxisColors::t().text_secondary));
         }
         // Copy the focused pane's host address. Only offered when the pane's
@@ -439,7 +442,7 @@ impl Oryxis {
         // background pane keeps taking output without redrawing, so its
         // stored position would no longer be what anyone is looking at.
         if self.prefs.terminal_right_click != crate::util::RightClickMode::Menu
-            && Some(idx) == self.active_tab
+            && Some(idx) == self.cur_active_tab()
             && self.terminal_surface_visible()
             && let Some(pane_id) =
                 self.tabs.get(idx).filter(|t| !t.files_mode).map(|t| t.active().id)
@@ -573,7 +576,7 @@ impl Oryxis {
         // The splits only exist for a tab to split. With none open the
         // popover is here for the reopen alone, and offering to halve a
         // pane that isn't there is the "reads as broken" case again.
-        if self.active_tab.is_some() {
+        if self.cur_active_tab().is_some() {
             items = items.push(context_menu_item(iced_fonts::lucide::columns_two(), crate::i18n::t("split_side_by_side"), Message::Terminal(TerminalMessage::SplitPane(iced::widget::pane_grid::Axis::Vertical)), OryxisColors::t().text_secondary));
             items = items.push(context_menu_item(iced_fonts::lucide::rows_two(), crate::i18n::t("split_stacked"), Message::Terminal(TerminalMessage::SplitPane(iced::widget::pane_grid::Axis::Horizontal)), OryxisColors::t().text_secondary));
         }
@@ -605,7 +608,7 @@ impl Oryxis {
     /// them (`overlay_menu_height`).
     pub(crate) fn split_menu_rows(&self) -> f32 {
         let mut rows: f32 = 1.0;
-        if self.active_tab.is_some() {
+        if self.cur_active_tab().is_some() {
             rows += 2.0;
         }
         if !self.closed_tabs.is_empty() {
@@ -1000,7 +1003,7 @@ impl Oryxis {
         use crate::state::{SortMenuKind, View};
         let secondary = OryxisColors::t().text_secondary;
         let mut col = column![].spacing(2);
-        match self.active_view {
+        match self.cur_view() {
             View::Dashboard => {
                 // Primary add action mirrors the toolbar's
                 // context-aware button (none in a dynamic group,

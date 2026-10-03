@@ -173,7 +173,7 @@ impl Oryxis {
 
         // Pane geometry in view-local coordinates (x = 0 at the view's left
         // edge, i.e. right of the nav rail).
-        let content_w = (self.window_size.width
+        let content_w = (self.cur_window_size().width
             - self.vault_rail_width()
             - self.side_strip_reserve())
         .max(1.0);
@@ -265,8 +265,8 @@ impl Oryxis {
         } else {
             41.0
         };
-        let gx = (self.mouse_position.x - rail + 12.0).max(0.0);
-        let gy = (self.mouse_position.y - view_top - 4.0).max(0.0);
+        let gx = (self.cur_mouse().x - rail + 12.0).max(0.0);
+        let gy = (self.cur_mouse().y - view_top - 4.0).max(0.0);
         let positioned: Element<'a, Message> = column![
             Space::new().height(Length::Fixed(gy)),
             row![Space::new().width(Length::Fixed(gx)), ghost],
@@ -383,7 +383,7 @@ impl Oryxis {
         // overflow, the layout switches the rows to a fixed width and the list
         // gets a horizontal scrollbar.
         let pane_avail = {
-            let content_w = (self.window_size.width
+            let content_w = (self.cur_window_size().width
             - self.vault_rail_width()
             - self.side_strip_reserve())
         .max(1.0);

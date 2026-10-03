@@ -74,13 +74,13 @@ impl Oryxis {
             }
             return self.search_named_connect();
         }
-        let in_settings = self.active_tab.is_none() && self.active_view == View::Settings;
+        let in_settings = self.cur_active_tab().is_none() && self.cur_view() == View::Settings;
         // The network tools panel records its rows on the same ring
         // Settings uses (`settings_nav_slot` -> `NavItem::SettingsRow`),
         // so opening the gate is the whole wiring: movement, Enter and
         // the picker's Left/Right already act on whatever recorded.
         let in_net_tools =
-            self.active_tab.is_none() && self.active_view == View::NetworkTools;
+            self.cur_active_tab().is_none() && self.cur_view() == View::NetworkTools;
         if !self.in_vault_area() && !in_settings && !in_net_tools {
             return None;
         }
@@ -292,7 +292,7 @@ impl Oryxis {
             // fall through to a plain focus. The tier math describes
             // the VAULT toolbar; Settings has no toolbar and its
             // sidebar search never folds, so it always plain-focuses.
-            let (search_collapsed, _) = if self.active_view == View::Settings {
+            let (search_collapsed, _) = if self.cur_view() == View::Settings {
                 (false, false)
             } else {
                 self.toolbar_tiers()
@@ -337,7 +337,7 @@ impl Oryxis {
                         // Land on where the user already is: the
                         // active view's pill, or the active Settings
                         // section's sidebar entry.
-                        NavItem::SubNav(v) => *v == self.active_view,
+                        NavItem::SubNav(v) => *v == self.cur_view(),
                         NavItem::SettingsSection(s) => *s == self.settings_section,
                         _ => false,
                     })
@@ -398,7 +398,7 @@ impl Oryxis {
         let items = self.keynav.subnav_items.borrow().clone();
         // The Settings sections sidebar is always a vertical list.
         let vertical = self.prefs.nav_orientation == "vertical"
-            || self.active_view == View::Settings;
+            || self.cur_view() == View::Settings;
         let rtl = crate::i18n::is_rtl_layout();
         let new = match (named, vertical) {
             (Named::ArrowRight, false) => linear_move(&items, Some(cur), !rtl),
@@ -455,7 +455,7 @@ impl Oryxis {
         // changes nothing on screen (Left looked dead) and re-surfaces
         // as a surprise fold state once the needle clears.
         if matches!(named, Named::ArrowLeft | Named::ArrowRight)
-            && self.active_view == View::Dashboard
+            && self.cur_view() == View::Dashboard
             && self.prefs.host_view_mode == crate::state::HostViewMode::Tree
             && self.host_search.trim().is_empty()
             && let NavItem::Dash(DashNavItem::Group(gid)) = cur
@@ -518,13 +518,13 @@ impl Oryxis {
             FocusZone::Content => self.keynav_scroll_content_to(item),
             FocusZone::SubNav => {
                 let vertical = self.prefs.nav_orientation == "vertical"
-                    || self.active_view == View::Settings;
+                    || self.cur_view() == View::Settings;
                 if vertical {
                     self.panels.subnav_overflow = false;
                     let items = self.keynav.subnav_items.borrow();
                     let pos = items.iter().position(|&i| i == item).unwrap_or(0);
                     let denom = items.len().saturating_sub(1).max(1);
-                    let rail_id = if self.active_view == View::Settings {
+                    let rail_id = if self.cur_view() == View::Settings {
                         "settings-sidebar-scroll"
                     } else {
                         "vault-nav-rail-scroll"
@@ -564,7 +564,7 @@ impl Oryxis {
     /// connecting whatever host happens to sort first is not something
     /// the user asked for. A named target is unambiguous either way.
     fn search_named_connect(&mut self) -> Option<Task<Message>> {
-        if self.active_view != View::Dashboard || self.host_search.trim().is_empty() {
+        if self.cur_view() != View::Dashboard || self.host_search.trim().is_empty() {
             return None;
         }
         let input = self.host_search.trim().to_string();
@@ -597,7 +597,7 @@ impl Oryxis {
     fn keynav_activate(&mut self) -> Option<Task<Message>> {
         match self.keynav.focus {
             None => {
-                if self.active_view == View::Dashboard && !self.host_search.is_empty() {
+                if self.cur_view() == View::Dashboard && !self.host_search.is_empty() {
                     if let Some(task) = self.search_named_connect() {
                         return Some(task);
                     }
@@ -780,7 +780,7 @@ impl Oryxis {
     /// #230), the keyboard's equivalent of the hover check; everywhere
     /// else Space activates like Enter.
     fn keynav_space(&mut self) -> Option<Task<Message>> {
-        if self.active_view == crate::state::View::Dashboard
+        if self.cur_view() == crate::state::View::Dashboard
             && let Some((FocusZone::Content, NavItem::Dash(DashNavItem::Host(i)))) = self.keynav.focus
             && let Some(id) = self.connections.get(i).map(|c| c.id)
         {
@@ -795,11 +795,11 @@ impl Oryxis {
         // dashboard: one press clears it, the next leaves the
         // multi-select mode (so the cards go back to dialling), the last
         // idles the ring.
-        if self.active_view == crate::state::View::Dashboard && !self.dash_selection.is_empty() {
+        if self.cur_view() == crate::state::View::Dashboard && !self.dash_selection.is_empty() {
             self.dash_selection.clear();
             return Some(Task::none());
         }
-        if self.active_view == crate::state::View::Dashboard && self.dash_multi_select {
+        if self.cur_view() == crate::state::View::Dashboard && self.dash_multi_select {
             self.dash_multi_select = false;
             return Some(Task::none());
         }
@@ -840,7 +840,7 @@ impl Oryxis {
         // is on (see `CardPressed`). Every other content item keeps its
         // usual verb, so the folder drill-downs and the ring's "open the
         // thing" contract are untouched.
-        if self.active_view == crate::state::View::Dashboard
+        if self.cur_view() == crate::state::View::Dashboard
             && self.dash_multi_select
             && let NavItem::Dash(DashNavItem::Host(i)) = item
             && let Some(id) = self.connections.get(i).map(|c| c.id)
@@ -911,7 +911,7 @@ impl Oryxis {
     /// sees combinations that were actually rendered.
     fn toolbar_item_message(&self, item: ToolbarItem) -> Option<Message> {
         use crate::state::SortMenuKind;
-        Some(match (self.active_view, item) {
+        Some(match (self.cur_view(), item) {
             (View::Dashboard, ToolbarItem::ViewToggle) => Message::Settings(SettingsMessage::CycleHostViewMode),
             // Monitoring toolbar (issue #95): shared tag filter, plus
             // its own grid/list toggle.
@@ -962,7 +962,7 @@ impl Oryxis {
     /// (keychain, snippets, port forwards, cloud) are 2-D; History,
     /// Proxies and Known Hosts are true 1-D lists.
     fn content_list_mode(&self) -> bool {
-        match self.active_view {
+        match self.cur_view() {
             // List AND tree are one item per row; only the card grid
             // is 2-D.
             View::Dashboard => {
@@ -980,7 +980,7 @@ impl Oryxis {
     /// no item bounds, so these are estimates tuned to the card
     /// metrics (the dashboard numbers are the pre-existing ones).
     fn content_scroll_meta(&self) -> Option<(iced::widget::Id, f32)> {
-        let (id, row_h) = match self.active_view {
+        let (id, row_h) = match self.cur_view() {
             View::Dashboard => (
                 "dashboard-grid-scroll",
                 match self.prefs.host_view_mode {
@@ -1026,7 +1026,7 @@ impl Oryxis {
         };
         let rows = self.keynav.content_rows.borrow();
         let sel_row = rows.iter().position(|row| row.contains(&item)).unwrap_or(0) as f32;
-        let viewport = (self.window_size.height - 115.0).max(row_h);
+        let viewport = (self.cur_window_size().height - 115.0).max(row_h);
         let visible_rows = (viewport / row_h).floor().max(1.0);
         let max_scroll_rows = (rows.len() as f32 - visible_rows).max(1.0);
         let offset_rows = (sel_row - visible_rows + 1.0).max(0.0);
@@ -1052,8 +1052,8 @@ impl Oryxis {
         named: keyboard::key::Named,
         shift: bool,
     ) -> Option<Task<Message>> {
-        if !(self.active_tab.is_none()
-            && self.active_view == View::Settings
+        if !(self.cur_active_tab().is_none()
+            && self.cur_view() == View::Settings
             && self.keynav.focus.is_none())
         {
             return None;

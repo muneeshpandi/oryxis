@@ -34,8 +34,8 @@ impl Oryxis {
     pub(crate) fn cursor_in_tab_strip(&self) -> bool {
         crate::views::tab_bar::cursor_in_tab_strip_band(
             crate::views::tab_bar::tab_bar_pos(),
-            self.mouse_position,
-            self.window_size,
+            self.cur_mouse(),
+            self.cur_window_size(),
             self.prefs.pinned_tabs_top_bar && !self.top_bar_hidden(),
         )
     }
@@ -52,7 +52,7 @@ impl Oryxis {
         if self.cursor_in_tab_strip() {
             return None;
         }
-        let dest_idx = self.active_tab?;
+        let dest_idx = self.cur_active_tab()?;
         // The connect screen replaces the grid for its own tab, so the
         // panes' reported rects are whatever they were before it took
         // over: hit-testing them would target a grid nobody can see.
@@ -98,7 +98,7 @@ impl Oryxis {
                 (*handle, crate::state::TerminalTab::pane_hit_bounds(pane, headers))
             })
             .collect();
-        let proposal = crate::pane_drop::drop_target_at(&rects, self.mouse_position)?;
+        let proposal = crate::pane_drop::drop_target_at(&rects, self.cur_mouse())?;
         Some((dest_idx, proposal))
     }
 

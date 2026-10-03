@@ -31,7 +31,7 @@ impl Oryxis {
                 // conversation the user is looking at).
                 self.abort_active_chat_task();
                 self.reset_chat_auto_run_guard();
-                if let Some(idx) = self.active_tab {
+                if let Some(idx) = self.cur_active_tab() {
                     if let Some(tab) = self.tabs.get_mut(idx) {
                         tab.chat_history.clear();
                     }
@@ -46,7 +46,7 @@ impl Oryxis {
             AiMessage::ChatModeChanged(mode) => {
                 // Apply to the active tab's conversation and remember it as
                 // the default for new tabs (process-wide default + setting).
-                if let Some(idx) = self.active_tab
+                if let Some(idx) = self.cur_active_tab()
                     && let Some(tab) = self.tabs.get_mut(idx)
                 {
                     tab.chat_mode = mode;
@@ -61,7 +61,7 @@ impl Oryxis {
                 if input.is_empty() || !self.ai.enabled {
                     return Task::none();
                 }
-                let Some(idx) = self.active_tab else {
+                let Some(idx) = self.cur_active_tab() else {
                     return Task::none();
                 };
                 if idx >= self.tabs.len() {
@@ -88,7 +88,7 @@ impl Oryxis {
             AiMessage::ChatStreamChunk { tab_id, delta } => {
                 // Route to the origin tab by id (not `active_tab`): the user
                 // may have switched tabs while this stream keeps running.
-                let is_active = self.chat_tab_index(tab_id) == self.active_tab;
+                let is_active = self.chat_tab_index(tab_id) == self.cur_active_tab();
                 if let Some(idx) = self.chat_tab_index(tab_id) {
                     // Markdown parse is O(content), so re-parsing on every
                     // token makes a long streamed reply O(n^2). Throttle to
@@ -132,7 +132,7 @@ impl Oryxis {
                 }
             }
             AiMessage::ChatStreamDone { tab_id } => {
-                let is_active = self.chat_tab_index(tab_id) == self.active_tab;
+                let is_active = self.chat_tab_index(tab_id) == self.cur_active_tab();
                 if let Some(idx) = self.chat_tab_index(tab_id) {
                     // Final parse so the rendered markdown can't lag behind
                     // the throttled streaming parses above.
@@ -171,7 +171,7 @@ impl Oryxis {
                 // Provider/network failures get their own role so the
                 // bubble can render with an error treatment + Retry,
                 // instead of being indistinguishable from a real reply.
-                let is_active = self.chat_tab_index(tab_id) == self.active_tab;
+                let is_active = self.chat_tab_index(tab_id) == self.cur_active_tab();
                 if let Some(idx) = self.chat_tab_index(tab_id) {
                     // If the stream errored before the model wrote any
                     // text, drop the empty assistant placeholder so we
@@ -202,7 +202,7 @@ impl Oryxis {
                 // command + its output), and the stream continues from there
                 // (#3). It also does not pop the user message, so nothing is
                 // lost if the remaining history isn't what we expected.
-                let Some(idx) = self.active_tab else {
+                let Some(idx) = self.cur_active_tab() else {
                     return Task::none();
                 };
                 if idx >= self.tabs.len() {

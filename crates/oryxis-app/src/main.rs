@@ -135,6 +135,7 @@ mod session_spool;
 mod sftp_helpers;
 mod sftp_methods;
 mod drag_out;
+mod window_ctx;
 mod install_presets;
 mod local_files;
 mod shell_integration;
@@ -423,7 +424,7 @@ fn main() -> iced::Result {
     install_renderer_fallback_hook();
 
     // CLI arg pickup, flags set when another Oryxis instance spawned
-    // us via "Duplicate in New Window". Unknown flags are silently
+    // us (the JumpList, an in-place relaunch). Unknown flags are silently
     // ignored so future flags / OS double-click args don't crash boot.
     //   --connect <uuid>     : auto-open this saved connection
     //   --inherit-vault      : read the master password from stdin and
@@ -698,9 +699,9 @@ fn main() -> iced::Result {
     let transparent_window = theme::terminal_opacity() < 100;
     theme::set_window_transparent(transparent_window);
     let application =
-        iced::application(app::Oryxis::boot, app::Oryxis::update, app::Oryxis::view)
-            .title(app::Oryxis::title)
-            .theme(app::Oryxis::theme)
+        iced::daemon(app::Oryxis::boot, app::Oryxis::update, app::Oryxis::view_window)
+            .title(app::Oryxis::title_for)
+            .theme(app::Oryxis::theme_for)
             .style(|_state, theme| {
                 let mut style = iced::theme::default(theme);
                 if theme::window_transparent() {
@@ -713,21 +714,34 @@ fn main() -> iced::Result {
     // terminal faces. The list (and the rationale for each entry) lives
     // in `fonts::BUNDLED_FONTS` so the headless harness can load the
     // exact same set into its windowless renderer.
-    let application = application
-        .fonts(fonts::BUNDLED_FONTS.iter().copied())
-        // Default UI font is the bundled Noto Sans on every platform, so
-        // the UI looks identical everywhere and never depends on a system
-        // font being installed.
-        .font(theme::SYSTEM_UI)
-        // iced moved its default line height from 1.3 to 1.375. Every
-        // layout here (row heights, the popup measurements that decide a
-        // flip, the committed `.ice` coordinates) was built and measured
-        // at 1.3, so the app pins it; adopting the new default is a
-        // visual change of its own, not a side effect of a dependency
-        // bump. The headless harness receives this same builder, so the
-        // tests measure what the app draws.
-        .line_height(iced::widget::text::LineHeight::Relative(1.3))
-        .window(window::Settings {
+    //
+    // Default UI font is the bundled Noto Sans on every platform, so
+    // the UI looks identical everywhere and never depends on a system
+    // font being installed.
+    //
+    // iced moved its default line height from 1.3 to 1.375. Every
+    // layout here (row heights, the popup measurements that decide a
+    // flip, the committed `.ice` coordinates) was built and measured
+    // at 1.3, so the app pins it; adopting the new default is a
+    // visual change of its own, not a side effect of a dependency
+    // bump. The headless harness receives this same builder, so the
+    // tests measure what the app draws.
+    let application = application.settings(iced::Settings {
+        fonts: fonts::BUNDLED_FONTS
+            .iter()
+            .copied()
+            .map(std::borrow::Cow::Borrowed)
+            .collect(),
+        font: theme::SYSTEM_UI,
+        line_height: iced::widget::text::LineHeight::Relative(1.3),
+        antialiasing: true,
+        ..iced::Settings::default()
+    });
+    // One process, any number of windows: the app is an iced daemon,
+    // which opens no window by itself. `Oryxis::boot` opens the main
+    // one from these settings; an extra window (a tab dragged out)
+    // starts from the same ones, so both get the same frame.
+    let _ = app::MAIN_WINDOW_SETTINGS.set(window::Settings {
             size: window_size,
             // The saved outer position also selects the monitor: winit
             // maximizes / fullscreens onto the monitor containing the
@@ -813,8 +827,7 @@ fn main() -> iced::Result {
                 fullsize_content_view: true,
             },
             ..Default::default()
-        })
-        .antialiasing(true);
+        });
 
     // Headless E2E harness (feature `harness`): hand the fully
     // configured application to the emulator-backed driver instead of

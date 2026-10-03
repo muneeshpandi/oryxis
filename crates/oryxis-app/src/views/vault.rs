@@ -219,7 +219,7 @@ impl Oryxis {
             .width(Length::Fill)
             .height(Length::Fill)
             .into();
-        with_chrome(body, self.window_maximized)
+        with_chrome(body, self.cur_maximized())
     }
 
     pub(crate) fn view_vault_error(&self, msg: &str) -> Element<'_, Message> {
@@ -235,7 +235,7 @@ impl Oryxis {
         .width(Length::Fill)
         .height(Length::Fill)
         .into();
-        with_chrome(body, self.window_maximized)
+        with_chrome(body, self.cur_maximized())
     }
 
     // -- Main layout --

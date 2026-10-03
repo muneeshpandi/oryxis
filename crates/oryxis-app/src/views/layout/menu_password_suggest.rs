@@ -264,7 +264,7 @@ impl Oryxis {
         // popup. Past the cap it gets a fixed viewport and scrolls, and
         // reports its offset so the keyboard can scroll only when the
         // selection would leave it.
-        let layout = password_suggest_layout(entries, self.window_size.height);
+        let layout = password_suggest_layout(entries, self.cur_window_size().height);
         let list: Element<'static, Message> = match layout.rows_viewport {
             Some(h) => iced::widget::scrollable(list)
                 .id(iced::widget::Id::new(SCROLL_ID))

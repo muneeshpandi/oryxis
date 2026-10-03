@@ -115,7 +115,7 @@ impl Oryxis {
             }
             MonitorMessage::DashSweepDue(stamp) => {
                 // Back on the view: the TTL did its job, keep the links.
-                if self.active_view == crate::state::View::Monitoring {
+                if self.cur_view() == crate::state::View::Monitoring {
                     return Ok(Task::none());
                 }
                 if stamp == self.monitor_dash.stamp {

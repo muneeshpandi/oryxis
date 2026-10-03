@@ -16,7 +16,7 @@ impl Oryxis {
         // same. It now spells out the tab's real state, derived by the
         // same `tab_conn_state` the strip's status dot reads (one
         // authority, so the two can't disagree on one frame).
-        let (status_text, status_color) = if let Some(idx) = self.active_tab
+        let (status_text, status_color) = if let Some(idx) = self.cur_active_tab()
             && let Some(tab) = self.tabs.get(idx)
         {
             // The FOCUSED pane's name, not the tab's own (issue #208).
@@ -114,7 +114,7 @@ impl Oryxis {
         // (the SSH RTT probe), grid size and cwd. Each is off by default
         // and individually toggleable, so the bar only carries what the
         // user asked for. Muted labels, so they read as ambient info.
-        if let Some(pane) = self.active_tab.and_then(|i| self.tabs.get(i)).map(|t| t.active()) {
+        if let Some(pane) = self.cur_active_tab().and_then(|i| self.tabs.get(i)).map(|t| t.active()) {
             // One slot, read from whichever transport the pane holds.
             // mosh rides the latency toggle rather than a setting of its
             // own because this is the "how is the network under this
@@ -174,7 +174,7 @@ impl Oryxis {
         // chip's worth of room), the bar names every surface and goes
         // straight to the one clicked, which is what makes a three-way
         // switch readable.
-        if let Some(idx) = self.active_tab {
+        if let Some(idx) = self.cur_active_tab() {
             let surfaces = self.tab_surfaces(idx);
             if surfaces.len() > 1 {
                 let current = self.tab_surface(idx);
@@ -194,7 +194,7 @@ impl Oryxis {
         // two panes would actually take it, same precondition-gating as the
         // surface segments above (broadcast is inert on a single pane, and
         // an SFTP console never takes the fan-out).
-        if let Some(idx) = self.active_tab
+        if let Some(idx) = self.cur_active_tab()
             && let Some(tab) = self.tabs.get(idx)
             && tab.broadcast_capable()
         {

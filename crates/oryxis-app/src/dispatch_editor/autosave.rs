@@ -97,8 +97,8 @@ impl Oryxis {
     /// true. Mirrors that chain; a condition added there belongs here.
     pub(crate) fn host_editor_visible(&self) -> bool {
         self.panels.host_panel
-            && self.active_tab.is_none()
-            && self.active_view == crate::state::View::Dashboard
+            && self.cur_active_tab().is_none()
+            && self.cur_view() == crate::state::View::Dashboard
             && !self.cloud_discover.visible
             && !self.cloud_dynamic_form.visible
             && !self.group_edit.visible

@@ -401,7 +401,7 @@ impl Oryxis {
     /// mount) the pane is a local shell. Read by the menu builders to
     /// swap the transfer-shaped items for OS ones.
     pub(crate) fn sidebar_files_is_local(&self) -> bool {
-        self.active_tab
+        self.cur_active_tab()
             .and_then(|i| self.tabs.get(i))
             .map(|t| t.active())
             .is_some_and(|p| {
@@ -416,7 +416,7 @@ impl Oryxis {
     /// menu collapses to the bulk actions (Copy N paths / Delete N
     /// items) when so, mirroring the SFTP pane.
     pub(crate) fn sidebar_files_multi(&self, path: &str) -> bool {
-        self.active_tab
+        self.cur_active_tab()
             .and_then(|i| self.tabs.get(i))
             .map(|t| t.active())
             .is_some_and(|p| {
@@ -425,7 +425,7 @@ impl Oryxis {
     }
 
     pub(crate) fn active_pane_mut(&mut self) -> Option<&mut crate::state::Pane> {
-        let idx = self.active_tab?;
+        let idx = self.cur_active_tab()?;
         Some(self.tabs.get_mut(idx)?.active_mut())
     }
 

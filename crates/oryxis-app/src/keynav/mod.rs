@@ -272,7 +272,7 @@ impl crate::app::Oryxis {
     /// calls this once at the top of its render pass, then records
     /// its buttons through `keynav_toolbar_slot` in render order.
     pub(crate) fn keynav_toolbar_reset(&self) {
-        self.keynav.toolbar_items.borrow_mut().clear();
+        self.kn().toolbar_items.borrow_mut().clear();
     }
 
     /// Zero the toolbar trigger-bounds cells. Called by the toolbar
@@ -301,8 +301,8 @@ impl crate::app::Oryxis {
     /// dashboard and the keychain). Rows are visual: chunked for card
     /// grids, one item per row for 1-D lists.
     pub(crate) fn keynav_set_content_rows(&self, rows: Vec<Vec<NavItem>>) {
-        *self.keynav.content_section_starts.borrow_mut() = vec![0];
-        *self.keynav.content_rows.borrow_mut() = rows;
+        *self.kn().content_section_starts.borrow_mut() = vec![0];
+        *self.kn().content_rows.borrow_mut() = rows;
     }
 
     /// Record a multi-section content zone (dashboard Groups/Hosts,
@@ -323,16 +323,16 @@ impl crate::app::Oryxis {
         if starts.is_empty() {
             starts.push(0);
         }
-        *self.keynav.content_section_starts.borrow_mut() = starts;
-        *self.keynav.content_rows.borrow_mut() = rows;
+        *self.kn().content_section_starts.borrow_mut() = starts;
+        *self.kn().content_rows.borrow_mut() = rows;
     }
 
     /// Clear the content zone (empty states, surfaces that aren't
     /// keyboard-navigable yet).
     pub(crate) fn keynav_clear_content(&self) {
-        self.keynav.content_rows.borrow_mut().clear();
-        self.keynav.content_section_starts.borrow_mut().clear();
-        self.keynav.content_actions.borrow_mut().clear();
+        self.kn().content_rows.borrow_mut().clear();
+        self.kn().content_section_starts.borrow_mut().clear();
+        self.kn().content_actions.borrow_mut().clear();
     }
 
     /// Record one rendered toolbar action for the keyboard router and
@@ -356,7 +356,7 @@ impl crate::app::Oryxis {
     /// order (logical leading-to-trailing; the router mirrors arrows
     /// under RTL).
     pub(crate) fn keynav_toolbar_record(&self, item: ToolbarItem) {
-        self.keynav.toolbar_items.borrow_mut().push(NavItem::Toolbar(item));
+        self.kn().toolbar_items.borrow_mut().push(NavItem::Toolbar(item));
     }
 
     /// Ring half of `keynav_toolbar_slot`: wrap `el` in the focus
@@ -372,7 +372,7 @@ impl crate::app::Oryxis {
         // 6px matches the shared 24px toolbar-button radius. Contrast
         // color, not accent: most toolbar buttons are accent-filled,
         // an accent ring vanishes into them.
-        let ringed = self.keynav.focus == Some((FocusZone::Toolbar, NavItem::Toolbar(item)));
+        let ringed = self.kn().focus == Some((FocusZone::Toolbar, NavItem::Toolbar(item)));
         crate::widgets::select_ring_opt(
             el,
             6.0,

@@ -26,7 +26,7 @@ impl Oryxis {
         // the toggle / SelectTab; the owner check keeps a broken
         // invariant from ever rendering another surface's data). The
         // PTY keeps running underneath and output keeps processing.
-        if let Some(tab) = self.active_tab.and_then(|idx| self.tabs.get(idx))
+        if let Some(tab) = self.cur_active_tab().and_then(|idx| self.tabs.get(idx))
             && tab.files_mode
             && self.hybrid_sftp_owner == Some(tab._id)
         {
@@ -57,7 +57,7 @@ impl Oryxis {
             .unwrap_or((false, false));
         self.sidebar_nav_reset();
 
-        let terminal_area: Element<'_, Message> = if let Some(tab_idx) = self.active_tab {
+        let terminal_area: Element<'_, Message> = if let Some(tab_idx) = self.cur_active_tab() {
             if let Some(tab) = self.tabs.get(tab_idx) {
                 // Render the tab's panes through a `pane_grid`. With one
                 // pane this is visually identical to the old single canvas;
@@ -286,7 +286,7 @@ impl Oryxis {
     /// two never coexist on a pane (the drop router refuses a second
     /// transfer), so ZMODEM being checked first is not a preference.
     fn transfer_overlay(&self) -> Option<Element<'_, Message>> {
-        let pane = self.active_tab.and_then(|i| self.tabs.get(i)).map(|t| t.active())?;
+        let pane = self.cur_active_tab().and_then(|i| self.tabs.get(i)).map(|t| t.active())?;
         let pane_id = pane.id;
         // (verb, name, batch, transferred, total, cancel message)
         let (verb, name, batch, transferred, total, cancel_msg) =
@@ -400,6 +400,10 @@ impl Oryxis {
     /// every unlocked view, not just the terminal; the chat sidebar no
     /// longer renders its own copy (that only showed while it was open).
     pub(crate) fn toast_overlay(&self) -> Option<Element<'_, Message>> {
+        // In the window the user is working in, not in every one.
+        if !self.input_here() {
+            return None;
+        }
         let text_ = self.toast.as_ref()?;
         let chip = container(
             text(text_.clone()).size(11).color(OryxisColors::t().text_primary),

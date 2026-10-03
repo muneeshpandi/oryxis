@@ -28,7 +28,7 @@ impl Oryxis {
         tab: &'a crate::state::TerminalTab,
     ) -> Element<'a, Message> {
         // Disconnected mid-view (the tab button hides next frame).
-        let Some(tab_idx) = self.active_tab else {
+        let Some(tab_idx) = self.cur_active_tab() else {
             return placeholder(t("files_no_session"));
         };
         if tab.active().session.as_ref().and_then(|s| s.ssh()).is_none() {

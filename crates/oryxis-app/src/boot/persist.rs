@@ -94,6 +94,12 @@ impl Oryxis {
     /// on focus loss, as a crash-safe checkpoint. Plaintext settings
     /// rows, so this works while the vault is locked.
     pub(crate) fn persist_window_geometry(&self) {
+        // The geometry that is remembered is the main window's. An
+        // extra window is opened where the tab was dropped and is not
+        // restored.
+        if self.window_ctx.is_some() {
+            return;
+        }
         let w = self.window_windowed_size.width.round() as u32;
         let h = self.window_windowed_size.height.round() as u32;
         self.persist_setting("window_width", &w.to_string());
@@ -109,15 +115,15 @@ impl Oryxis {
         }
         self.persist_setting(
             "window_maximized",
-            if self.window_maximized { "true" } else { "false" },
+            if self.cur_maximized() { "true" } else { "false" },
         );
         self.persist_setting(
             "window_fullscreen",
-            if self.window_fullscreen { "true" } else { "false" },
+            if self.cur_fullscreen() { "true" } else { "false" },
         );
         self.persist_setting(
             "window_fullscreen_immersive",
-            if self.fullscreen_immersive { "true" } else { "false" },
+            if self.cur_immersive() { "true" } else { "false" },
         );
     }
 
@@ -142,7 +148,9 @@ impl Oryxis {
         // restored pinned sequence matches what the user arranged, across both
         // terminal and SFTP tabs.
         let mut specs: Vec<crate::state::PinnedTabSpec> = Vec::new();
-        for r in &self.tab_order {
+        // Every window's tabs: the next launch has one window, and a tab
+        // that was in an extra one comes back in it.
+        for r in &self.all_strip_refs() {
             let spec = match r {
                 crate::state::TabRef::Terminal(id) => self
                     .tabs
@@ -190,15 +198,13 @@ impl Oryxis {
     /// clears the row on its way out, so a user who never asked for this
     /// has no list of their hosts sitting next to a locked vault.
     pub(crate) fn persist_open_tabs(&self) {
-        // A child window (`--inherit-vault`) never writes the row: it
-        // shares the setting with the window that spawned it, and its own
-        // strip would replace the parent's on the way out. The same gate
-        // the reader (`restore_open_tabs_dormant`) applies.
-        if !self.prefs.restore_tabs_on_launch || crate::app::AUTO_PASSWORD.get().is_some() {
+        if !self.prefs.restore_tabs_on_launch {
             return;
         }
         let mut specs: Vec<crate::state::PinnedTabSpec> = Vec::new();
-        for r in &self.tab_order {
+        // Every window's tabs: the next launch has one window, and a tab
+        // that was in an extra one comes back in it.
+        for r in &self.all_strip_refs() {
             let spec = match r {
                 crate::state::TabRef::Terminal(id) => self
                     .tabs
@@ -262,9 +268,9 @@ impl Oryxis {
     /// named: cheap (no spec is built), which is what lets the
     /// per-update signature hash it instead of the full reference.
     fn active_strip_target(&self) -> Option<crate::state::TabRef> {
-        let target = match self.active_view {
+        let target = match self.cur_view() {
             crate::state::View::Terminal => {
-                crate::state::TabRef::Terminal(self.tabs.get(self.active_tab?)?._id)
+                crate::state::TabRef::Terminal(self.tabs.get(self.cur_active_tab()?)?._id)
             }
             crate::state::View::Sftp => {
                 crate::state::TabRef::Sftp(self.sftp_tabs.get(self.active_sftp?)?.id)
@@ -339,11 +345,7 @@ impl Oryxis {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
 
-        // A child window (`--inherit-vault`) never writes the row: it
-        // shares the setting with the window that spawned it, and its own
-        // strip would replace the parent's on the way out. The same gate
-        // the reader (`restore_open_tabs_dormant`) applies.
-        if !self.prefs.restore_tabs_on_launch || crate::app::AUTO_PASSWORD.get().is_some() {
+        if !self.prefs.restore_tabs_on_launch {
             return;
         }
         // One pass over each list, not a search per strip entry: this
@@ -357,7 +359,7 @@ impl Oryxis {
             .chain(self.sftp_tabs.iter().filter(|t| t.pinned).map(|t| t.id))
             .collect();
         let mut h = DefaultHasher::new();
-        for r in &self.tab_order {
+        for r in &self.all_strip_refs() {
             r.strip_id().hash(&mut h);
             let pinned = match r {
                 crate::state::TabRef::Terminal(id) | crate::state::TabRef::Sftp(id) => {
@@ -403,14 +405,6 @@ impl Oryxis {
             return;
         }
         if !self.prefs.restore_tabs_on_launch {
-            return;
-        }
-        // A window the running app spawned (`--inherit-vault`: Ctrl+Shift+N,
-        // "Duplicate in new window") is not a launch. The row it would read
-        // is the PARENT's live strip, rewritten on every change over there,
-        // so the child would open on dormant copies of every tab the user
-        // is looking at in the other window.
-        if crate::app::AUTO_PASSWORD.get().is_some() {
             return;
         }
         let json = self
@@ -496,9 +490,6 @@ impl Oryxis {
     fn launch_dials_wanted(&self) -> bool {
         self.prefs.restore_tabs_on_launch
             && self.prefs.restore_tabs_connect == "launch"
-            // A child window restores nothing (see the gate above), so
-            // it queues nothing and its pins keep the plain hint.
-            && crate::app::AUTO_PASSWORD.get().is_none()
     }
 
     /// Recreate pinned tabs as dormant placeholders at boot. They show in the

@@ -58,8 +58,8 @@ impl Oryxis {
                 drag.active = true;
             }
         }
-        let changed = (snapped.x - self.mouse_position.x).abs() > 0.5
-            || (snapped.y - self.mouse_position.y).abs() > 0.5;
+        let changed = (snapped.x - self.cur_mouse().x).abs() > 0.5
+            || (snapped.y - self.cur_mouse().y).abs() > 0.5;
         if !changed && !needs_drag_update {
             return Task::none();
         }
@@ -68,6 +68,12 @@ impl Oryxis {
         // navigation muted (no-op when it wasn't suppressed).
         if changed {
             self.sftp.suppress_hover = false;
+        }
+        // A tab or a host card dragged past the window's edge opens in
+        // a window of its own. Decided here, on the move, because the
+        // release that ends such a drag lands outside and never arrives.
+        if let Some(task) = self.tear_off_drag_at_edge() {
+            return task;
         }
         // Promote an armed SFTP internal drag once the cursor crosses
         // into the *opposite* pane, driven by cursor geometry (which
@@ -126,7 +132,7 @@ impl Oryxis {
         // terminal-only so it isn't subtracted here). Clamp so neither
         // pane can collapse.
         if let Some((start_x, start_ratio)) = self.sftp_chrome.split_drag {
-            let content_w = (self.window_size.width
+            let content_w = (self.cur_window_size().width
                 - self.vault_rail_width()
                 - self.side_strip_reserve())
             .max(1.0);
@@ -219,8 +225,8 @@ impl Oryxis {
             width: (size.width / SNAP).round() * SNAP,
             height: (size.height / SNAP).round() * SNAP,
         };
-        if (snapped.width - self.window_size.width).abs() > 0.5
-            || (snapped.height - self.window_size.height).abs() > 0.5
+        if (snapped.width - self.cur_window_size().width).abs() > 0.5
+            || (snapped.height - self.cur_window_size().height).abs() > 0.5
         {
             self.window_size = snapped;
             // The floating toolbar search / overflow popovers are
@@ -261,7 +267,7 @@ impl Oryxis {
             // (`WindowFullscreenSettled`) catches the exit, whose state
             // only clears after its last resize. Elsewhere F11 is the
             // only writer and the sync leaves the flag alone.
-            let sync = iced::window::latest().then(move |id_opt| match id_opt {
+            let sync = crate::app::main_window().then(move |id_opt| match id_opt {
                 Some(id) => iced::window::is_maximized(id).then(move |maximized| {
                     let synced = move |fullscreen| {
                         Message::Tabs(TabsMessage::WindowStateSynced {
@@ -287,7 +293,7 @@ impl Oryxis {
                 async { tokio::time::sleep(std::time::Duration::from_millis(900)).await },
                 |_| (),
             )
-            .then(|_| iced::window::latest())
+            .then(|_| crate::app::main_window())
             .then(|id_opt| match id_opt {
                 Some(id) => iced::window::mode(id).map(|mode| {
                     Message::Tabs(TabsMessage::WindowFullscreenSettled(
@@ -311,8 +317,8 @@ impl Oryxis {
         // coordinates; `monitor_*` return `None` where the
         // platform can't say (Wayland), in which case the WM
         // already placed us somewhere visible and we skip.
-        let win_size = self.window_size;
-        iced::window::latest().then(move |id_opt| {
+        let win_size = self.cur_window_size();
+        crate::app::main_window().then(move |id_opt| {
             let Some(id) = id_opt else { return Task::none(); };
             iced::window::position(id).then(move |pos_opt| {
                 let Some(pos) = pos_opt else { return Task::none(); };
@@ -359,6 +365,10 @@ impl Oryxis {
 
     pub(super) fn handle_window_focus_changed(&mut self, focused: bool) -> Task<Message> {
         self.window_focused = focused;
+        if focused {
+            // The main window is the one being worked in again.
+            self.input_window = None;
+        }
         if !focused {
             // A mouse release OUTSIDE the window never reaches us, so a
             // drag that leaves the window would keep its ghost chip
@@ -388,7 +398,7 @@ impl Oryxis {
             // `view_content` renders by, since a tab opened from the
             // Dashboard never assigns `active_view`.
             if self.terminal_surface_visible()
-                && let Some(at) = self.active_tab
+                && let Some(at) = self.cur_active_tab()
                 && let Some(tab) = self.tabs.get_mut(at)
             {
                 for pane in tab.pane_grid.panes.values_mut() {
@@ -444,11 +454,11 @@ impl Oryxis {
     }
 
     pub(super) fn handle_window_expand_vertical(&mut self) -> Task<Message> {
-        if self.window_maximized {
+        if self.cur_maximized() {
             return Task::none();
         }
-        let current_width = self.window_size.width;
-        iced::window::latest().then(move |id_opt| {
+        let current_width = self.cur_window_size().width;
+        crate::app::main_window().then(move |id_opt| {
             let Some(id) = id_opt else { return Task::none(); };
             iced::window::position(id).then(move |pos_opt| {
                 let Some(pos) = pos_opt else { return Task::none(); };
@@ -492,7 +502,7 @@ impl Oryxis {
             // process (no tray of its own) and off Windows.
             crate::tray::set_visible(true);
             self.broadcast_ipc_state_if_child();
-            return iced::window::oldest()
+            return crate::app::main_window()
                 .and_then(|id| {
                     iced::window::run(id, |window| {
                         crate::tray::hide_window(window);
@@ -500,7 +510,7 @@ impl Oryxis {
                 })
                 .discard();
         }
-        iced::window::latest().then(|id_opt| match id_opt {
+        crate::app::main_window().then(|id_opt| match id_opt {
             Some(id) => iced::window::minimize(id, true),
             None => Task::none(),
         })
@@ -594,7 +604,7 @@ impl Oryxis {
             // only way back once the window is hidden.
             crate::tray::set_visible(true);
             self.broadcast_ipc_state_if_child();
-            return iced::window::oldest()
+            return crate::app::main_window()
                 .and_then(|id| {
                     iced::window::run(id, |window| {
                         crate::tray::hide_window(window);
@@ -604,19 +614,17 @@ impl Oryxis {
         }
         // Real close (not tray-hide): let the plugin subprocesses flush
         // before the window closes and the process exits.
-        self.drain_plugins_before_exit().then(|_| {
-            iced::window::latest().then(|id_opt| match id_opt {
-                Some(id) => iced::window::close(id),
-                None => Task::none(),
-            })
-        })
+        // `iced::exit`, not a window close: the app is a daemon, which
+        // outlives its windows, so closing the main one would leave a
+        // process with nothing on screen.
+        self.drain_plugins_before_exit().then(|_| iced::exit())
     }
 
     /// Adopt the OS's word on fullscreen (macOS, where it has doors of
     /// its own). A change is persisted like the toggle's, so a window
     /// left in native fullscreen by the green button reopens that way.
     fn reconcile_window_fullscreen(&mut self, fullscreen: bool) {
-        if self.window_fullscreen == fullscreen {
+        if self.cur_fullscreen() == fullscreen {
             return;
         }
         self.window_fullscreen = fullscreen;
@@ -634,18 +642,18 @@ impl Oryxis {
         // macOS this handler is the only way fullscreen changes, so the
         // cached bool stays in sync; on macOS the OS has doors of its
         // own and `WindowStateSynced` reconciles after every resize.
-        self.window_fullscreen = !self.window_fullscreen;
+        self.window_fullscreen = !self.cur_fullscreen();
         // The toggle is the immersive door, on every platform.
-        self.fullscreen_immersive = self.window_fullscreen;
+        self.fullscreen_immersive = self.cur_fullscreen();
         // Same crash-safe checkpoint as the maximize toggle.
         self.persist_window_geometry();
-        let entering = self.window_fullscreen;
+        let entering = self.cur_fullscreen();
         let next = if entering {
             iced::window::Mode::Fullscreen
         } else {
             iced::window::Mode::Windowed
         };
-        let mode_task = iced::window::latest().then(move |id_opt| match id_opt {
+        let mode_task = crate::app::main_window().then(move |id_opt| match id_opt {
             Some(id) => iced::window::set_mode(id, next),
             None => Task::none(),
         });
@@ -676,6 +684,12 @@ impl Oryxis {
     /// module of their own: every one of these is one line into a
     /// `handle_window_*` defined above.
     pub(super) fn handle_tabs_window(&mut self, message: TabsMessage) -> Task<Message> {
+        // An extra window's own frame: none of the main window's
+        // geometry memory, tray or exit logic applies to it.
+        let message = match self.handle_extra_window_chrome(message) {
+            Ok(task) => return task,
+            Err(message) => message,
+        };
         match message {
             TabsMessage::MouseMoved(pos) => return self.handle_mouse_moved(pos),
             TabsMessage::DragOutReady(result) => return self.handle_drag_out_ready(result),
@@ -691,8 +705,8 @@ impl Oryxis {
                 // monitor layout puts a window beyond -8000 on both
                 // axes at once).
                 let minimized_sentinel = pos.x <= -8000.0 && pos.y <= -8000.0;
-                if !self.window_maximized
-                    && !self.window_fullscreen
+                if !self.cur_maximized()
+                    && !self.cur_fullscreen()
                     && !minimized_sentinel
                 {
                     // Keep the previous value around: an OS-side
@@ -712,7 +726,7 @@ impl Oryxis {
                 if !self.consume_window_press() {
                     return Task::none();
                 }
-                return iced::window::latest().then(|id_opt| match id_opt {
+                return crate::app::main_window().then(|id_opt| match id_opt {
                     Some(id) => iced::window::drag(id),
                     None => Task::none(),
                 });
@@ -720,13 +734,13 @@ impl Oryxis {
             TabsMessage::WindowResizeDrag(direction) => {
                 // Ignore resize requests while maximized, the window has no
                 // borders to grab and the OS will reject/misbehave on WinIt.
-                if self.window_maximized {
+                if self.cur_maximized() {
                     return Task::none();
                 }
                 if !self.consume_window_press() {
                     return Task::none();
                 }
-                return iced::window::latest().then(move |id_opt| match id_opt {
+                return crate::app::main_window().then(move |id_opt| match id_opt {
                     Some(id) => iced::window::drag_resize(id, direction),
                     None => Task::none(),
                 });
@@ -735,7 +749,7 @@ impl Oryxis {
                 // Capture cursor x plus the current width; the
                 // MouseMoved handler computes the delta against these.
                 self.panel_resize_drag =
-                    Some((self.mouse_position.x, self.panel_width));
+                    Some((self.cur_mouse().x, self.panel_width));
             }
             TabsMessage::WindowExpandVertical => return self.handle_window_expand_vertical(),
             TabsMessage::WindowMinimize => return self.handle_window_minimize(),
@@ -752,7 +766,7 @@ impl Oryxis {
                 if let Some(fullscreen) = fullscreen {
                     self.reconcile_window_fullscreen(fullscreen);
                 }
-                if crate::views::chrome::NATIVE_FRAME && self.window_fullscreen {
+                if crate::views::chrome::NATIVE_FRAME && self.cur_fullscreen() {
                     return Task::none();
                 }
                 // Deferred windowed-size commit: `size` is the snapped
@@ -761,12 +775,12 @@ impl Oryxis {
                 // whether that rectangle was a real windowed size or a
                 // maximize transition's monitor-sized one. Never while
                 // fullscreen: that rectangle is the monitor's.
-                if !maximized && !self.window_fullscreen {
+                if !maximized && !self.cur_fullscreen() {
                     self.window_windowed_size = size;
                 }
                 // Reconcile the optimistic flag with the OS truth
                 // (see `WindowStateSynced`).
-                if self.window_maximized != maximized {
+                if self.cur_maximized() != maximized {
                     if maximized {
                         // OS-side maximize: the Moved that parked the
                         // window at the monitor origin was recorded
@@ -784,12 +798,12 @@ impl Oryxis {
                 }
             }
             TabsMessage::WindowMaximizeToggle => {
-                self.window_maximized = !self.window_maximized;
+                self.window_maximized = !self.cur_maximized();
                 // Cheap write, and it keeps the restored state accurate
                 // even when the process later dies without reaching an
                 // exit path (OS shutdown, kill).
                 self.persist_window_geometry();
-                return iced::window::latest().then(|id_opt| match id_opt {
+                return crate::app::main_window().then(|id_opt| match id_opt {
                     Some(id) => iced::window::toggle_maximize(id),
                     None => Task::none(),
                 });
@@ -803,14 +817,21 @@ impl Oryxis {
             TabsMessage::SpawnNewWindow => {
                 // Burger menu fires this. Drop both the context-menu
                 // overlay AND the burger panel itself so the menu
-                // doesn't linger on top of the freshly-spawned window.
-                // The burger lives in its own `show_burger_menu` flag
-                // (not `OverlayState`), so clearing `self.overlay`
-                // alone wasn't enough.
+                // doesn't linger beside the freshly-opened window.
                 self.overlay = None;
                 self.panels.burger_menu = false;
-                self.spawn_oryxis_child(None);
+                return self.spawn_new_window();
             }
+            TabsMessage::ConnectHostsInNewWindow(ids) => {
+                return self.connect_hosts_in_new_window(&ids);
+            }
+            TabsMessage::MoveTabToNewWindow(id) => {
+                return self.detach_tab_to_new_window(id, None);
+            }
+            TabsMessage::DetachTabAt(id, at) => {
+                return self.detach_tab_to_new_window(id, at);
+            }
+            TabsMessage::MoveTabToMainWindow(id) => return self.move_tab_to_main_window(id),
             // Routed here by the parent; anything else is a
             // grouping mistake, not a runtime case.
             m => return crate::dispatch::unrouted(m),

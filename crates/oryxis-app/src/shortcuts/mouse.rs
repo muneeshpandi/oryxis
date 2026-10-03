@@ -129,7 +129,7 @@ impl Oryxis {
         };
         // Same belt-and-suspenders gate as the button path: a capture
         // left armed on another screen must not silently rebind.
-        if self.active_view != View::Settings
+        if self.cur_view() != View::Settings
             || self.settings_section != crate::state::SettingsSection::Shortcuts
         {
             self.editing_hotkey = None;
@@ -278,7 +278,7 @@ impl Oryxis {
         // "In a terminal" is a FOCUSED TERMINAL TAB, not
         // `active_view == Terminal`: workspace-mode tabs run under the
         // Dashboard view (see the keyboard router's note).
-        let in_terminal = self.active_view == View::Terminal || self.active_tab.is_some();
+        let in_terminal = self.cur_view() == View::Terminal || self.cur_active_tab().is_some();
         let mods = self.modifiers;
         let mut hit: Option<HotkeyAction> = None;
         for &action in HotkeyAction::all() {
@@ -319,7 +319,7 @@ impl Oryxis {
         };
         // Same belt-and-suspenders gate as the keyboard path: a capture
         // left armed on another screen must not silently rebind.
-        if self.active_view != View::Settings
+        if self.cur_view() != View::Settings
             || self.settings_section != crate::state::SettingsSection::Shortcuts
         {
             self.editing_hotkey = None;

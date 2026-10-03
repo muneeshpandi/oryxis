@@ -840,7 +840,7 @@ impl Oryxis {
                 let mut fired_triggers: Vec<(String, String, String)> = Vec::new();
                 // Notification policy + focus snapshot before the tabs borrow.
                 let notif_mode = self.prefs.notification_mode;
-                let win_focused = self.window_focused;
+                let win_focused = self.cur_focused();
                 let mut flash_pane: Option<uuid::Uuid> = None;
                 // (pane label, OSC 9 body). The label rides along so the
                 // body can be redacted under Privacy Mode at delivery time
@@ -851,7 +851,7 @@ impl Oryxis {
                 // Smart tabs: policy snapshots taken before the tabs borrow.
                 let smart_enabled = self.prefs.smart_tabs;
                 let smart_long = self.prefs.smart_long_secs;
-                let active_tab = self.active_tab;
+                let active_tab = self.cur_active_tab();
                 // "Watched" needs the terminal on screen: an active tab is
                 // invisible while the user sits in the Dashboard /
                 // Settings, so it must still collect attention there.
@@ -1343,7 +1343,7 @@ impl Oryxis {
                     // long command finished WHILE they are in another app
                     // is that mode's whole point.
                     let about_active_tab = active_tab == Some(notif_tab)
-                        && self.active_view == crate::state::View::Terminal;
+                        && self.cur_view() == crate::state::View::Terminal;
                     let private = self.privacy_active_for_label(&label);
                     let (title, text) = if private {
                         ("Oryxis".to_string(), redacted)

@@ -37,7 +37,7 @@ static MOUSE_INTEREST: std::sync::atomic::AtomicBool =
 
 // The live (raw, unsnapped) cursor position, updated on every
 // CursorMoved even while `MOUSE_INTEREST` is off, stored as f32 bits.
-// `Oryxis::update` syncs `self.mouse_position` from here at the top of
+// `Oryxis::update` syncs `self.cur_mouse()` from here at the top of
 // every message, so click-time readers (drag press anchors, the kebab
 // menu position) always see a fresh position without the app paying a
 // re-render per mouse move. The same sync doubles as the activity
@@ -66,19 +66,31 @@ pub(crate) fn set_hotkey_capture(on: bool) {
     HOTKEY_CAPTURE.store(on, Ordering::Relaxed);
 }
 
+/// The window the live position was reported by: the coordinates are
+/// that window's own.
+static LIVE_MOUSE_WINDOW: std::sync::Mutex<Option<iced::window::Id>> = std::sync::Mutex::new(None);
+
 /// The most recent cursor position seen by the event listener, whether
-/// or not it was forwarded as a message.
-pub(crate) fn live_mouse_position() -> iced::Point {
-    iced::Point {
-        x: f32::from_bits(LIVE_MOUSE_X.load(Ordering::Relaxed)),
-        y: f32::from_bits(LIVE_MOUSE_Y.load(Ordering::Relaxed)),
-    }
+/// or not it was forwarded as a message, and the window it is in.
+pub(crate) fn live_mouse() -> (Option<iced::window::Id>, iced::Point) {
+    let window = LIVE_MOUSE_WINDOW.lock().ok().and_then(|w| *w);
+    (
+        window,
+        iced::Point {
+            x: f32::from_bits(LIVE_MOUSE_X.load(Ordering::Relaxed)),
+            y: f32::from_bits(LIVE_MOUSE_Y.load(Ordering::Relaxed)),
+        },
+    )
 }
 
 impl Oryxis {
     pub fn subscription(&self) -> Subscription<Message> {
-        let events = iced::event::listen_with(|event, _status, _window| {
-            match event {
+        // Every event is tagged with the window it happened in
+        // (`Message::InWindow`), so a key or a click in an extra window
+        // acts on that window's tabs. The main window's unwrap is a
+        // no-op in `update`.
+        let events = iced::event::listen_with(|event, _status, window| {
+            let message = match event {
                 iced::event::Event::Keyboard(ke) => Some(Message::Terminal(TerminalMessage::KeyboardEvent(ke))),
                 // Text committed by the OS IME (composed CJK characters,
                 // etc.). Routed to the active PTY in dispatch_terminal,
@@ -133,11 +145,14 @@ impl Oryxis {
                 }
                 iced::event::Event::Mouse(iced::mouse::Event::CursorMoved { position }) => {
                     // Always record the raw position (cheap, no message):
-                    // `update()` syncs `self.mouse_position` from these on
+                    // `update()` syncs `self.cur_mouse()` from these on
                     // the next message, so click-time consumers stay fresh
                     // even while forwarding is gated off.
                     LIVE_MOUSE_X.store(position.x.to_bits(), Ordering::Relaxed);
                     LIVE_MOUSE_Y.store(position.y.to_bits(), Ordering::Relaxed);
+                    if let Ok(mut live) = LIVE_MOUSE_WINDOW.lock() {
+                        *live = Some(window);
+                    }
                     // Quantise to a 4 px grid. Same cell as last forward
                     // → drop the event before it hits the subscription
                     // channel. Drag handlers that need pixel precision
@@ -242,7 +257,8 @@ impl Oryxis {
                     Some(Message::Sftp(SftpMessage::SftpFileDropped(path)))
                 }
                 _ => None,
-            }
+            };
+            message.map(|m| Message::InWindow(window, Box::new(m)))
         });
         let mut subs = vec![events];
 
@@ -368,8 +384,8 @@ impl Oryxis {
         // soft lock must stop reading the fleet behind the lock screen.
         if self.prefs.host_monitoring
             && self.vault_ui.state == crate::state::VaultState::Unlocked
-            && self.active_view == crate::state::View::Monitoring
-            && self.active_tab.is_none()
+            && self.cur_view() == crate::state::View::Monitoring
+            && self.cur_active_tab().is_none()
         {
             subs.push(
                 iced::time::every(std::time::Duration::from_secs(1))
@@ -475,7 +491,9 @@ impl Oryxis {
         // hands us the event instead of acting on it. Keep this
         // subscription unconditional, a gated one would make the
         // window unclosable from the OS.
-        subs.push(iced::window::close_requests().map(|_| Message::Tabs(TabsMessage::WindowClose)));
+        subs.push(iced::window::close_requests().map(|id| {
+            Message::InWindow(id, Box::new(Message::Tabs(TabsMessage::WindowClose)))
+        }));
 
         // Tray icon event drain. On Windows the tray-icon crate runs
         // its own thread that pushes menu / icon events into a pair
@@ -593,7 +611,7 @@ impl Oryxis {
         // default even allowing for a missed tick; users who lowered the
         // SSM idle timeout below ~5 min would need the server-side
         // setting raised instead.
-        if !self.window_focused
+        if !self.cur_focused()
             && self.tabs.iter().any(|t| t.ssm_keepalive())
         {
             subs.push(
@@ -637,7 +655,7 @@ impl Oryxis {
         // keeps advancing behind the lock screen: CPU burned, position
         // lost on return, and the documented "subscriptions unmount
         // while locked" contract broken.
-        if self.active_view == crate::state::View::History
+        if self.cur_view() == crate::state::View::History
             && self.vault_ui.state == crate::state::VaultState::Unlocked
             && self.session_player.as_ref().is_some_and(|p| p.playing)
         {

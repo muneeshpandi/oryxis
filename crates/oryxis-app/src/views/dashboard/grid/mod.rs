@@ -756,7 +756,7 @@ impl Oryxis {
         // A side-docked tab strip (issue #87) narrows the content band
         // like the other grids; without it the math yields one column
         // too many and the card row clips at the edge.
-        let available = (self.window_size.width
+        let available = (self.cur_window_size().width
             - nav_width
             - panel_width
             - self.side_strip_reserve()
@@ -819,7 +819,7 @@ impl Oryxis {
         // the soft per-colour wash; off → cards stay pure (just the
         // element, no overlay).
         let glass = self.prefs.card_accent_glass;
-        let selected = match self.keynav.selected_in(crate::keynav::FocusZone::Content) {
+        let selected = match self.kn().selected_in(crate::keynav::FocusZone::Content) {
             Some(crate::keynav::NavItem::Dash(d)) => Some(d),
             _ => None,
         };
@@ -912,7 +912,7 @@ impl Oryxis {
         };
         if tree_mode {
             let washed =
-                apply_card_wash(tree_cards, glass, selected, self.keynav.ring_bounds.clone());
+                apply_card_wash(tree_cards, glass, selected, self.kn().ring_bounds.clone());
             content_rows.push(distribute_card_grid(washed, 1, gap, gap));
         } else if flatten {
             // Session groups live under the same "Groups" section as host
@@ -924,13 +924,13 @@ impl Oryxis {
                 content_rows.push(section_header("groups_section"));
                 let mut grouped = group_cards;
                 grouped.extend(session_group_cards);
-                let grouped = apply_card_wash(grouped, glass, selected, self.keynav.ring_bounds.clone());
+                let grouped = apply_card_wash(grouped, glass, selected, self.kn().ring_bounds.clone());
                 content_rows.push(distribute_card_grid(grouped, cols, gap, gap));
                 content_rows.push(Space::new().height(20).into());
             }
             if !host_cards.is_empty() {
                 content_rows.push(section_header("hosts_section"));
-                let host_cards = apply_card_wash(host_cards, glass, selected, self.keynav.ring_bounds.clone());
+                let host_cards = apply_card_wash(host_cards, glass, selected, self.kn().ring_bounds.clone());
                 content_rows.push(distribute_card_grid(host_cards, cols, gap, gap));
             }
         } else {
@@ -938,7 +938,7 @@ impl Oryxis {
             let mut combined = group_cards;
             combined.extend(session_group_cards);
             combined.extend(host_cards);
-            let combined = apply_card_wash(combined, glass, selected, self.keynav.ring_bounds.clone());
+            let combined = apply_card_wash(combined, glass, selected, self.kn().ring_bounds.clone());
             content_rows.push(distribute_card_grid(combined, cols, gap, gap));
         }
 

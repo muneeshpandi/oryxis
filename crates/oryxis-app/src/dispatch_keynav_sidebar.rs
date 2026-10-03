@@ -92,7 +92,7 @@ impl Oryxis {
     /// swallow gate), so promoting them to navigation costs nothing.
     pub(crate) fn cursor_over_sidebar_side(&self) -> Option<crate::state::SidebarSide> {
         use crate::state::SidebarSide;
-        let tab = self.active_tab.and_then(|i| self.tabs.get(i))?;
+        let tab = self.cur_active_tab().and_then(|i| self.tabs.get(i))?;
         // Each region hugs its physical edge, shifted inward by a
         // side-docked tab strip (issue #87): with both on the same
         // edge the region starts AFTER the strip, and classifying the
@@ -101,7 +101,7 @@ impl Oryxis {
         // into the PTY.
         let strip_left = self.side_strip_left_offset();
         let strip_right = self.side_strip_reserve() - strip_left;
-        let x = self.mouse_position.x;
+        let x = self.cur_mouse().x;
         if self.sidebar_region_shown(tab, SidebarSide::Left)
             && x > strip_left
             && x < strip_left + self.chat_ui.sidebar_width[SidebarSide::Left.idx()]
@@ -109,7 +109,7 @@ impl Oryxis {
             return Some(SidebarSide::Left);
         }
         if self.sidebar_region_shown(tab, SidebarSide::Right) {
-            let right_edge = self.window_size.width - strip_right;
+            let right_edge = self.cur_window_size().width - strip_right;
             if x > right_edge - self.chat_ui.sidebar_width[SidebarSide::Right.idx()]
                 && x < right_edge
             {
@@ -130,7 +130,7 @@ impl Oryxis {
     /// action icons so the input can take the whole width; the blur
     /// must snap that back (owner ask). No-op on every other state.
     pub(crate) fn close_files_path_edit(&mut self) {
-        if let Some(idx) = self.active_tab
+        if let Some(idx) = self.cur_active_tab()
             && let Some(tab) = self.tabs.get_mut(idx)
         {
             let files = &mut tab.active_mut().files;
@@ -189,7 +189,7 @@ impl Oryxis {
         if tab != TerminalSidebarTab::Files {
             return None;
         }
-        let pane = self.tabs.get(self.active_tab?)?.active();
+        let pane = self.tabs.get(self.cur_active_tab()?)?.active();
         if pane.files.path_editing.is_some()
             || pane.files.rename.is_some()
             || pane.files.new_entry.is_some()
@@ -349,7 +349,7 @@ impl Oryxis {
             && !modifiers.shift()
             && matches!(key, keyboard::Key::Character(c) if c.as_str().eq_ignore_ascii_case("a"))
         {
-            let idx = self.active_tab?;
+            let idx = self.cur_active_tab()?;
             let files = &mut self.tabs.get_mut(idx)?.active_mut().files;
             // DECLINE rather than consume while an inline edit owns the
             // keyboard: there Ctrl+A is the text input's own select-all,
@@ -632,7 +632,7 @@ impl Oryxis {
                     // A half-typed Files edit (path / rename / new
                     // entry) cancels with the disengage (mirrors the
                     // SFTP pane's Esc).
-                    if let Some(idx) = self.active_tab
+                    if let Some(idx) = self.cur_active_tab()
                         && let Some(tab) = self.tabs.get_mut(idx)
                     {
                         let files = &mut tab.active_mut().files;
@@ -659,7 +659,7 @@ impl Oryxis {
     /// first row. No-op outside a terminal tab.
     pub(crate) fn focus_sidebar_list(&mut self) -> Task<Message> {
         use crate::state::SidebarSide;
-        let Some(idx) = self.active_tab else {
+        let Some(idx) = self.cur_active_tab() else {
             return Task::none();
         };
         // The availability gates (AI toggle, SSH transport for Files /

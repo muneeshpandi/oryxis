@@ -171,7 +171,7 @@ impl Oryxis {
         let panel_open = self.monitor_dash.selected.is_some();
         let panel_w = if panel_open { self.panel_width } else { 0.0 };
         let nav_width = self.vault_rail_width();
-        let available = (self.window_size.width
+        let available = (self.cur_window_size().width
             - nav_width
             - self.side_strip_reserve()
             - panel_w

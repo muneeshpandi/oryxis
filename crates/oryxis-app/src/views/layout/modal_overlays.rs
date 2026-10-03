@@ -292,11 +292,11 @@ impl Oryxis {
             let menu_height = 280.0_f32;
             let x = ovl
                 .x
-                .min((self.window_size.width - menu_width).max(0.0))
+                .min((self.cur_window_size().width - menu_width).max(0.0))
                 .max(0.0);
             let y = ovl
                 .y
-                .min((self.window_size.height - menu_height).max(0.0))
+                .min((self.cur_window_size().height - menu_height).max(0.0))
                 .max(0.0);
             let backdrop: Element<'_, Message> = MouseArea::new(
                 container(Space::new())
@@ -368,7 +368,7 @@ impl Oryxis {
         } else {
             overlay.x
         };
-        let x = raw_x.min(self.window_size.width - menu_width).max(0.0);
+        let x = raw_x.min(self.cur_window_size().width - menu_width).max(0.0);
         // Vertically the box flips over its anchor when it does not fit
         // under it, and falls back to the clamp; see `overlay_menu_y`.
         let y = self.overlay_menu_y(overlay, menu_height);
@@ -535,10 +535,10 @@ impl Oryxis {
             archive_ctx,
         );
         let x = nudged_x
-            .min(self.window_size.width - menu_width)
+            .min(self.cur_window_size().width - menu_width)
             .max(0.0);
         let y = nudged_y
-            .min(self.window_size.height - menu_height)
+            .min(self.cur_window_size().height - menu_height)
             .max(0.0);
         let positioned_menu: Element<'_, Message> = column![
             Space::new().height(y),
@@ -607,11 +607,11 @@ impl Oryxis {
             false,
             &self.privacy_terms(),
         ) {
-            let x = (self.mouse_position.x - ghost_w / 2.0)
-                .min(self.window_size.width - ghost_w)
+            let x = (self.cur_mouse().x - ghost_w / 2.0)
+                .min(self.cur_window_size().width - ghost_w)
                 .max(0.0);
-            let y = (self.mouse_position.y - crate::views::tab_bar::TAB_HEIGHT / 2.0)
-                .min(self.window_size.height - crate::views::tab_bar::TAB_HEIGHT)
+            let y = (self.cur_mouse().y - crate::views::tab_bar::TAB_HEIGHT / 2.0)
+                .min(self.cur_window_size().height - crate::views::tab_bar::TAB_HEIGHT)
                 .max(0.0);
             let positioned: Element<'_, Message> =
                 column![Space::new().height(y), row![Space::new().width(x), ghost]].into();
@@ -653,11 +653,11 @@ impl Oryxis {
         } else {
             12.0
         };
-        let x = (self.mouse_position.x + x_offset)
-            .min(self.window_size.width - ghost_width)
+        let x = (self.cur_mouse().x + x_offset)
+            .min(self.cur_window_size().width - ghost_width)
             .max(0.0);
-        let y = (self.mouse_position.y + 12.0)
-            .min(self.window_size.height - 40.0)
+        let y = (self.cur_mouse().y + 12.0)
+            .min(self.cur_window_size().height - 40.0)
             .max(0.0);
         let positioned: Element<'_, Message> = column![
             Space::new().height(y),

@@ -130,7 +130,7 @@ impl Oryxis {
         if let OverlayContent::PasswordSuggest { entries, .. } = &overlay.content {
             return super::menu_password_suggest::password_suggest_layout(
                 entries,
-                self.window_size.height,
+                self.cur_window_size().height,
             )
             .total;
         }
@@ -228,7 +228,7 @@ impl Oryxis {
         popover_y(
             overlay.y,
             menu_height,
-            self.window_size.height,
+            self.cur_window_size().height,
             pivot,
         )
     }
@@ -330,7 +330,7 @@ impl Oryxis {
                 | OverlayContent::CloudDiscoverGroupPicker
                 | OverlayContent::SplitMenu
         ) {
-            self.keynav.modal.default.set(Some(0));
+            self.kn().modal.default.set(Some(0));
         }
         // Per-variant width. Group pickers track the live combo width
         // measured by their `bounds_reporter` so the popover always
@@ -470,13 +470,13 @@ impl Oryxis {
         // The keyboard router auto-opens this menu when the sub-nav
         // highlight walks into an overflowed destination; render that
         // row with the hover background so the selection stays visible.
-        let kb_sel = match self.keynav.selected_in(crate::keynav::FocusZone::SubNav) {
+        let kb_sel = match self.kn().selected_in(crate::keynav::FocusZone::SubNav) {
             Some(crate::keynav::NavItem::SubNav(v)) => Some(v),
             _ => None,
         };
         let mut col = iced::widget::Column::new().width(Length::Fill).spacing(1);
         for (k, v) in overflow {
-            let active = self.active_view == v;
+            let active = self.cur_view() == v;
             let kb = kb_sel == Some(v);
             let fg = if active {
                 OryxisColors::t().accent
@@ -536,7 +536,7 @@ impl Oryxis {
         let strip_right = self.side_strip_reserve() - strip_left;
         // Clamp so the 200 px panel never runs past the right edge.
         let dots_x = (8.0 + strip_left + chip + inline_w)
-            .min((self.window_size.width - strip_right - 206.0).max(0.0));
+            .min((self.cur_window_size().width - strip_right - 206.0).max(0.0));
         let side_hidden_bar = self.top_bar_hidden();
         let pinned = container(panel)
             .width(Length::Fill)
@@ -573,7 +573,7 @@ impl Oryxis {
         // Keyboard rows recorded in render order; the menu opens with
         // its first row selected (Up/Down move, Enter/Space fire).
         self.modal_nav_reset();
-        self.keynav.modal.default.set(Some(0));
+        self.kn().modal.default.set(Some(0));
         // Menu row: label on the leading edge, optional muted hotkey
         // hint on the trailing edge (Termius-style "Ctrl+1" tail).
         // Items dispatch the same Messages the existing sidebar /

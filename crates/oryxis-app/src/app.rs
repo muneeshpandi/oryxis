@@ -20,8 +20,40 @@ pub static AUTO_CONNECT: OnceLock<Uuid> = OnceLock::new();
 /// Inherited vault master password, populated by `main.rs` when the
 /// parent process spawned us with `--inherit-vault` and piped the
 /// password through stdin. Used at boot to silently unlock the vault so
-/// the user doesn't have to re-type for "Duplicate in New Window".
+/// the user doesn't have to re-type after an in-place relaunch.
 pub static AUTO_PASSWORD: OnceLock<String> = OnceLock::new();
+
+/// The main window's settings, assembled in `main.rs` from the persisted
+/// geometry before iced boots. The app runs as an iced DAEMON (one
+/// process, any number of windows), which opens no window by itself:
+/// `Oryxis::boot` opens the main one from this.
+pub static MAIN_WINDOW_SETTINGS: OnceLock<iced::window::Settings> = OnceLock::new();
+
+/// The main window's id, written by boot. Not a `OnceLock`: the harness
+/// reboots the app inside one process, and each boot opens its own.
+static MAIN_WINDOW: std::sync::RwLock<Option<iced::window::Id>> = std::sync::RwLock::new(None);
+
+pub(crate) fn set_main_window(id: iced::window::Id) {
+    if let Ok(mut slot) = MAIN_WINDOW.write() {
+        *slot = Some(id);
+    }
+}
+
+/// The main window's id, when boot opened one.
+pub(crate) fn main_window_id() -> Option<iced::window::Id> {
+    MAIN_WINDOW.read().ok().and_then(|slot| *slot)
+}
+
+/// The main window, as a task: what every "do this to OUR window" used
+/// to ask `window::latest()` / `oldest()` for, which stopped naming one
+/// window the day there could be two. Falls back to the oldest window
+/// when boot opened none (a bare `Oryxis` in a unit test).
+pub(crate) fn main_window() -> iced::Task<Option<iced::window::Id>> {
+    match main_window_id() {
+        Some(id) => iced::Task::done(Some(id)),
+        None => iced::window::oldest(),
+    }
+}
 
 /// Raw `oryxis://` URL from an OS scheme launch, when no running
 /// instance claimed it (see the deep-link block in `main.rs`). Same
@@ -708,9 +740,10 @@ pub struct Oryxis {
     /// (this one dials, a `ssh://` link only prefills), and merging them
     /// would make provenance a guess at drain time.
     pub(crate) pending_connect_target: Option<String>,
-    /// Master password retained in memory for spawning child processes
-    /// (Duplicate in New Window). Populated after a successful
-    /// unlock / setup, cleared if the user explicitly re-locks.
+    /// Master password retained in memory for the in-place relaunch
+    /// (`relaunch_self`), which hands it to the replacement process.
+    /// Populated after a successful unlock / setup, cleared if the user
+    /// explicitly re-locks.
     pub(crate) master_password: Option<String>,
     /// SFTP browser state of the **active** SFTP tab. A working buffer:
     /// the focused SFTP tab's live state lives here, the others park their
@@ -762,6 +795,29 @@ pub struct Oryxis {
     /// vecs (`tabs`, `sftp_tabs`) are id-addressed storage; this list drives
     /// display order and drag-reorder across the terminal/SFTP boundary.
     pub(crate) tab_order: Vec<crate::state::TabRef>,
+    /// The extra windows (terminal tabs only), by window id. See
+    /// `window_ctx`.
+    pub(crate) extra_windows:
+        std::collections::BTreeMap<iced::window::Id, crate::window_ctx::ExtraWindow>,
+    /// Set while an extra window's values are swapped into the
+    /// per-window fields (`update_in_window`); holds the main window's.
+    pub(crate) window_ctx: Option<crate::window_ctx::WindowCtx>,
+    /// A verb of the main window was used from an extra one: bring the
+    /// main window forward at the end of this update.
+    pub(crate) pending_focus_main: bool,
+    /// The extra window the user is working in (the focused one);
+    /// `None` is the main window.
+    pub(crate) input_window: Option<iced::window::Id>,
+    /// The window the floating layer (context menu, modal, drag ghost)
+    /// was raised from; `None` is the main window.
+    pub(crate) float_window: Option<iced::window::Id>,
+    /// Where the views of the windows the user is NOT working in record
+    /// their keyboard-navigation rows (see `Oryxis::kn`).
+    pub(crate) keynav_scratch: crate::keynav::KeyNavState,
+    /// Where a queued batch dial opens its tab: the extra window the
+    /// hosts were sent to ("Connect in New Window"). Absent = the main
+    /// window.
+    pub(crate) batch_dial_windows: std::collections::HashMap<Uuid, iced::window::Id>,
     /// Most-recently-used order of open tabs (front = most recent), driving
     /// Ctrl+Tab "switch by last use". Terminal + SFTP tabs only; Home is not a
     /// member (it stays on Ctrl+1 / Alt+arrow). Maintained by
@@ -1725,9 +1781,9 @@ impl Oryxis {
         const BASE_Y: f32 = 84.0;
         const SUBNAV_HEIGHT: f32 = 50.0;
         let horizontal_subnav = self.prefs.nav_orientation != "vertical"
-            && self.active_tab.is_none()
+            && self.cur_active_tab().is_none()
             && matches!(
-                self.active_view,
+                self.cur_view(),
                 View::Dashboard
                     | View::Keys
                     | View::Snippets
@@ -1773,7 +1829,7 @@ impl Oryxis {
             let x = if crate::i18n::is_rtl_layout() {
                 strip_left + panel_width + pad + menu_width
             } else {
-                self.window_size.width - strip_right - panel_width - pad - menu_width
+                self.cur_window_size().width - strip_right - panel_width - pad - menu_width
             };
             (x.max(0.0), self.dashboard_dropdown_anchor_y())
         }
@@ -1799,7 +1855,7 @@ impl Oryxis {
     }
 
     pub(crate) fn snippet_injection_tab(&self) -> Option<usize> {
-        let idx = self.active_tab.or(self.last_terminal_tab)?;
+        let idx = self.cur_active_tab().or(self.last_terminal_tab)?;
         (idx < self.tabs.len()).then_some(idx)
     }
 
@@ -1850,6 +1906,19 @@ impl Oryxis {
 
     pub fn title(&self) -> String {
         "Oryxis".into()
+    }
+
+    /// The daemon's per-window forms of `title` / `theme` / `view`.
+    pub fn title_for(&self, _window: iced::window::Id) -> String {
+        self.title()
+    }
+
+    pub fn theme_for(&self, _window: iced::window::Id) -> Theme {
+        self.theme()
+    }
+
+    pub fn view_window(&self, window: iced::window::Id) -> iced::Element<'_, Message> {
+        self.view_for_window(window)
     }
 
     pub fn theme(&self) -> Theme {

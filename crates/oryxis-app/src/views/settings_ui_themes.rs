@@ -180,8 +180,8 @@ impl Oryxis {
 
         const PW: f32 = 236.0;
         const PH: f32 = 330.0;
-        let x = anchor.x.min((self.window_size.width - PW).max(0.0)).max(0.0);
-        let y = anchor.y.min((self.window_size.height - PH).max(0.0)).max(0.0);
+        let x = anchor.x.min((self.cur_window_size().width - PW).max(0.0)).max(0.0);
+        let y = anchor.y.min((self.cur_window_size().height - PH).max(0.0)).max(0.0);
         let positioned = column![Space::new().height(y), row![Space::new().width(x), card_trap]];
         let pop_backdrop: Element<'_, Message> = MouseArea::new(
             container(Space::new()).width(Length::Fill).height(Length::Fill),

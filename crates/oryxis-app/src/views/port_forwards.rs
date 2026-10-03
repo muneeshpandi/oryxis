@@ -159,7 +159,7 @@ impl Oryxis {
             }
 
             pf_nav.push(crate::keynav::NavItem::PortForward(idx));
-            let kb_selected = self.keynav.selected_in(crate::keynav::FocusZone::Content)
+            let kb_selected = self.kn().selected_in(crate::keynav::FocusZone::Content)
                 == Some(crate::keynav::NavItem::PortForward(idx));
 
             let active = self.active_forwards.contains_key(&rule.id);
@@ -330,7 +330,7 @@ impl Oryxis {
 
         let nav_width = self.vault_rail_width();
         let panel_width = if self.panels.port_forward_panel { self.panel_width } else { 0.0 };
-        let available = (self.window_size.width
+        let available = (self.cur_window_size().width
             - nav_width
             - self.side_strip_reserve()
             - panel_width

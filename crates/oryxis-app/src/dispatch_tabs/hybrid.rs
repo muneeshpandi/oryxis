@@ -42,7 +42,7 @@ impl Oryxis {
         let tab_id = tab._id;
         // Clicking the glyph on a background tab also brings the
         // tab to front, whichever direction it flips.
-        let select = if self.active_tab != Some(idx) {
+        let select = if self.cur_active_tab() != Some(idx) {
             self.update(Message::Tabs(TabsMessage::SelectTab(idx)))
         } else {
             Task::none()

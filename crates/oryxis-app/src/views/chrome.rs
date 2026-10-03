@@ -59,7 +59,7 @@ impl crate::app::Oryxis {
     /// green button, a Space of its own that keeps the app's tabs like
     /// every Mac app does (`fullscreen_immersive` tells the two apart).
     pub(crate) fn immersive_fullscreen(&self) -> bool {
-        self.window_fullscreen && self.fullscreen_immersive
+        self.cur_fullscreen() && self.cur_immersive()
     }
 
     /// Width of the traffic-light corner the top-most bar must leave
@@ -67,7 +67,7 @@ impl crate::app::Oryxis {
     /// where AppKit hides the buttons until the pointer reaches the top
     /// edge and then shows them in a title bar of their own above ours.
     pub(crate) fn traffic_light_inset(&self) -> f32 {
-        if NATIVE_FRAME && !self.window_fullscreen {
+        if NATIVE_FRAME && !self.cur_fullscreen() {
             TRAFFIC_LIGHT_INSET
         } else {
             0.0

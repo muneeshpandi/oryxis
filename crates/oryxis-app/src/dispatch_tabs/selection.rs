@@ -213,7 +213,16 @@ impl Oryxis {
             }
             // By id: the dial resolves the row at fire time, after the
             // previous dial's editor flush may have re-sorted the list.
-            tasks.push(self.update(Message::Ssh(SshMessage::ConnectSavedHost(id))));
+            // In the window the hosts were sent to, when "Connect in New
+            // Window" queued them; the main one otherwise (and when that
+            // window is gone by now).
+            let window = self
+                .batch_dial_windows
+                .remove(&id)
+                .filter(|w| self.extra_windows.contains_key(w));
+            tasks.push(self.run_in_window(window, |s| {
+                s.update(Message::Ssh(SshMessage::ConnectSavedHost(id)))
+            }));
         }
         (!tasks.is_empty()).then(|| Task::batch(tasks))
     }
@@ -454,7 +463,7 @@ impl Oryxis {
         };
         self.card_drag = Some(crate::state::CardDrag {
             ids,
-            start: self.mouse_position,
+            start: self.cur_mouse(),
             active: false,
             label,
         });

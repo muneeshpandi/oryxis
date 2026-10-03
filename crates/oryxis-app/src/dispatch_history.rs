@@ -410,7 +410,7 @@ impl Oryxis {
                 // Flush the live conversation first, so opening the one you
                 // are still having shows its latest turns rather than what
                 // happened to be saved at the last settle point.
-                if let Some(idx) = self.active_tab {
+                if let Some(idx) = self.cur_active_tab() {
                     self.flush_chat_history(idx);
                 }
                 let Some(vault) = &self.vault else {
@@ -666,7 +666,7 @@ impl Oryxis {
                         };
                         (lead, b.y + b.height + 6.0)
                     } else {
-                        (self.mouse_position.x, self.mouse_position.y + 26.0)
+                        (self.cur_mouse().x, self.cur_mouse().y + 26.0)
                     };
                     self.overlay = Some(OverlayState {
                         content: OverlayContent::HistoryTagFilter,

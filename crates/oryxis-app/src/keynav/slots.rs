@@ -262,8 +262,8 @@ impl crate::app::Oryxis {
     /// view calls this first (only one such surface renders per
     /// frame, topmost-wins like `close_topmost_modal`).
     pub(crate) fn modal_nav_reset(&self) {
-        self.keynav.modal.items.borrow_mut().clear();
-        self.keynav.modal.default.set(None);
+        self.kn().modal.items.borrow_mut().clear();
+        self.kn().modal.default.set(None);
     }
 
     /// The row index the keyboard currently points at: the explicit
@@ -271,10 +271,10 @@ impl crate::app::Oryxis {
     /// exists (clamped), else the surface default.
     pub(crate) fn modal_nav_effective(&self, surface: ModalSurface) -> Option<usize> {
         use super::movement::clamp_index;
-        let len = self.keynav.modal.items.borrow().len();
-        match self.keynav.modal.selected {
+        let len = self.kn().modal.items.borrow().len();
+        match self.kn().modal.selected {
             Some((tag, idx)) if tag == surface => clamp_index(idx, len),
-            _ => self.keynav.modal.default.get().and_then(|d| clamp_index(d, len)),
+            _ => self.kn().modal.default.get().and_then(|d| clamp_index(d, len)),
         }
     }
 
@@ -284,7 +284,7 @@ impl crate::app::Oryxis {
     /// password reveal eye inside its field). Pair with
     /// [`Self::modal_nav_ring_at`].
     pub(crate) fn modal_nav_record(&self, action: RowAction) -> usize {
-        let mut items = self.keynav.modal.items.borrow_mut();
+        let mut items = self.kn().modal.items.borrow_mut();
         items.push(action);
         items.len() - 1
     }
@@ -334,19 +334,19 @@ impl crate::app::Oryxis {
         // the "Enter confirms" affordance and stays visible.
         let surface_family = self.modal_nav_surface();
         let surface = surface_family.map(|(s, _)| s);
-        let kbd = self.keynav.modal.kbd.get();
+        let kbd = self.kn().modal.kbd.get();
         let default_visible = kbd
             || matches!(
                 surface_family,
                 Some((_, crate::dispatch_keynav_modal::SurfaceFamily::Confirm))
             );
-        let explicit = match self.keynav.modal.selected {
+        let explicit = match self.kn().modal.selected {
             Some((tag, i)) if Some(tag) == surface => Some(i),
             _ => None,
         };
         let selected = match explicit {
             Some(i) => kbd && i == idx,
-            None => default_visible && self.keynav.modal.default.get() == Some(idx),
+            None => default_visible && self.kn().modal.default.get() == Some(idx),
         };
         // Always wrapped (transparent when unselected): a ring that
         // appears/disappears between press and release would reset the
@@ -370,8 +370,8 @@ impl crate::app::Oryxis {
         contrast: bool,
         el: iced::Element<'a, Message>,
     ) -> iced::Element<'a, Message> {
-        let next_idx = self.keynav.modal.items.borrow().len();
-        self.keynav.modal.default.set(Some(next_idx));
+        let next_idx = self.kn().modal.items.borrow().len();
+        self.kn().modal.default.set(Some(next_idx));
         self.modal_nav_slot(action, radius, contrast, el)
     }
 
@@ -379,7 +379,7 @@ impl crate::app::Oryxis {
     /// at the top of its render pass, then records its actionable
     /// rows through `panel_nav_slot`.
     pub(crate) fn panel_nav_reset(&self) {
-        self.keynav.panel_items.borrow_mut().clear();
+        self.kn().panel_items.borrow_mut().clear();
     }
 
     /// Drop the panel row-mode state entirely (selection + remembered
@@ -387,7 +387,7 @@ impl crate::app::Oryxis {
     /// a stale ring can never survive across editor sessions.
     pub(crate) fn panel_nav_clear(&mut self) {
         self.keynav.panel_selected = None;
-        self.keynav.panel_last_row.set(None);
+        self.kn().panel_last_row.set(None);
         // A dropdown can't survive its panel: if the panel unmounts
         // while a pick_list menu was open, the widget never gets to
         // publish on_close, so drop the flag here too.
@@ -401,7 +401,7 @@ impl crate::app::Oryxis {
     /// since input rows never draw the panel ring, skipping the
     /// wrapper changes nothing visually.
     pub(crate) fn panel_nav_record(&self, action: RowAction) {
-        self.keynav.panel_items.borrow_mut().push(action);
+        self.kn().panel_items.borrow_mut().push(action);
     }
 
     /// Record one actionable side-panel row and ring it when it is
@@ -417,13 +417,13 @@ impl crate::app::Oryxis {
     ) -> iced::Element<'a, Message> {
         let is_input = action.focus.is_some();
         let idx = {
-            let mut items = self.keynav.panel_items.borrow_mut();
+            let mut items = self.kn().panel_items.borrow_mut();
             items.push(action);
             items.len() - 1
         };
         // Always wrapped (transparent when unringed): see
         // select_ring_opt for why the wrapper must be shape-stable.
-        let ringed = !is_input && self.keynav.panel_selected == Some(idx);
+        let ringed = !is_input && self.kn().panel_selected == Some(idx);
         crate::widgets::select_ring_opt(
             el,
             radius,
@@ -437,7 +437,7 @@ impl crate::app::Oryxis {
     /// closed region) can't leave a stale row list behind, and a
     /// region rendering second can't wipe the first's rows.
     pub(crate) fn sidebar_nav_reset(&self) {
-        for items in &self.keynav.sidebar_items {
+        for items in &self.kn().sidebar_items {
             items.borrow_mut().clear();
         }
     }
@@ -489,13 +489,13 @@ impl crate::app::Oryxis {
             .sidebar_tab_side(tab)
             .unwrap_or(crate::state::SidebarSide::Right);
         let idx = {
-            let mut items = self.keynav.sidebar_items[side.idx()].borrow_mut();
+            let mut items = self.kn().sidebar_items[side.idx()].borrow_mut();
             items.push(row);
             items.len() - 1
         };
         // Always wrapped (transparent when unringed): see
         // select_ring_opt for why the wrapper must be shape-stable.
-        let ringed = !is_input && self.keynav.sidebar_selected == Some((tab, idx));
+        let ringed = !is_input && self.kn().sidebar_selected == Some((tab, idx));
         let el = crate::widgets::select_ring_opt(
             el,
             radius,
@@ -513,7 +513,7 @@ impl crate::app::Oryxis {
         // popover would open at wherever the mouse happens to rest,
         // which for a keyboard user is anywhere at all.
         if ringed {
-            crate::widgets::bounds_reporter(el, self.keynav.ring_bounds.clone())
+            crate::widgets::bounds_reporter(el, self.kn().ring_bounds.clone())
         } else {
             el
         }
@@ -584,12 +584,12 @@ impl crate::app::Oryxis {
     /// view calls this at the top of its render pass, then records
     /// its actionable rows through `settings_nav_slot`.
     pub(crate) fn keynav_settings_reset(&self) {
-        self.keynav.settings_row_actions.borrow_mut().clear();
-        self.keynav.settings_row_highlight.borrow_mut().clear();
-        self.keynav.content_rows.borrow_mut().clear();
-        *self.keynav.content_section_starts.borrow_mut() = vec![0];
+        self.kn().settings_row_actions.borrow_mut().clear();
+        self.kn().settings_row_highlight.borrow_mut().clear();
+        self.kn().content_rows.borrow_mut().clear();
+        *self.kn().content_section_starts.borrow_mut() = vec![0];
         // Re-derived every render from the freshest recording.
-        self.keynav.settings_first_match_idx.set(None);
+        self.kn().settings_first_match_idx.set(None);
     }
 
     /// Whether a settings row with this visible label matches the
@@ -614,13 +614,13 @@ impl crate::app::Oryxis {
     /// things Enter/Space/Left/Right can act on.
     fn settings_nav_record_hl(&self, action: RowAction, highlight: bool, active: bool) -> usize {
         let idx = {
-            let mut actions = self.keynav.settings_row_actions.borrow_mut();
+            let mut actions = self.kn().settings_row_actions.borrow_mut();
             actions.push(action);
             actions.len() - 1
         };
-        self.keynav.settings_row_highlight.borrow_mut().push(highlight);
-        if active && self.keynav.settings_first_match_idx.get().is_none() {
-            self.keynav.settings_first_match_idx.set(Some(idx));
+        self.kn().settings_row_highlight.borrow_mut().push(highlight);
+        if active && self.kn().settings_first_match_idx.get().is_none() {
+            self.kn().settings_first_match_idx.set(Some(idx));
         }
         self.keynav
             .content_rows
@@ -701,7 +701,7 @@ impl crate::app::Oryxis {
         el: iced::Element<'a, Message>,
     ) -> iced::Element<'a, Message> {
         let item = super::NavItem::SettingsRow(idx);
-        let ringed = self.keynav.selected_in(super::FocusZone::Content) == Some(item);
+        let ringed = self.kn().selected_in(super::FocusZone::Content) == Some(item);
         let matched = self
             .keynav
             .settings_row_highlight
@@ -709,7 +709,7 @@ impl crate::app::Oryxis {
             .get(idx)
             .copied()
             .unwrap_or(false);
-        let active = self.keynav.settings_first_match_idx.get() == Some(idx);
+        let active = self.kn().settings_first_match_idx.get() == Some(idx);
         // Priority: keynav selection or the ACTIVE find-next match draw
         // the accent ring (the "current" match, distinct from its amber
         // siblings); a plain match draws amber. An outset gives the box
@@ -754,7 +754,7 @@ impl crate::app::Oryxis {
             ringed.then(|| crate::theme::OryxisColors::t().accent),
         );
         if ringed {
-            crate::widgets::bounds_reporter(el, self.keynav.ring_bounds.clone())
+            crate::widgets::bounds_reporter(el, self.kn().ring_bounds.clone())
         } else {
             el
         }
@@ -766,7 +766,7 @@ impl crate::app::Oryxis {
         self.keynav
             .menu_anchor
             .take()
-            .unwrap_or((self.mouse_position.x, self.mouse_position.y))
+            .unwrap_or((self.cur_mouse().x, self.cur_mouse().y))
     }
 
     /// Record one generic content-action row (single-column): used by
@@ -780,15 +780,15 @@ impl crate::app::Oryxis {
         el: iced::Element<'a, Message>,
     ) -> iced::Element<'a, Message> {
         let idx = {
-            let mut actions = self.keynav.content_actions.borrow_mut();
+            let mut actions = self.kn().content_actions.borrow_mut();
             actions.push(action);
             actions.len() - 1
         };
         let item = super::NavItem::ContentAction(idx);
-        self.keynav.content_rows.borrow_mut().push(vec![item]);
+        self.kn().content_rows.borrow_mut().push(vec![item]);
         // Always wrapped (transparent when unringed): see
         // select_ring_opt for why the wrapper must be shape-stable.
-        let ringed = self.keynav.selected_in(super::FocusZone::Content) == Some(item);
+        let ringed = self.kn().selected_in(super::FocusZone::Content) == Some(item);
         crate::widgets::select_ring_opt(
             el,
             radius,

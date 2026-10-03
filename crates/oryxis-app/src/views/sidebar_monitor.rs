@@ -27,7 +27,7 @@ pub(crate) enum MonitorVitalsSurface {
 impl Oryxis {
     pub(crate) fn monitor_tab_content(&self) -> Element<'_, Message> {
         // Disconnected mid-view (the tab button hides next frame).
-        let Some(idx) = self.active_tab else {
+        let Some(idx) = self.cur_active_tab() else {
             return placeholder(t("files_no_session"));
         };
         let Some(tab) = self.tabs.get(idx) else {
