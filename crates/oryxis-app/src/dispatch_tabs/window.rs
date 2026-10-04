@@ -34,7 +34,8 @@ impl Oryxis {
             || self.sftp_chrome.col_drag.is_some()
             || self.cur_sftp().drag.is_some()
             || self.tab_drag.is_some()
-            || self.card_drag.is_some();
+            || self.card_drag.is_some()
+            || self.window_carry.is_some();
         // Promote an armed tab drag to active once the cursor moves
         // past a small threshold, so a plain click never reorders.
         const TAB_DRAG_THRESHOLD: f32 = 6.0;
@@ -73,6 +74,10 @@ impl Oryxis {
         // a window of its own. Decided here, on the move, because the
         // release that ends such a drag lands outside and never arrives.
         if let Some(task) = self.tear_off_drag_at_edge() {
+            return task;
+        }
+        // A window carried by this drag follows the cursor.
+        if let Some(task) = self.carry_window_to_cursor() {
             return task;
         }
         // Promote an armed SFTP internal drag once the cursor crosses
@@ -839,8 +844,8 @@ impl Oryxis {
             TabsMessage::MoveTabToNewWindow(id) => {
                 return self.detach_tab_to_new_window(id, None);
             }
-            TabsMessage::DetachTabAt(id, at) => {
-                return self.detach_tab_to_new_window(id, at);
+            TabsMessage::DetachTabAt(id, positions) => {
+                return self.tear_off_tab(id, positions);
             }
             TabsMessage::MoveTabToWindow(id, target) => {
                 return self.move_tab_to_window(id, target);

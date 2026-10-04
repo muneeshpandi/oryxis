@@ -13,6 +13,7 @@ project uses [SemVer](https://semver.org/spec/v2.0.0.html).
 - The MCP plugin 0.1.8 dials with russh 0.63.3.
 - The MCP plugin 0.1.9 unlocks the vault with the same password check as the app.
 - Several windows, each a whole one: its own tabs, its own Home and vault screens, its own search and folder. "New Window" (Ctrl+Shift+N) opens one; a tab moves to another window with its session intact by dragging it out or from its menu ("Move to New Window", "Move to Window").
+- A tab dragged out of its window is carried by the mouse as a window of its own, and dropped on another window's tab strip it docks there (Windows and X11).
 - Drag a host card (or a selection) out of the window to connect it in a new one, or use "Connect in New Window" on the card menu.
 
 ### Changed

@@ -788,6 +788,9 @@ pub struct Oryxis {
     /// A window to bring forward at the end of this update (`Some(None)`
     /// is the resident one): the window a tab was just moved into.
     pub(crate) pending_focus: Option<Option<iced::window::Id>>,
+    /// A window being carried by a tab drag that left its strip (see
+    /// `window_ctx::WindowCarry`).
+    pub(crate) window_carry: Option<crate::window_ctx::WindowCarry>,
     /// Extra windows to close at the end of this update: closed by the
     /// user, or left empty by a move.
     pub(crate) windows_closing: Vec<iced::window::Id>,

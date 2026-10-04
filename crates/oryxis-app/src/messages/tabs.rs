@@ -303,10 +303,11 @@ pub enum TabsMessage {
     /// into an extra window of its own. The session goes with it
     /// untouched.
     MoveTabToNewWindow(uuid::Uuid),
-    /// The same, with the screen position the new window opens at: what
-    /// a tab dragged out of its window resolves to once the source
-    /// window's position is known.
-    DetachTabAt(uuid::Uuid, Option<iced::Point>),
+    /// A tab dragged out of its window, once the screen position of
+    /// every open window is known (`None` where the platform has no
+    /// positions): the new window opens under the cursor, is carried by
+    /// it until the release, and can dock on another window's strip.
+    DetachTabAt(uuid::Uuid, Vec<(iced::window::Id, Option<iced::Point>)>),
     /// Move a tab (terminal or SFTP, by strip id) into another open
     /// window (`None` is the resident one, see `window_ctx`).
     MoveTabToWindow(uuid::Uuid, Option<iced::window::Id>),

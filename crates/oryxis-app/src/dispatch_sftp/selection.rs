@@ -334,6 +334,10 @@ impl Oryxis {
                 return Ok(Task::done(Message::Sftp(SftpMessage::SftpStartRename(side, path))));
             }
             SftpMessage::SftpMouseLeftPressed => {
+                // A carry whose release never arrived (the platform did
+                // not keep the pointer with the window the press began
+                // in) must not swallow the next gesture.
+                self.window_carry = None;
                 // Consume the row identity this press's `press_hit_reporter`
                 // wrapper recorded (if any) FIRST, before any early return
                 // below: this message fires exactly once per press, so a

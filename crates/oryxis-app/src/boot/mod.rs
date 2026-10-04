@@ -461,6 +461,7 @@ impl Oryxis {
                 window_ctx: None,
                 pending_focus: None,
                 windows_closing: Vec::new(),
+                window_carry: None,
                 panel_window: None,
                 input_window: None,
                 float_window: None,

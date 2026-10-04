@@ -28,9 +28,14 @@ use crate::window_ctx::ExtraWindow;
 /// reorder that drifts a few pixels over it must not count.
 const TEAR_OFF_MARGIN: f32 = 24.0;
 
-/// Where the new window's corner lands relative to the cursor that
-/// dropped the tab: the chip ends up roughly under the pointer.
+/// Where a carried window's corner sits relative to the cursor: the
+/// chip of the tab that was dragged out ends up roughly under the
+/// pointer.
 const DROP_OFFSET: Point = Point::new(60.0, 18.0);
+
+/// How much of the top of a window counts as its tab strip when a
+/// carried tab is released over it.
+const DOCK_BAND: f32 = 44.0;
 
 impl Oryxis {
     /// Register a new window showing `order` on `view` and return the
@@ -378,26 +383,127 @@ impl Oryxis {
         }
         self.tab_drag = None;
         let tab_id = drag.from_id;
-        let cursor = self.mouse_position;
-        // The window opens under the cursor, which is known in this
-        // window's coordinates: ask where this window is. No answer
-        // (Wayland has no positions) lets the compositor place it.
+        // Where every window is on the screen: the new one opens under
+        // the cursor (known in THIS window's coordinates) and can dock on
+        // another's strip. No answer (Wayland has no positions) lets the
+        // compositor place it, with no carry.
+        let queries = self
+            .all_windows()
+            .into_iter()
+            .map(|(_, id)| window::position(id).map(move |position| (id, position)));
         Some(
-            self.cur_window_task()
-                .then(|id| match id {
-                    Some(id) => window::position(id),
-                    None => Task::done(None),
-                })
-                .map(move |origin| {
-                    let at = origin.map(|o| {
-                        Point::new(
-                            o.x + cursor.x - DROP_OFFSET.x,
-                            o.y + cursor.y - DROP_OFFSET.y,
-                        )
-                    });
-                    Message::Tabs(TabsMessage::DetachTabAt(tab_id, at))
-                }),
+            Task::batch(queries)
+                .collect()
+                .map(move |positions| Message::Tabs(TabsMessage::DetachTabAt(tab_id, positions))),
         )
+    }
+
+    /// The tab `tab_id` was dragged out of the current window: open its
+    /// own window under the cursor and start carrying it.
+    pub(super) fn tear_off_tab(
+        &mut self,
+        tab_id: Uuid,
+        positions: Vec<(window::Id, Option<Point>)>,
+    ) -> Task<Message> {
+        let holder = self.window_ctx.as_ref().map(|c| c.id);
+        let holder_id = holder.or_else(crate::app::resident_window_id);
+        let position_of = |id: window::Id| {
+            positions
+                .iter()
+                .find(|(w, _)| *w == id)
+                .and_then(|(_, position)| *position)
+        };
+        let Some(origin) = holder_id.and_then(position_of) else {
+            return self.detach_tab_to_new_window(tab_id, None);
+        };
+        let cursor = self.mouse_position;
+        let at = Point::new(
+            origin.x + cursor.x - DROP_OFFSET.x,
+            origin.y + cursor.y - DROP_OFFSET.y,
+        );
+        let before: Vec<window::Id> = self.extra_windows.keys().copied().collect();
+        let open = self.detach_tab_to_new_window(tab_id, Some(at));
+        let Some(carried) = self
+            .extra_windows
+            .keys()
+            .copied()
+            .find(|id| !before.contains(id))
+        else {
+            return open;
+        };
+        let docks = self
+            .all_windows()
+            .into_iter()
+            .filter(|(_, id)| *id != carried)
+            .filter_map(|(target, id)| {
+                let position = position_of(id)?;
+                Some((target, iced::Rectangle::new(position, self.size_of_window(target))))
+            })
+            .collect();
+        self.window_carry = Some(crate::window_ctx::WindowCarry {
+            window: carried,
+            tab: tab_id,
+            holder,
+            origin,
+            docks,
+        });
+        open
+    }
+
+    /// While a window is carried: put it under the cursor. `Some` when
+    /// the move belongs to the carry (it came from the window the
+    /// button is held in).
+    pub(super) fn carry_window_to_cursor(&mut self) -> Option<Task<Message>> {
+        let carry = self.window_carry.as_ref()?;
+        if carry.holder != self.window_ctx.as_ref().map(|c| c.id) {
+            return None;
+        }
+        if !self.extra_windows.contains_key(&carry.window) {
+            self.window_carry = None;
+            return None;
+        }
+        let cursor = self.mouse_position;
+        Some(window::move_to(
+            carry.window,
+            Point::new(
+                carry.origin.x + cursor.x - DROP_OFFSET.x,
+                carry.origin.y + cursor.y - DROP_OFFSET.y,
+            ),
+        ))
+    }
+
+    /// The release that ends a window carry. Over another window's tab
+    /// strip the tab docks there (and its emptied window closes);
+    /// anywhere else the carried window simply stays. `None` when no
+    /// carry was in flight for this window.
+    pub(crate) fn finish_window_carry(&mut self) -> Option<Task<Message>> {
+        let holder = self.window_ctx.as_ref().map(|c| c.id);
+        if self.window_carry.as_ref()?.holder != holder {
+            return None;
+        }
+        let carry = self.window_carry.take()?;
+        if !self.extra_windows.contains_key(&carry.window) {
+            return Some(Task::none());
+        }
+        let cursor = Point::new(
+            carry.origin.x + self.mouse_position.x,
+            carry.origin.y + self.mouse_position.y,
+        );
+        // The strip band: the top of a window, where its tabs and its
+        // drag area are. A geometry test, like the file drag-out's: a
+        // window lying over another one is not told apart from it.
+        let target = carry.docks.iter().find_map(|(target, rect)| {
+            let band = iced::Rectangle {
+                height: DOCK_BAND.min(rect.height),
+                ..*rect
+            };
+            band.contains(cursor).then_some(*target)
+        });
+        let Some(target) = target else {
+            return Some(Task::none());
+        };
+        let (window, tab) = (carry.window, carry.tab);
+        Some(self.run_in_window(Some(window), |s| s.move_tab_to_window(tab, target)))
     }
 
     /// The frame verbs of a window that is not the resident one. `Err`

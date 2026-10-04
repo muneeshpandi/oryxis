@@ -414,6 +414,7 @@ impl Oryxis {
             || self.cur_sftp().drag.is_some()
             || self.tab_drag.is_some()
             || self.card_drag.is_some()
+            || self.window_carry.is_some()
             || self.drag_out_arm.is_some()
             || self.immersive_fullscreen()
             || self.cur_sftp().suppress_hover

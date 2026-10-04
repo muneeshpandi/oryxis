@@ -176,6 +176,12 @@ impl Oryxis {
                 // its threshold dies with the press (issue #167).
                 self.drag_out_arm = None;
                 self.chat_ui.sidebar_drag = None;
+                // The release that ends a window carry: the tab docks on
+                // the strip under the cursor, or its window stays where
+                // it was let go.
+                if let Some(task) = self.finish_window_carry() {
+                    return task;
+                }
                 // The same global Left-release ends a side-panel editor
                 // drawer resize; persist the final width so it survives
                 // a relaunch.

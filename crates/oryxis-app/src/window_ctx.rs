@@ -207,6 +207,34 @@ impl ExtraWindow {
     }
 }
 
+/// A window being carried by the mouse: the one a tab was just dragged
+/// out into, with the button still down.
+///
+/// The button was pressed in another window (the HOLDER), and the
+/// system keeps delivering the pointer to the window a press began in,
+/// so the holder goes on receiving the moves and, in the end, the
+/// release, in ITS coordinates. Its position on the screen turns those
+/// into screen coordinates: on each move the carried window is put
+/// under the cursor, and on the release the cursor is tested against
+/// the tab strips of the other windows, where the tab docks.
+///
+/// Needs window positions, which Wayland does not give: there no carry
+/// starts and the new window stays where the compositor put it.
+#[derive(Debug, Clone)]
+pub(crate) struct WindowCarry {
+    /// The window being carried.
+    pub(crate) window: window::Id,
+    /// The tab it was opened for.
+    pub(crate) tab: Uuid,
+    /// The window the button is held in (`None` is the resident one).
+    pub(crate) holder: Option<window::Id>,
+    /// The holder's position on the screen.
+    pub(crate) origin: Point,
+    /// The screen rectangle of every OTHER window (the carried one
+    /// excluded), as measured when the carry began: where it can dock.
+    pub(crate) docks: Vec<(Option<window::Id>, iced::Rectangle)>,
+}
+
 /// Who holds the live SFTP buffer (`Oryxis::sftp`).
 ///
 /// The buffer is ONE: the active SFTP tab's state, or a terminal tab's
@@ -310,16 +338,6 @@ impl Oryxis {
 
     pub(crate) fn cur_focused(&self) -> bool {
         self.viewed_extra().map_or(self.window_focused, |w| w.focused)
-    }
-
-    /// The current window as a task, for "do this to the window the
-    /// gesture came from". Resolved NOW: the task may run after the
-    /// swap is undone.
-    pub(crate) fn cur_window_task(&self) -> Task<Option<window::Id>> {
-        match self.cur_window() {
-            Some(id) => Task::done(Some(id)),
-            None => crate::app::resident_window(),
-        }
     }
 
     /// Whether the terminal tab at `idx` is in the strip of the window
@@ -604,6 +622,32 @@ impl Oryxis {
         }
         self.batch_dial_windows.retain(|_, w| *w != id);
         old
+    }
+
+    /// The size of a window (`None` is the resident one), whichever
+    /// window's values are in the fields.
+    pub(crate) fn size_of_window(&self, target: Option<window::Id>) -> Size {
+        match target.and_then(|id| self.extra_windows.get(&id)) {
+            Some(w) => w.size,
+            None => match &self.window_ctx {
+                Some(ctx) if target.is_none() => ctx.size,
+                _ => self.window_size,
+            },
+        }
+    }
+
+    /// Every open window, as the app names them: the resident one is
+    /// `None`. Paired with its window id when that is known.
+    pub(crate) fn all_windows(&self) -> Vec<(Option<window::Id>, window::Id)> {
+        let mut out = Vec::new();
+        if let Some(id) = crate::app::resident_window_id() {
+            out.push((None, id));
+        }
+        if let Some(ctx) = &self.window_ctx {
+            out.push((Some(ctx.id), ctx.id));
+        }
+        out.extend(self.extra_windows.keys().map(|id| (Some(*id), *id)));
+        out
     }
 
     /// How many windows are open.
