@@ -113,6 +113,8 @@ x25519-dalek = { version = "3", features = ["static_secrets", "getrandom"] }
 ed25519-dalek = { version = "3", features = ["rand_core", "serde"] }
 rand = "0.8"
 base64 = "0.23"
+# Stays on 1: it is the wire format of the sync protocol, and the 3.0.0 on
+# crates.io is not a release to move to (its lib.rs is a `compile_error!`).
 bincode = "1"
 hex = "0.4"
 

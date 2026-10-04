@@ -136,6 +136,9 @@ thiserror = { workspace = true }
 # `rustls-tls` would pull its own `ring` in (the feature expands to
 # `__rustls-ring`), so take the same webpki roots without a provider and let
 # the aws-lc-rs one installed in `main` serve it.
+# Stays on 0.12 on purpose: 0.13 drops the bundled webpki roots and always
+# verifies through the OS trust store (rustls-platform-verifier), which is
+# a change in what the app trusts, not a version bump.
 reqwest = { version = "0.12", features = ["json", "rustls-tls-webpki-roots-no-provider", "stream"], default-features = false }
 # Async stream combinators, used by the AI streaming path to fold the
 # reqwest byte stream into provider-specific SSE chunks.
