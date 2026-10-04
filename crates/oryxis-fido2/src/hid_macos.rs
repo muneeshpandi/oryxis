@@ -235,7 +235,7 @@ impl MacHidDevice {
                 device,
                 std::ptr::addr_of_mut!((*inbox).buffer).cast(),
                 HID_PACKET_LEN as CFIndex,
-                on_input_report,
+                Some(on_input_report),
                 inbox.cast(),
             );
             IOHIDDeviceScheduleWithRunLoop(device, CFRunLoopGetCurrent(), mode.0 as CFStringRef);

@@ -48,7 +48,7 @@ windows-sys = { version = "0.61", features = [
 # IOKit HID + the CoreFoundation run loop it reports through. Both are
 # already in the lock (serial ports, the windowing stack).
 core-foundation-sys = "0.8"
-io-kit-sys = "0.4"
+io-kit-sys = "0.5"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 # `/dev/hidraw*`: open / poll(2) / read / write. The report descriptor is
