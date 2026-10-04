@@ -351,8 +351,8 @@ impl Oryxis {
                     }
                     if removed {
                         self.groups.retain(|g| g.id != gid);
-                        if self.active_group == Some(gid) {
-                            self.active_group = new_parent;
+                        if self.cur_nav().active_group == Some(gid) {
+                            self.nav.active_group = new_parent;
                         }
                         // Don't leave the editor panel open on a deleted row.
                         if self.group_edit.id == Some(gid) {
@@ -447,8 +447,8 @@ impl Oryxis {
                     }
                     if removed {
                         self.groups.retain(|g| g.id != gid);
-                        if self.active_group == Some(gid) {
-                            self.active_group = new_parent;
+                        if self.cur_nav().active_group == Some(gid) {
+                            self.nav.active_group = new_parent;
                         }
                         // Don't leave the editor panel open on a deleted row.
                         if self.group_edit.id == Some(gid) {

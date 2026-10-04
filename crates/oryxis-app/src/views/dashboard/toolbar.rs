@@ -16,7 +16,7 @@ use crate::widgets::dir_row;
 impl Oryxis {
     pub(super) fn dashboard_toolbar(&self) -> Element<'_, Message> {
         // ── Toolbar ──
-        let toolbar_left: Element<'_, Message> = if let Some(gid) = self.active_group {
+        let toolbar_left: Element<'_, Message> = if let Some(gid) = self.cur_nav().active_group {
             // Compact folder header: a back arrow (one level up, root
             // when the folder is top-level) + folder glyph + the
             // current group's label. Replaced the full breadcrumb
@@ -208,7 +208,7 @@ impl Oryxis {
         let (resolved_action, resolved_items): (
             Element<'_, Message>,
             Vec<crate::keynav::ToolbarItem>,
-        ) = if let Some(gid) = self.active_group {
+        ) = if let Some(gid) = self.cur_nav().active_group {
             // Is this a dynamic group?
             let dynamic_query_profile = self
                 .groups
@@ -342,7 +342,7 @@ impl Oryxis {
                     // at the cursor.
                     crate::widgets::bounds_reporter(
                         crate::widgets::tag_filter_toolbar_button(
-                            self.host_filter_tags.len(),
+                            self.cur_nav().host_filter_tags.len(),
                             Message::Navigation(NavigationMessage::ShowHostTagFilterMenu),
                         ),
                         self.host_tag_filter_btn_bounds.clone(),
@@ -404,7 +404,7 @@ impl Oryxis {
                 Space::new().width(6).boxed(),
                 self.keynav_toolbar_ring(
                     crate::keynav::ToolbarItem::MultiSelect,
-                    crate::widgets::host_multi_select_toggle_button(self.dash_multi_select),
+                    crate::widgets::host_multi_select_toggle_button(self.cur_nav().dash_multi_select),
                 ),
             ])
             .align_y(iced::Alignment::Center)
@@ -425,7 +425,7 @@ impl Oryxis {
         const GAP_SC: f32 = 10.0; // search ↔ cluster
         const GAP_BS: f32 = 12.0; // breadcrumb ↔ search
         const BC_FLOOR: f32 = 50.0;
-        let in_group = self.active_group.is_some();
+        let in_group = self.cur_nav().active_group.is_some();
         let leading_w = self.toolbar_leading_width();
         let cluster_w = self.toolbar_cluster_width();
         let toolbar_w = self.toolbar_content_width();

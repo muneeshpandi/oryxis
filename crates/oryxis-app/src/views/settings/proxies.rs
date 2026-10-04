@@ -15,7 +15,7 @@ impl Oryxis {
         // it explicitly so rustc doesn't try to pin down a generic
         // Theme parameter for an unread binding.
         // ── List rows ──
-        let needle = self.proxy_search.trim().to_lowercase();
+        let needle = self.cur_nav().proxy_search.trim().to_lowercase();
         let mut list = iced::widget::Column::<iced::Element<'_, _>>::new().spacing(8);
         // Keyboard-navigation order (one row each), collected as the
         // rows render so it always matches the filtered set on screen.

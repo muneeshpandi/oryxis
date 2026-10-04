@@ -78,7 +78,7 @@ impl Oryxis {
                     crate::keynav::ToolbarItem::TagFilter,
                     crate::widgets::bounds_reporter(
                         crate::widgets::tag_filter_toolbar_button(
-                            self.host_filter_tags.len(),
+                            self.cur_nav().host_filter_tags.len(),
                             Message::Navigation(NavigationMessage::ShowHostTagFilterMenu),
                         ),
                         self.host_tag_filter_btn_bounds.clone(),
@@ -160,8 +160,8 @@ impl Oryxis {
                 };
                 let by_search =
                     needle.is_empty() || conn.label.to_lowercase().contains(&needle);
-                let by_tags = self.host_filter_tags.is_empty()
-                    || conn.tags.iter().any(|t| self.host_filter_tags.contains(t));
+                let by_tags = self.cur_nav().host_filter_tags.is_empty()
+                    || conn.tags.iter().any(|t| self.cur_nav().host_filter_tags.contains(t));
                 by_search && by_tags
             })
             .collect();

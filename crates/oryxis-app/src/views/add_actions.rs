@@ -63,7 +63,7 @@ impl Oryxis {
         // Dynamic groups derive their contents from the cloud query, so
         // they take neither: no manual children, and their toolbar shows
         // Discover rather than this add menu.
-        match self.active_group {
+        match self.cur_nav().active_group {
             Some(gid)
                 if self
                     .groups
@@ -106,7 +106,7 @@ impl Oryxis {
             actions.push(AddAction {
                 icon: iced_fonts::lucide::upload().into(),
                 label: crate::i18n::t("export_hosts"),
-                msg: Message::Share(ShareMessage::ShowExportHosts(self.active_group)),
+                msg: Message::Share(ShareMessage::ShowExportHosts(self.cur_nav().active_group)),
                 color: secondary,
             });
         }

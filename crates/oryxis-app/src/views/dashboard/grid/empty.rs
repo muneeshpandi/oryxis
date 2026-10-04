@@ -17,17 +17,17 @@ impl Oryxis {
     /// Matches the other empty vault views (see `view_history`).
     pub(crate) fn dashboard_empty_state(&self) -> Element<'_, Message> {
         // Termius-style empty state, centered "Create host" with input
-        let has_input = !self.quick_host_input.is_empty();
+        let has_input = !self.cur_nav().quick_host_input.is_empty();
         let btn_bg = if has_input { OryxisColors::t().success } else { OryxisColors::t().bg_surface };
         // An explicit connect target (user@, a port, an IP literal)
         // makes Enter / the button quick-connect directly instead of
         // opening the editor (issue #97, see `QuickHostContinue`), so
         // the button must say so instead of lying with "Continue".
         let connects_directly = oryxis_core::ssh_target::SshTarget::parse(
-            self.quick_host_input.trim(),
+            self.cur_nav().quick_host_input.trim(),
         )
         .is_some_and(|t| t.is_explicit())
-            && self.quick_connect_target(self.quick_host_input.trim()).is_some();
+            && self.quick_connect_target(self.cur_nav().quick_host_input.trim()).is_some();
 
         // The toolbar's recording is from a previous frame (a host was
         // just deleted); the toolbar isn't on screen, so drop it and
@@ -60,7 +60,7 @@ impl Oryxis {
             self.content_action_slot(
                 crate::keynav::RowAction::input(iced::widget::Id::new(QUICK_HOST_INPUT_ID)),
                 8.0,
-                text_input(t("type_ip_or_hostname"), &self.quick_host_input)
+                text_input(t("type_ip_or_hostname"), &self.cur_nav().quick_host_input)
                     .id(QUICK_HOST_INPUT_ID)
                     .on_input(|v| Message::Navigation(NavigationMessage::QuickHostInput(v)))
                     // No submit binding while a side panel is open: the

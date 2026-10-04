@@ -342,9 +342,6 @@ impl Oryxis {
                 groups: Vec::new(),
                 session_groups: Vec::new(),
                 active_view: View::Dashboard,
-                active_group: None,
-                host_search: String::new(),
-                quick_host_input: String::new(),
                 tabs: Vec::new(),
                 closed_tabs: Vec::new(),
                 inline_edit_anchors: Vec::new(),
@@ -411,8 +408,6 @@ impl Oryxis {
                 cmd_history_search: String::new(),
                 snippet_context_menu: None,
                 card_context_menu: None,
-                dash_selection: crate::state::DashSelection::default(),
-                dash_multi_select: false,
                 card_drag: None,
                 card_press: crate::widgets::new_press_hit_cell(),
                 move_hosts_pending: Vec::new(),
@@ -461,10 +456,13 @@ impl Oryxis {
                 sftp_tabs: Vec::new(),
                 active_sftp: None,
                 hybrid_sftp_owner: None,
+                nav: crate::window_ctx::WindowNav::default(),
                 tab_order: Vec::new(),
                 extra_windows: std::collections::BTreeMap::new(),
                 window_ctx: None,
-                pending_focus_main: false,
+                pending_focus: None,
+                windows_closing: Vec::new(),
+                panel_window: None,
                 input_window: None,
                 float_window: None,
                 keynav_scratch: crate::keynav::KeyNavState::default(),
@@ -497,11 +495,8 @@ impl Oryxis {
                 last_printscreen: None,
                 keys: Vec::new(),
                 cert_viewer: None,
-                snippet_search: String::new(),
-                history_search: String::new(),
                 history_search_content: false,
                 history_content: crate::state::HistoryContentSearch::default(),
-                history_filter_tags: Vec::new(),
                 identities: Vec::new(),
                 identities_with_password: std::collections::HashSet::new(),
                 connections_with_password: std::collections::HashSet::new(),
@@ -537,8 +532,6 @@ impl Oryxis {
                 toolbar_split_btn_bounds: crate::widgets::new_bounds_cell(),
                 toolbar_sort_btn_bounds: crate::widgets::new_bounds_cell(),
                 toolbar_overflow_btn_bounds: crate::widgets::new_bounds_cell(),
-                host_filter_cloud_profile: None,
-                host_filter_tags: Vec::new(),
                 cloud_import_confirm_visible: false,
                 cloud_dynamic_group_state: std::collections::HashMap::new(),
                 cloud_dynamic_form: crate::state::CloudDynamicForm::default(),
@@ -618,9 +611,6 @@ impl Oryxis {
                 port_forward_agent_watch: None,
                 port_forward_form: crate::state::PortForwardRuleForm::default(),
                 port_forward_context_menu: None,
-                port_forward_search: String::new(),
-                cloud_search: String::new(),
-                proxy_search: String::new(),
                 terminal_palette: oryxis_terminal::TerminalPalette::default(),
                 terminal_theme_override: None,
                 local_terminal_theme: None,
@@ -642,8 +632,6 @@ impl Oryxis {
                 // what a locked vault shows, and an empty key is never
                 // installed, so nothing is captured before it is known.
                 shell_integration_nonce: String::new(),
-                snippet_filter_tags: Vec::new(),
-                active_snippet_group: None,
                 sidebar_snippet_group: None,
                 pending_perf_mode_toast: false,
                 privacy: crate::state::PrivacyState::default(),
@@ -750,9 +738,9 @@ impl Oryxis {
         // First in the batch, so every boot task that talks to "our
         // window" finds it. The id is known synchronously; the task
         // only performs the open.
-        if let Some(settings) = crate::app::MAIN_WINDOW_SETTINGS.get() {
+        if let Some(settings) = crate::app::WINDOW_SETTINGS.get() {
             let (id, open) = iced::window::open(settings.clone());
-            crate::app::set_main_window(id);
+            crate::app::set_resident_window(id);
             tasks.insert(0, open.discard());
         }
         // The app's own fetches (release lookup, the CJK face the

@@ -153,17 +153,8 @@ impl Oryxis {
             OverlayContent::SessionLogActions(_) => 4.0,
             OverlayContent::ChatConversationActions(_) => 4.0,
             OverlayContent::SessionLogViewerActions(_) => 4.0,
-            // Plus the window verbs: "Move to New Window" wherever there
-            // is somewhere else to go, "Move to Main Window" in an extra
-            // window.
-            OverlayContent::SftpTabActions(_) => {
-                let window_rows = if self.in_extra_window() {
-                    if self.cur_tab_order().len() > 1 { 2.0 } else { 1.0 }
-                } else {
-                    1.0
-                };
-                6.0 + window_rows
-            }
+            // Plus the window verbs (`window_move_items`).
+            OverlayContent::SftpTabActions(_) => 6.0 + self.window_move_rows(),
             OverlayContent::SidebarFilesRow { path, is_dir, .. } => {
                 // The local browser's menu (issue #145) swaps the
                 // transfer-shaped items for OS ones; counted next to
@@ -356,13 +347,13 @@ impl Oryxis {
         // the still-private `tag_filter_menu`.
         let items: Element<'_, Message> = match &overlay.content {
             OverlayContent::HostTagFilter => self.tag_filter_menu(
-                self.host_filter_tags.clone(),
+                self.cur_nav().host_filter_tags.clone(),
                 self.distinct_host_tags(),
                 |v| Message::Navigation(NavigationMessage::ToggleHostTagFilterTag(v)),
                 Message::Navigation(NavigationMessage::ClearHostTagFilter),
             ),
             OverlayContent::SnippetTagFilter => self.tag_filter_menu(
-                self.snippet_filter_tags.clone(),
+                self.cur_nav().snippet_filter_tags.clone(),
                 self.distinct_snippet_tags(),
                 |v| Message::Snippet(SnippetMessage::ToggleSnippetTagFilterTag(v)),
                 Message::Snippet(SnippetMessage::ClearSnippetTagFilter),
@@ -370,7 +361,7 @@ impl Oryxis {
             // The History filter reuses the host tags: timeline rows
             // resolve to connections, so the tag universe is the same.
             OverlayContent::HistoryTagFilter => self.tag_filter_menu(
-                self.history_filter_tags.clone(),
+                self.cur_nav().history_filter_tags.clone(),
                 self.distinct_host_tags(),
                 |v| Message::History(HistoryMessage::ToggleHistoryTagFilterTag(v)),
                 Message::History(HistoryMessage::ClearHistoryTagFilter),

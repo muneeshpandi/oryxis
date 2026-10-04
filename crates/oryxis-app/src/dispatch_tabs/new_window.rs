@@ -1,20 +1,25 @@
-//! Extra windows: opening one, moving tabs in and out, and its frame.
+//! Windows: opening one, moving tabs between them, closing one.
 //!
 //! The model is in `window_ctx`: every tab lives in `Oryxis::tabs`, a
 //! window only lists which ones it shows. So nothing here touches a
 //! session. Moving a tab (terminal or SFTP) is moving its strip ref from
-//! one list to another, and a window that closes hands its refs back to
-//! the main strip.
+//! one list to another.
+//!
+//! No window is special to the user: each has its own strip and its own
+//! screen (the hosts list, a vault view, a tab), any of them can be
+//! closed, and the app ends with the last one. Closing a window closes
+//! its tabs, the way closing them one by one would; pinned tabs move to
+//! another window instead, because a pin is a tab the user asked to
+//! keep.
 //!
 //! Each function runs with the SOURCE window's values in the per-window
 //! fields (`tab_order`, `active_tab`): that is the window the gesture
-//! came from, and it is how the same code serves a tab leaving the main
-//! window and a tab leaving an extra one.
+//! came from.
 
 use iced::{window, Point, Task};
 use uuid::Uuid;
 
-use crate::app::{Message, Oryxis, SettingsMessage, SftpMessage, TabsMessage};
+use crate::app::{Message, Oryxis, SftpMessage, TabsMessage};
 use crate::state::{TabRef, View};
 use crate::window_ctx::ExtraWindow;
 
@@ -28,21 +33,19 @@ const TEAR_OFF_MARGIN: f32 = 24.0;
 const DROP_OFFSET: Point = Point::new(60.0, 18.0);
 
 impl Oryxis {
-    /// Register a new extra window showing `order` and return the task
-    /// that opens it. The id is known at once; nothing is on screen
-    /// until the task runs, so a caller that ends up with nothing to
-    /// show can drop both.
+    /// Register a new window showing `order` on `view` and return the
+    /// task that opens it. The id is known at once.
     fn open_extra_window(
         &mut self,
         order: Vec<TabRef>,
+        view: View,
         at: Option<Point>,
-        awaiting_first_tab: bool,
     ) -> (window::Id, Task<Message>) {
-        let mut settings = crate::app::MAIN_WINDOW_SETTINGS
+        let mut settings = crate::app::WINDOW_SETTINGS
             .get()
             .cloned()
             .unwrap_or_default();
-        // The size of the window the tab is leaving, so the terminal
+        // The size of the window the gesture came from, so a terminal
         // keeps its grid; never its maximized or fullscreen state.
         settings.size = self.window_size;
         settings.maximized = false;
@@ -52,9 +55,8 @@ impl Oryxis {
             None => window::Position::Default,
         };
         let (id, open) = window::open(settings);
-        let mut extra = ExtraWindow::new(order, self.window_size);
-        extra.awaiting_first_tab = awaiting_first_tab;
-        self.extra_windows.insert(id, extra);
+        self.extra_windows
+            .insert(id, ExtraWindow::new(order, view, self.window_size));
         (id, open.discard())
     }
 
@@ -68,9 +70,8 @@ impl Oryxis {
     }
 
     /// After a tab left the current strip from slot `slot`: show its
-    /// neighbour, through the ordinary select of its kind. With no tab
-    /// next to it the main window goes home; an extra window is about
-    /// to close.
+    /// neighbour, through the ordinary select of its kind, or the hosts
+    /// screen with no tab next to it.
     fn select_after_tab_left(&mut self, slot: usize) -> Task<Message> {
         let next = self
             .tab_order
@@ -134,61 +135,82 @@ impl Oryxis {
         Some((r, select))
     }
 
+    /// Whether moving the tab `id` into a window of its own makes
+    /// sense: this strip holds something else, or this is the only
+    /// window (the tab leaves and the hosts screen stays behind). A
+    /// window that is one of several and holds only that tab already IS
+    /// its window.
+    fn can_detach(&self, id: Uuid) -> bool {
+        self.tab_order.iter().any(|r| r.strip_id() != id) || self.window_count() == 1
+    }
+
     /// Move a tab (terminal or SFTP, by strip id) out of the current
-    /// window into a new extra window, opened at `at` (screen
-    /// coordinates) when given.
+    /// window into a new one, opened at `at` (screen coordinates) when
+    /// given.
     pub(super) fn detach_tab_to_new_window(
         &mut self,
         tab_id: Uuid,
         at: Option<Point>,
     ) -> Task<Message> {
         self.overlay = None;
-        // The only tab of an extra window is already in a window of its
-        // own.
-        if self.window_ctx.is_some() && self.tab_order.len() <= 1 {
+        if !self.can_detach(tab_id) {
             return Task::none();
         }
         let Some((r, select)) = self.release_tab_ref(tab_id) else {
             return Task::none();
         };
-        let (_, open) = self.open_extra_window(vec![r], at, false);
+        let view = match r {
+            TabRef::Sftp(_) => View::Sftp,
+            _ => View::Terminal,
+        };
+        let (_, open) = self.open_extra_window(vec![r], view, at);
         Task::batch([select, open])
     }
 
-    /// Move a tab from the current (extra) window back into the main
-    /// one, and bring the main window forward on it.
-    pub(super) fn move_tab_to_main_window(&mut self, tab_id: Uuid) -> Task<Message> {
+    /// Move a tab from the current window into `target` (`None` is the
+    /// resident window), and bring that window forward on it. A window
+    /// the move leaves with nothing in its strip closes.
+    pub(super) fn move_tab_to_window(
+        &mut self,
+        tab_id: Uuid,
+        target: Option<window::Id>,
+    ) -> Task<Message> {
         self.overlay = None;
-        if self.window_ctx.is_none() {
+        let current = self.window_ctx.as_ref().map(|c| c.id);
+        let exists = match target {
+            Some(id) => self.extra_windows.contains_key(&id),
+            None => current.is_some(),
+        };
+        if !exists || target == current {
             return Task::none();
         }
         let Some((r, select)) = self.release_tab_ref(tab_id) else {
             return Task::none();
         };
-        self.park_ref_in_main(r, true);
-        self.pending_focus_main = true;
+        self.give_ref_to_window(target, r, true);
+        self.pending_focus = Some(target);
+        if self.tab_order.is_empty() {
+            return self.close_current_window(target);
+        }
         select
     }
 
     /// "Duplicate in New Window": the ordinary duplicate, run as a new
-    /// extra window, so the copy is born there.
+    /// window, so the copy is born there.
     pub(super) fn duplicate_in_new_window(&mut self, idx: usize) -> Task<Message> {
         self.overlay = None;
         if self.tabs.get(idx).is_none() {
             return Task::none();
         }
-        let (win, open) = self.open_extra_window(Vec::new(), None, true);
+        let (win, open) = self.open_extra_window(Vec::new(), View::Dashboard, None);
         let dial = self.run_in_window(Some(win), |s| s.handle_duplicate_tab(idx));
         Task::batch([open, dial])
     }
 
-    /// "New Window": an extra window with a fresh local shell.
+    /// "New Window": one more window, on the hosts screen.
     pub(super) fn spawn_new_window(&mut self) -> Task<Message> {
-        let (win, open) = self.open_extra_window(Vec::new(), None, true);
-        let shell = self.run_in_window(Some(win), |s| {
-            s.update(Message::Settings(SettingsMessage::OpenLocalShell))
-        });
-        Task::batch([open, shell])
+        let (_, open) = self.open_extra_window(Vec::new(), View::Dashboard, None);
+        open
     }
 
     /// "Connect in New Window" from the card menu, and a host card
@@ -208,8 +230,8 @@ impl Oryxis {
         }
         // The hosts left for another window, so the selection ends, the
         // way connecting them here ends it.
-        self.dash_selection.clear();
-        let (win, open) = self.open_extra_window(Vec::new(), None, true);
+        self.nav.dash_selection.clear();
+        let (win, open) = self.open_extra_window(Vec::new(), View::Dashboard, None);
         for id in ids {
             if !self.batch_dials.contains(&id) {
                 self.batch_dials.push_back(id);
@@ -218,6 +240,118 @@ impl Oryxis {
         }
         // The queue starts in the funnel of this same update.
         open
+    }
+
+    /// The close verb on a window while others are open: its tabs close
+    /// with it, so a live session or unsaved SFTP work asks first.
+    /// Pinned tabs are not counted: they move to another window.
+    pub(super) fn request_close_this_window(&mut self) -> Task<Message> {
+        self.overlay = None;
+        let doomed: Vec<usize> = (0..self.tabs.len())
+            .filter(|&i| !self.tabs[i].pinned && self.shows_tab(i))
+            .collect();
+        let sftp: Vec<usize> = (0..self.sftp_tabs.len())
+            .filter(|&i| !self.sftp_tabs[i].pinned && self.shows_sftp_tab(i))
+            .collect();
+        let live = self.live_session_count(&doomed)
+            + sftp.iter().filter(|&&i| self.sftp_tab_is_live(i)).count();
+        let unsaved = sftp.iter().any(|&i| self.sftp_tab_has_unsaved(i));
+        if live == 0 && !unsaved {
+            return self.close_this_window_now();
+        }
+        // What is at stake, in the dialog's own words: the sessions that
+        // end, the SFTP work that is lost, or both.
+        let mut body = String::new();
+        if live > 0 {
+            body = crate::i18n::t("close_one_window_body").replacen("{n}", &live.to_string(), 1);
+        }
+        if unsaved {
+            if !body.is_empty() {
+                body.push(' ');
+            }
+            body.push_str(crate::i18n::t("sftp_close_guard_detail"));
+        }
+        self.error_dialog = Some(crate::state::ErrorDialog {
+            title: crate::i18n::t("close_one_window_title").to_string(),
+            body,
+            link: None,
+            action: Some(crate::state::ErrorDialogAction {
+                label: crate::i18n::t("close_one_window_confirm").to_string(),
+                message: Box::new(Message::Tabs(TabsMessage::ConfirmCloseWindow)),
+                danger: true,
+            }),
+        });
+        Task::none()
+    }
+
+    /// Close the current window while others are open, with no prompt:
+    /// every tab of its strip is closed through the user close (so the
+    /// reopen stack can bring it back in another window), its panel
+    /// chips go, and its pinned tabs move to another window.
+    pub(super) fn close_this_window_now(&mut self) -> Task<Message> {
+        self.overlay = None;
+        let Some(heir) = self.other_windows().first().copied() else {
+            return Task::none();
+        };
+        for r in self.tab_order.clone() {
+            match r {
+                TabRef::Terminal(id) => {
+                    let Some(idx) = self.tabs.iter().position(|t| t._id == id) else {
+                        continue;
+                    };
+                    if self.tabs[idx].pinned {
+                        if let Some((r, _)) = self.release_tab_ref(id) {
+                            self.give_ref_to_window(heir, r, false);
+                        }
+                    } else {
+                        self.remember_closed_tab(idx);
+                        self.teardown_tab_at(idx);
+                    }
+                }
+                TabRef::Sftp(id) => {
+                    let Some(idx) = self.sftp_tabs.iter().position(|t| t.id == id) else {
+                        continue;
+                    };
+                    if self.sftp_tabs[idx].pinned {
+                        if let Some((r, _)) = self.release_tab_ref(id) {
+                            self.give_ref_to_window(heir, r, false);
+                        }
+                    } else {
+                        self.remember_closed_sftp_tab(idx);
+                        // Its own follow-up only navigates this window,
+                        // which is on its way out.
+                        let _ = self.close_sftp_tab(idx);
+                    }
+                }
+                TabRef::Panel(kind) => {
+                    let _ = self.close_panel_tab(kind);
+                }
+            }
+        }
+        self.tab_order.clear();
+        self.active_tab = None;
+        self.active_view = View::Dashboard;
+        self.close_current_window(heir)
+    }
+
+    /// Take the current window off the screen, its strip already empty.
+    /// An extra window is closed by `window_housekeeping`; the resident
+    /// one hands its place to `prefer` (or any other window) first.
+    fn close_current_window(&mut self, prefer: Option<window::Id>) -> Task<Message> {
+        if let Some(id) = self.window_ctx.as_ref().map(|c| c.id) {
+            self.windows_closing.push(id);
+            return Task::none();
+        }
+        let next = prefer
+            .filter(|id| self.extra_windows.contains_key(id))
+            .or_else(|| self.extra_windows.keys().next().copied());
+        let Some(next) = next else {
+            return Task::none();
+        };
+        match self.promote_window(next) {
+            Some(old) => window::close(old),
+            None => Task::none(),
+        }
     }
 
     /// A drag that crossed the window's edge: the dragged tab moves to
@@ -237,9 +371,9 @@ impl Oryxis {
             return Some(self.connect_hosts_in_new_window(&drag.ids));
         }
         let drag = self.tab_drag.filter(|d| d.active)?;
-        // Terminal and SFTP tabs; a panel belongs to the main window.
+        // Terminal and SFTP tabs; a panel moves with whoever asks for it.
         self.strip_ref(drag.from_id)?;
-        if self.window_ctx.is_some() && self.tab_order.len() <= 1 {
+        if !self.can_detach(drag.from_id) {
             return None;
         }
         self.tab_drag = None;
@@ -266,9 +400,10 @@ impl Oryxis {
         )
     }
 
-    /// The frame verbs of an EXTRA window. `Err` hands the message back
-    /// for the main window's handlers (and for everything that is not a
-    /// frame verb).
+    /// The frame verbs of a window that is not the resident one. `Err`
+    /// hands the message back for the resident window's handlers (and
+    /// for everything that is not a frame verb): those carry the
+    /// remembered geometry, the tray and the exit path.
     pub(super) fn handle_extra_window_chrome(
         &mut self,
         message: TabsMessage,
@@ -300,7 +435,7 @@ impl Oryxis {
                     self.input_window = Some(id);
                 }
                 if !focused {
-                    // Same reason as the main window: a release outside
+                    // Same reason as the resident window: a release outside
                     // never arrives, so losing focus ends the drag.
                     self.tab_drag = None;
                 }
@@ -337,29 +472,9 @@ impl Oryxis {
                     },
                 )
             }
-            // Closing an extra window ends no session: its tabs go back
-            // to the main strip, and the emptied window is closed by
-            // `window_housekeeping`.
-            TabsMessage::WindowClose | TabsMessage::ConfirmCloseWindow => {
-                self.overlay = None;
-                // The SFTP surface this window had hoisted goes home to
-                // its slot before its ref changes strip.
-                if self.hybrid_sftp_owner.is_some() {
-                    self.park_hybrid_sftp();
-                }
-                if let Some(idx) = self.active_sftp.take()
-                    && let Some(tab) = self.sftp_tabs.get_mut(idx)
-                {
-                    tab.state = std::mem::take(&mut self.sftp);
-                }
-                for r in std::mem::take(&mut self.tab_order) {
-                    self.park_ref_in_main(r, false);
-                }
-                self.active_tab = None;
-                self.active_view = View::Terminal;
-                Task::none()
-            }
-            // The main window's geometry memory, on-screen rescue and
+            TabsMessage::WindowClose => self.request_close_this_window(),
+            TabsMessage::ConfirmCloseWindow => self.close_this_window_now(),
+            // The remembered geometry, the on-screen rescue and the
             // macOS fullscreen reconciliation: none of it is kept for
             // an extra window.
             TabsMessage::WindowMoved(_)

@@ -55,7 +55,7 @@ impl Oryxis {
                 // item lists, open overlays, the Shortcuts capture) that
                 // a second copy here would drift from silently. Then
                 // re-open the group `ChangeView` just reset to root.
-                let group = self.active_group;
+                let group = self.cur_nav().active_group;
                 let leave = self.handle_navigation(
                     NavigationMessage::ChangeView(View::Dashboard),
                 );
@@ -138,12 +138,12 @@ impl Oryxis {
                 // out of a nested folder. The Home tab is the opposite
                 // door: `GoHome` re-opens the folder right after this.
                 if view == View::Dashboard {
-                    self.active_group = None;
+                    self.nav.active_group = None;
                 }
                 // Same rule for the Snippets pill: land at the root,
                 // not inside whichever snippet group was last open.
                 if view == View::Snippets {
-                    self.active_snippet_group = None;
+                    self.nav.active_snippet_group = None;
                 }
                 // Burger menu auto-dismisses on navigation: the user
                 // picked a destination, leaving the overlay open is
@@ -239,11 +239,11 @@ impl Oryxis {
                 }
             }
             NavigationMessage::QuickHostInput(v) => {
-                self.quick_host_input = v;
+                self.nav.quick_host_input = v;
             }
             NavigationMessage::OpenGroup(gid) => {
-                self.active_group = Some(gid);
-                self.host_search.clear();
+                self.nav.active_group = Some(gid);
+                self.nav.host_search.clear();
                 // Auto-trigger resolve when the user opens a dynamic
                 // group, saves an extra click. Re-resolve when there's
                 // no cache yet, or when the cached list has gone stale
@@ -265,14 +265,14 @@ impl Oryxis {
                     self.quick_connect_protocol =
                         oryxis_core::models::connection::ConnectionProtocol::Ssh;
                 }
-                self.host_search = v;
+                self.nav.host_search = v;
                 // The filtered set just changed; drop the keyboard
                 // selection so it can't point at a now-hidden host. Enter
                 // still connects the top result while a search is active.
                 self.keynav.focus = None;
             }
             NavigationMessage::HostFilterByCloudProfile(maybe_pid) => {
-                self.host_filter_cloud_profile = maybe_pid;
+                self.nav.host_filter_cloud_profile = maybe_pid;
                 // Filter changed the visible set; drop the keyboard
                 // selection so Enter can't connect a now-hidden host.
                 self.keynav.focus = None;
@@ -316,21 +316,21 @@ impl Oryxis {
             NavigationMessage::ToggleHostTagFilterTag(tag) => {
                 // Multi-select: the dropdown stays open so several tags
                 // can be picked in one visit; the backdrop closes it.
-                match self
+                match self.cur_nav()
                     .host_filter_tags
                     .iter()
                     .position(|t| t.eq_ignore_ascii_case(&tag))
                 {
                     Some(i) => {
-                        self.host_filter_tags.remove(i);
+                        self.nav.host_filter_tags.remove(i);
                     }
-                    None => self.host_filter_tags.push(tag),
+                    None => self.nav.host_filter_tags.push(tag),
                 }
                 // Same reasoning as the cloud-profile filter above.
                 self.keynav.focus = None;
             }
             NavigationMessage::ClearHostTagFilter => {
-                self.host_filter_tags.clear();
+                self.nav.host_filter_tags.clear();
                 self.overlay = None;
                 self.keynav.focus = None;
             }
@@ -596,7 +596,7 @@ impl Oryxis {
                 // (issue #97 regression), and this restores it. A bare
                 // name falls through to the editor below, keeping the
                 // add-your-first-host onboarding intent.
-                let input = self.quick_host_input.trim().to_string();
+                let input = self.cur_nav().quick_host_input.trim().to_string();
                 if oryxis_core::ssh_target::SshTarget::parse(&input)
                     .is_some_and(|t| t.is_explicit())
                     && let Some(conn) = self.quick_connect_target(&input)
@@ -605,7 +605,7 @@ impl Oryxis {
                     // editor path below (where the value survives a
                     // cancel), leaving it here would prepend itself to
                     // the next thing typed on the empty state.
-                    self.quick_host_input.clear();
+                    self.nav.quick_host_input.clear();
                     return self.update(Message::Ssh(crate::messages::SshMessage::QuickConnect(
                         Box::new(crate::state::QuickConnectEntry::bare(conn)),
                     )));
@@ -658,7 +658,7 @@ impl Oryxis {
     /// least one host is tagged, or a (now possibly dangling) filter
     /// is active and needs a way to be cleared.
     pub(crate) fn host_tag_filter_available(&self) -> bool {
-        !self.host_filter_tags.is_empty()
+        !self.cur_nav().host_filter_tags.is_empty()
             || self.connections.iter().any(|c| !c.tags.is_empty())
     }
 }

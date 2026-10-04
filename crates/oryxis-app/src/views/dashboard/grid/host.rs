@@ -137,8 +137,8 @@ impl Oryxis {
         // either: the check and the gaps around it take 34 px of row
         // width, so a hover-driven one would slide every label sideways
         // under a moving cursor.
-        let selected = self.dash_selection.contains(conn.id);
-        let checking = self.dash_multi_select;
+        let selected = self.cur_nav().dash_selection.contains(conn.id);
+        let checking = self.cur_nav().dash_multi_select;
         let dragging_this = self
             .card_drag
             .as_ref()

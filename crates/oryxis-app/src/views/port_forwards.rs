@@ -139,7 +139,7 @@ impl Oryxis {
             return main_content.boxed();
         }
 
-        let needle = self.port_forward_search.to_lowercase();
+        let needle = self.cur_nav().port_forward_search.to_lowercase();
         let mut cards: Vec<Element<'_, Message>> = Vec::new();
         // Keyboard-navigation order, collected as the cards render so
         // it always matches the filtered set on screen.

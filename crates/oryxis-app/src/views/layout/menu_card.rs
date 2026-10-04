@@ -185,7 +185,7 @@ impl Oryxis {
     /// dashboard. Read by the builder above AND by the row count, so the
     /// two cannot disagree about what is on screen.
     fn card_menu_collapses_to_selection(&self, id: uuid::Uuid) -> bool {
-        self.dash_selection.contains(id) && self.selected_hosts_in_view_order().len() > 1
+        self.cur_nav().dash_selection.contains(id) && self.selected_hosts_in_view_order().len() > 1
     }
 
     fn build_menu_host_actions_inner(
@@ -314,7 +314,7 @@ impl Oryxis {
         // host is part of one, so the kebab of any selected card acts
         // on all of them, the way file managers do; else this host.
         if dashboard {
-            let ids: Vec<uuid::Uuid> = if self.dash_selection.contains(id) {
+            let ids: Vec<uuid::Uuid> = if self.cur_nav().dash_selection.contains(id) {
                 self.selected_hosts_in_view_order()
             } else {
                 vec![id]

@@ -201,7 +201,7 @@ impl Oryxis {
                 if !self.jumplist_window_tagged {
                     self.jumplist_window_tagged = true;
                     follow_ups.push(
-                        crate::app::main_window()
+                        crate::app::resident_window()
                             .and_then(|id| {
                                 iced::window::run(id, |window| {
                                     crate::jumplist::tag_window(window);
@@ -223,7 +223,7 @@ impl Oryxis {
                 // registry. No-op off Windows.
                 if !crate::tray::minimize_hook_installed() {
                     follow_ups.push(
-                        crate::app::main_window()
+                        crate::app::resident_window()
                             .and_then(|id| {
                                 iced::window::run(id, |window| {
                                     crate::tray::install_minimize_hook(window);
@@ -356,7 +356,7 @@ impl Oryxis {
                 // matches the dispatcher's `Task<Message>` shape.
                 self.is_window_hidden = false;
                 self.broadcast_ipc_state_if_child();
-                return crate::app::main_window()
+                return crate::app::resident_window()
                     .and_then(|id| {
                         iced::window::run(id, |window| {
                             crate::tray::show_window(window);
@@ -367,7 +367,7 @@ impl Oryxis {
             TrayMessage::Hide => {
                 self.is_window_hidden = true;
                 self.broadcast_ipc_state_if_child();
-                return crate::app::main_window()
+                return crate::app::resident_window()
                     .and_then(|id| {
                         iced::window::run(id, |window| {
                             crate::tray::hide_window(window);

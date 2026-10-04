@@ -285,10 +285,10 @@ impl Oryxis {
                 self.keys_ui.search = v;
             }
             KeysMessage::SnippetSearchChanged(v) => {
-                self.snippet_search = v;
+                self.nav.snippet_search = v;
             }
             KeysMessage::HistorySearchChanged(v) => {
-                self.history_search = v;
+                self.nav.history_search = v;
                 // With the content toggle on, every edit re-arms the
                 // debounced command/output search (see dispatch_history).
                 if self.history_search_content {

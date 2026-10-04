@@ -407,17 +407,10 @@ impl Oryxis {
         }
         // The window verbs. A tab moves between windows with its
         // session untouched (every tab lives in the app, a window only
-        // shows it), so "move" is offered wherever there is somewhere
-        // else to go: out of the main window always, out of an extra
-        // one only while it holds more than this tab.
+        // shows it): into a window of its own while this one holds
+        // anything else, and into each other window that is open.
         if let Some(tab_id) = self.tabs.get(idx).map(|t| t._id) {
-            let in_extra = self.in_extra_window();
-            if !in_extra || self.cur_tab_order().len() > 1 {
-                items.push(self.menu_item(iced_fonts::lucide::app_window(), crate::i18n::t("move_tab_new_window"), Message::Tabs(TabsMessage::MoveTabToNewWindow(tab_id)), OryxisColors::t().text_secondary));
-            }
-            if in_extra {
-                items.push(self.menu_item(iced_fonts::lucide::log_in(), crate::i18n::t("move_tab_main_window"), Message::Tabs(TabsMessage::MoveTabToMainWindow(tab_id)), OryxisColors::t().text_secondary));
-            }
+            items.extend(self.window_move_items(tab_id));
         }
         {
             items.push(self.menu_item(iced_fonts::lucide::external_link(), crate::i18n::t("duplicate_new_window"), Message::Tabs(TabsMessage::DuplicateInNewWindow(idx)), OryxisColors::t().text_secondary));
@@ -467,6 +460,44 @@ impl Oryxis {
         items
     }
 
+    /// Whether "Move to New Window" is offered in the current window:
+    /// its strip holds more than one entry, or it is the only window
+    /// (the same rule the handler applies, `can_detach`).
+    fn can_detach_here(&self) -> bool {
+        self.cur_tab_order().len() > 1 || self.other_windows().is_empty()
+    }
+
+    /// How many rows [`Self::window_move_items`] yields for a tab of the
+    /// current window, for the menus that are sized by a row count.
+    pub(crate) fn window_move_rows(&self) -> f32 {
+        let own = usize::from(self.can_detach_here());
+        (own + self.other_windows().len()) as f32
+    }
+
+    /// The "move this tab to another window" rows for the tab with strip
+    /// id `tab_id`: a new window, then one row per other open window,
+    /// named by what that window is showing.
+    fn window_move_items(&self, tab_id: uuid::Uuid) -> Vec<Element<'_, Message>> {
+        let mut items = Vec::new();
+        if self.can_detach_here() {
+            items.push(self.menu_item(
+                iced_fonts::lucide::app_window(),
+                crate::i18n::t("move_tab_new_window"),
+                Message::Tabs(TabsMessage::MoveTabToNewWindow(tab_id)),
+                OryxisColors::t().text_secondary,
+            ));
+        }
+        for target in self.other_windows() {
+            items.push(self.menu_item_owned(
+                iced_fonts::lucide::log_in(),
+                crate::i18n::t("move_tab_to_window").replace("{name}", &self.window_label(target)),
+                Message::Tabs(TabsMessage::MoveTabToWindow(tab_id, target)),
+                OryxisColors::t().text_secondary,
+            ));
+        }
+        items
+    }
+
     pub(crate) fn build_menu_sftp_tab_actions(&self, idx: usize) -> Element<'_, Message> {
         let is_pinned = self.sftp_tabs.get(idx).map(|t| t.pinned).unwrap_or(false);
         let (pin_icon, pin_label) = if is_pinned {
@@ -501,14 +532,10 @@ impl Oryxis {
         }
         items = items.push(self.menu_item(iced_fonts::lucide::pen_line(), crate::i18n::t("rename_tab"), Message::Tabs(TabsMessage::StartRenameSftpTab(idx)), OryxisColors::t().text_secondary));
         items = items.push(self.menu_item(pin_icon, pin_label, Message::Sftp(SftpMessage::ToggleSftpTabPin(idx)), OryxisColors::t().text_secondary));
-        // The window verbs, the same two the terminal tab's menu has.
+        // The window verbs, the same ones the terminal tab's menu has.
         if let Some(tab_id) = self.sftp_tabs.get(idx).map(|t| t.id) {
-            let in_extra = self.in_extra_window();
-            if !in_extra || self.cur_tab_order().len() > 1 {
-                items = items.push(self.menu_item(iced_fonts::lucide::app_window(), crate::i18n::t("move_tab_new_window"), Message::Tabs(TabsMessage::MoveTabToNewWindow(tab_id)), OryxisColors::t().text_secondary));
-            }
-            if in_extra {
-                items = items.push(self.menu_item(iced_fonts::lucide::log_in(), crate::i18n::t("move_tab_main_window"), Message::Tabs(TabsMessage::MoveTabToMainWindow(tab_id)), OryxisColors::t().text_secondary));
+            for item in self.window_move_items(tab_id) {
+                items = items.push(item);
             }
         }
         items = items.push(self.menu_item(iced_fonts::lucide::x(), crate::i18n::t("close_tab"), Message::Sftp(SftpMessage::CloseSftpTab(idx)), OryxisColors::t().text_secondary));
@@ -1018,7 +1045,7 @@ impl Oryxis {
                 // context-aware button (none in a dynamic group,
                 // Discover in a cloud folder, else New host + the
                 // import/cloud sub-menu).
-                match self.active_group {
+                match self.cur_nav().active_group {
                     Some(gid)
                         if self
                             .groups
@@ -1147,7 +1174,7 @@ impl Oryxis {
             }
             View::Snippets => {
                 if !self.distinct_snippet_tags().is_empty()
-                    || !self.snippet_filter_tags.is_empty()
+                    || !self.cur_nav().snippet_filter_tags.is_empty()
                 {
                     col = col.push(self.menu_item(
                         iced_fonts::lucide::tag(),

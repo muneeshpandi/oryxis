@@ -37,10 +37,10 @@ expect "shots"
 absent "bash (default)"
 click right "SFTP"
 settle 300
-expect "Move to Main Window"
+expect "Move to Window: bash (default)"
 absent "Move to New Window"
-# Back: the main window comes up on the SFTP surface, with both chips.
-click "Move to Main Window"
+# Back: the first window comes up on the SFTP surface, with both chips.
+click "Move to Window: bash (default)"
 settle 700
 expect "Pick a host to start."
 expect "shots"

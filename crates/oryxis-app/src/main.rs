@@ -741,7 +741,7 @@ fn main() -> iced::Result {
     // which opens no window by itself. `Oryxis::boot` opens the main
     // one from these settings; an extra window (a tab dragged out)
     // starts from the same ones, so both get the same frame.
-    let _ = app::MAIN_WINDOW_SETTINGS.set(window::Settings {
+    let _ = app::WINDOW_SETTINGS.set(window::Settings {
             size: window_size,
             // The saved outer position also selects the monitor: winit
             // maximizes / fullscreens onto the monitor containing the

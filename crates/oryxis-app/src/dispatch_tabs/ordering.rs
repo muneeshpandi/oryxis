@@ -20,8 +20,10 @@ impl Oryxis {
     ///
     /// Modelled on `ensure_sftp_tab`, which does the same for `View::Sftp`.
     pub(crate) fn ensure_panel_tab(&mut self, kind: crate::state::PanelKind) {
-        if !self.open_panel_tabs.insert(kind) {
-            return;
+        self.open_panel_tabs.insert(kind);
+        // One panel, one chip: it follows the window that asks for it.
+        if !self.extra_windows.is_empty() || self.window_ctx.is_some() {
+            self.take_panel_from_other_windows(kind);
         }
         if !self.tab_order.contains(&crate::state::TabRef::Panel(kind)) {
             self.tab_order.push(crate::state::TabRef::Panel(kind));

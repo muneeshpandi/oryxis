@@ -46,14 +46,14 @@ impl Oryxis {
                 // pointing at, which is the whole reason the mode exists.
                 // Shift still ranges, from the anchor a previous click
                 // set; without one it is a plain toggle.
-                if self.dash_multi_select {
+                if self.cur_nav().dash_multi_select {
                     if !shift || !self.extend_selection_to(id) {
-                        self.dash_selection.toggle(id);
+                        self.nav.dash_selection.toggle(id);
                     }
                     return Task::none();
                 }
                 if ctrl {
-                    self.dash_selection.toggle(id);
+                    self.nav.dash_selection.toggle(id);
                     return Task::none();
                 }
                 if shift && self.extend_selection_to(id) {
@@ -62,7 +62,7 @@ impl Oryxis {
                 // A plain click is what it always was: connect. The
                 // selection is a way of acting on several hosts at once,
                 // and connecting leaves for a terminal tab, so it ends.
-                self.dash_selection.clear();
+                self.nav.dash_selection.clear();
                 self.update(Message::Ssh(SshMessage::ConnectSsh(idx)))
             }
             TabsMessage::ToggleMultiSelect => {
@@ -71,18 +71,18 @@ impl Oryxis {
                 // selection left behind would keep the action bar up over
                 // hosts whose cards no longer read as chosen. Turning it
                 // ON keeps whatever Ctrl+click had already gathered.
-                self.dash_multi_select = !self.dash_multi_select;
-                if !self.dash_multi_select {
-                    self.dash_selection.clear();
+                self.nav.dash_multi_select = !self.cur_nav().dash_multi_select;
+                if !self.nav.dash_multi_select {
+                    self.nav.dash_selection.clear();
                 }
                 Task::none()
             }
             TabsMessage::CardSelectToggle(id) => {
-                self.dash_selection.toggle(id);
+                self.nav.dash_selection.toggle(id);
                 Task::none()
             }
             TabsMessage::SelectionClear => {
-                self.dash_selection.clear();
+                self.nav.dash_selection.clear();
                 Task::none()
             }
             TabsMessage::SelectionSelectAll => {
@@ -91,7 +91,7 @@ impl Oryxis {
                     .into_iter()
                     .map(|i| self.connections[i].id)
                     .collect();
-                self.dash_selection.extend(visible);
+                self.nav.dash_selection.extend(visible);
                 Task::none()
             }
             TabsMessage::SelectionDelete => {
@@ -117,7 +117,7 @@ impl Oryxis {
                 // goes through (`remove_hosts`). The ids rode through the
                 // dialog, never indices.
                 self.remove_hosts(&ids);
-                self.dash_selection.clear();
+                self.nav.dash_selection.clear();
                 Task::none()
             }
             TabsMessage::SelectionConnect => {
@@ -140,7 +140,7 @@ impl Oryxis {
                 self.overlay = None;
                 // Connecting leaves for terminal tabs, so the selection
                 // ends, the way a plain click ends it.
-                self.dash_selection.clear();
+                self.nav.dash_selection.clear();
                 for id in ids {
                     if !self.batch_dials.contains(&id) {
                         self.batch_dials.push_back(id);
@@ -243,11 +243,11 @@ impl Oryxis {
     /// built under another scope (`DashSelection::rescope`).
     pub(crate) fn dash_selection_scope(&self) -> crate::state::SelectionScope {
         crate::state::SelectionScope {
-            group: self.active_group,
-            search: self.host_search.trim().to_string(),
+            group: self.cur_nav().active_group,
+            search: self.cur_nav().host_search.trim().to_string(),
             view_mode: self.prefs.host_view_mode,
-            cloud_profile: self.host_filter_cloud_profile,
-            tags: self.host_filter_tags.clone(),
+            cloud_profile: self.cur_nav().host_filter_cloud_profile,
+            tags: self.cur_nav().host_filter_tags.clone(),
         }
     }
 
@@ -267,17 +267,17 @@ impl Oryxis {
         // and "search web, pick three, search db, pick two" is how a
         // selection spanning the list gets built; the verbs then act on
         // every selected host and the bar says how many the search hides.
-        let current = &self.dash_selection.scope;
-        if current.group == self.active_group
+        let current = &self.cur_nav().dash_selection.scope;
+        if current.group == self.cur_nav().active_group
             && current.view_mode == self.prefs.host_view_mode
-            && current.cloud_profile == self.host_filter_cloud_profile
-            && (self.dash_multi_select || current.search == self.host_search.trim())
-            && current.tags == self.host_filter_tags
+            && current.cloud_profile == self.cur_nav().host_filter_cloud_profile
+            && (self.cur_nav().dash_multi_select || current.search == self.cur_nav().host_search.trim())
+            && current.tags == self.cur_nav().host_filter_tags
         {
             return;
         }
         let scope = self.dash_selection_scope();
-        self.dash_selection.rescope(scope);
+        self.nav.dash_selection.rescope(scope);
     }
 
     /// The selected hosts, in the order the dashboard is showing them.
@@ -304,9 +304,9 @@ impl Oryxis {
             .dashboard_visible_host_order()
             .into_iter()
             .map(|i| self.connections[i].id)
-            .filter(|id| self.dash_selection.contains(*id))
+            .filter(|id| self.cur_nav().dash_selection.contains(*id))
             .collect();
-        if !self.dash_multi_select {
+        if !self.cur_nav().dash_multi_select {
             return (out, 0);
         }
         let shown: std::collections::HashSet<Uuid> = out.iter().copied().collect();
@@ -314,7 +314,7 @@ impl Oryxis {
             self.connections.iter().map(|c| c.id).collect();
         let before = out.len();
         out.extend(
-            self.dash_selection
+            self.cur_nav().dash_selection
                 .ids
                 .iter()
                 .copied()
@@ -349,7 +349,7 @@ impl Oryxis {
     /// fall back to a plain toggle instead of doing nothing.
     fn extend_selection_to(&mut self, id: Uuid) -> bool {
         // Range over the order the dashboard is showing.
-        let Some(anchor) = self.dash_selection.anchor else {
+        let Some(anchor) = self.cur_nav().dash_selection.anchor else {
             return false;
         };
         let order: Vec<Uuid> = self
@@ -363,7 +363,7 @@ impl Oryxis {
             return false;
         };
         let (lo, hi) = if a <= b { (a, b) } else { (b, a) };
-        self.dash_selection.extend(order[lo..=hi].iter().copied());
+        self.nav.dash_selection.extend(order[lo..=hi].iter().copied());
         true
     }
 
@@ -414,7 +414,7 @@ impl Oryxis {
         if editing_moved {
             self.editor_follow_moved_host(editor_was_dirty);
         }
-        self.dash_selection.clear();
+        self.nav.dash_selection.clear();
         if failed > 0 {
             self.set_toast(crate::i18n::t("hosts_move_failed").to_string());
         } else if moved > 0 {
@@ -446,7 +446,7 @@ impl Oryxis {
         self.hover.folder_back = false;
         // Through the visible order, like every other verb, so the drag
         // carries exactly the hosts the bar counts.
-        let ids = if self.dash_selection.contains(id) {
+        let ids = if self.cur_nav().dash_selection.contains(id) {
             self.selected_hosts_in_view_order()
         } else {
             vec![id]
@@ -477,7 +477,7 @@ impl Oryxis {
     /// inputs, so the two agree by construction. `None` = no target.
     pub(crate) fn card_drop_target(&self) -> Option<Option<Uuid>> {
         if self.hover.folder_back {
-            let open = self.active_group?;
+            let open = self.cur_nav().active_group?;
             let parent = self.groups.iter().find(|g| g.id == open).and_then(|g| g.parent_id);
             return match parent.and_then(|pid| self.groups.iter().find(|g| g.id == pid)) {
                 // A dynamic parent's contents come from its query: the

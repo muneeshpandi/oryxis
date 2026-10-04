@@ -5,11 +5,11 @@ mode: Zen
 # window it is used in, not every SFTP tab in the app: a tab another
 # window shows is not on screen here to be closed from here.
 #
-# Two SFTP tabs in the main window, "one" (renamed) and "SFTP". "one"
+# Two SFTP tabs in the first window, "one" (renamed) and "SFTP". "one"
 # moves to an extra window, which then gets a second SFTP tab of its
 # own. Closing the others THERE leaves "one" alone in that window, and
-# the main window's "SFTP" tab is still in its strip when "one" comes
-# back. The emulator shows the last window opened, so the main strip is
+# the first window's "SFTP" tab is still in its strip when "one" comes
+# back. The emulator shows the last window opened, so the first strip is
 # only visible again after the move back (see tab-move-windows.ice).
 click "Skip"
 click "Continue without password"
@@ -58,10 +58,10 @@ click "Close Other Tabs"
 settle 500
 expect "one"
 absent "SFTP"
-# Back in the main window, its own SFTP tab was never touched.
+# Back in the first window, its own SFTP tab was never touched.
 click right "one"
 settle 300
-click "Move to Main Window"
+click "Move to Window: SFTP"
 settle 700
 expect "one"
 expect "SFTP"

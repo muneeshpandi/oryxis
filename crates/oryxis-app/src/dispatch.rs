@@ -123,6 +123,7 @@ impl Oryxis {
         // drawer just left" edge the auto-save writes on.
         let editor_visible_before = self.host_editor_visible();
         let floats_before = self.float_signature();
+        let side_panel_before = self.side_panel_wanted_on(self.active_view);
         // SFTP async-continuation messages target a specific tab that may no
         // longer be focused. Swap the owning tab's state into `self.sftp` for
         // the duration so the (unchanged) handlers route to the right tab,
@@ -149,21 +150,6 @@ impl Oryxis {
         // form (opening another host, the vault locking, the window
         // closing) flush inside their own handler, before the reset;
         // this net then finds the form clean and does nothing.
-        // An extra window's values are in the per-window fields: every
-        // hook below is about the main window's state (the editor
-        // drawer, the dashboard selection, the persisted strip), so
-        // they stand down and `update_in_window` runs them once the
-        // main window's values are back. The strip order is the one
-        // thing this window needs kept in step.
-        // A menu, a modal or a drag that this message raised belongs
-        // to the window it was raised from.
-        self.claim_floats(floats_before);
-        if self.window_ctx.is_some() {
-            self.reconcile_tab_order();
-            self.reconcile_hybrid_sftp();
-            self.reconcile_tab_mru();
-            return task;
-        }
         if editor_visible_before && !self.host_editor_visible() {
             self.editor_flush_on_close();
         }
@@ -182,16 +168,12 @@ impl Oryxis {
         else if !editor_visible_before && self.host_editor_visible() {
             self.editor_autosave_kick();
         }
-        // Keep the unified strip order (terminal + SFTP) in sync with the live
-        // tabs after every message: new tabs appended, closed ones dropped,
-        // drag-reordered order preserved.
-        self.reconcile_tab_order();
         // A selected host card that was deleted, or replaced by a sync
         // apply, leaves the selection; same funnel as the strip order.
-        if !self.dash_selection.is_empty() {
+        if !self.cur_nav().dash_selection.is_empty() {
             let alive: std::collections::HashSet<uuid::Uuid> =
                 self.connections.iter().map(|c| c.id).collect();
-            self.dash_selection.prune(|id| alive.contains(&id));
+            self.nav.dash_selection.prune(|id| alive.contains(&id));
         }
         // A selection belongs to the folder / search / filter / view mode
         // it was built in; leaving that scope ends it.
@@ -204,10 +186,33 @@ impl Oryxis {
         // selection goes with it, the way every other exit from the mode
         // takes it (the toggle, Esc): a selection with no mode would keep
         // the bar up over cards that dial again.
-        if self.dash_multi_select && self.cur_view() != crate::state::View::Dashboard {
-            self.dash_multi_select = false;
-            self.dash_selection.clear();
+        if self.cur_nav().dash_multi_select && self.active_view != crate::state::View::Dashboard {
+            self.nav.dash_multi_select = false;
+            self.nav.dash_selection.clear();
         }
+        // Another window's values are in the per-window fields: the
+        // hooks below are app-wide (the dashboard selection, the
+        // persisted strip, the dial queues), so they stand down and
+        // `update_in_window` runs them once, with the resident window's
+        // values back. The strip order is the one
+        // thing this window needs kept in step.
+        // A menu, a modal or a drag that this message raised belongs
+        // to the window it was raised from.
+        self.claim_floats(floats_before);
+        // Same for a side panel this message opened.
+        if !side_panel_before && self.side_panel_wanted_on(self.active_view) {
+            self.panel_window = self.window_ctx.as_ref().map(|c| c.id);
+        }
+        if self.window_ctx.is_some() {
+            self.reconcile_tab_order();
+            self.reconcile_hybrid_sftp();
+            self.reconcile_tab_mru();
+            return task;
+        }
+        // Keep the unified strip order (terminal + SFTP) in sync with the live
+        // tabs after every message: new tabs appended, closed ones dropped,
+        // drag-reordered order preserved.
+        self.reconcile_tab_order();
         // A tab context menu is keyed by tab id; drop the popover when
         // that tab left in this update, so the menu never outlives what
         // it acts on.

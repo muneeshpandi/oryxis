@@ -425,7 +425,7 @@ impl Oryxis {
             PortForwardMessage::PortForwardCardUnhovered(idx) => {
                 self.hover.leave_port_forward_card(idx);
             }
-            PortForwardMessage::PortForwardSearchChanged(v) => self.port_forward_search = v,
+            PortForwardMessage::PortForwardSearchChanged(v) => self.nav.port_forward_search = v,
         }
         Task::none()
     }

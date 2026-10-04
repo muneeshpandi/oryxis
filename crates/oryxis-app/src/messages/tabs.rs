@@ -293,8 +293,8 @@ pub enum TabsMessage {
     /// guard can never mistake the confirmation for a new close
     /// request, nor a later real request for a confirmed one.
     ConfirmCloseWindow,
-    /// Open an extra window with a fresh local shell in it. Triggered
-    /// by Ctrl+Shift+N and the burger menu's "New Window" entry.
+    /// Open one more window, on the hosts screen. Triggered by
+    /// Ctrl+Shift+N and the burger menu's "New Window" entry.
     SpawnNewWindow,
     /// Open the given saved hosts in a NEW window: the card menu's
     /// "Connect in New Window" (one host, or the whole selection).
@@ -307,9 +307,9 @@ pub enum TabsMessage {
     /// a tab dragged out of its window resolves to once the source
     /// window's position is known.
     DetachTabAt(uuid::Uuid, Option<iced::Point>),
-    /// Move a tab (terminal or SFTP, by strip id) from an extra window
-    /// back into the main one.
-    MoveTabToMainWindow(uuid::Uuid),
+    /// Move a tab (terminal or SFTP, by strip id) into another open
+    /// window (`None` is the resident one, see `window_ctx`).
+    MoveTabToWindow(uuid::Uuid, Option<iced::window::Id>),
     /// Focus the current view's primary search/filter input. Triggered
     /// by Ctrl+F outside the terminal. No-op when the active view has
     /// no search field (Snippets, Settings, History).

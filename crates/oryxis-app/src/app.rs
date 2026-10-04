@@ -23,33 +23,36 @@ pub static AUTO_CONNECT: OnceLock<Uuid> = OnceLock::new();
 /// the user doesn't have to re-type after an in-place relaunch.
 pub static AUTO_PASSWORD: OnceLock<String> = OnceLock::new();
 
-/// The main window's settings, assembled in `main.rs` from the persisted
-/// geometry before iced boots. The app runs as an iced DAEMON (one
-/// process, any number of windows), which opens no window by itself:
-/// `Oryxis::boot` opens the main one from this.
-pub static MAIN_WINDOW_SETTINGS: OnceLock<iced::window::Settings> = OnceLock::new();
+/// The settings every window is opened with, assembled in `main.rs`
+/// from the persisted geometry before iced boots. The app runs as an
+/// iced DAEMON (one process, any number of windows), which opens no
+/// window by itself: `Oryxis::boot` opens the first one from this, and
+/// each later window starts from the same frame.
+pub static WINDOW_SETTINGS: OnceLock<iced::window::Settings> = OnceLock::new();
 
-/// The main window's id, written by boot. Not a `OnceLock`: the harness
-/// reboots the app inside one process, and each boot opens its own.
-static MAIN_WINDOW: std::sync::RwLock<Option<iced::window::Id>> = std::sync::RwLock::new(None);
+/// The RESIDENT window's id: the window whose per-window values live in
+/// the `Oryxis` fields while no other window's are swapped in (see
+/// `window_ctx`). Nothing about it is special to the user; it is the
+/// one boot opened, until it closes and another takes its place. Not a
+/// `OnceLock`: the harness reboots the app inside one process, and a
+/// window is promoted when the resident closes.
+static RESIDENT_WINDOW: std::sync::RwLock<Option<iced::window::Id>> = std::sync::RwLock::new(None);
 
-pub(crate) fn set_main_window(id: iced::window::Id) {
-    if let Ok(mut slot) = MAIN_WINDOW.write() {
+pub(crate) fn set_resident_window(id: iced::window::Id) {
+    if let Ok(mut slot) = RESIDENT_WINDOW.write() {
         *slot = Some(id);
     }
 }
 
-/// The main window's id, when boot opened one.
-pub(crate) fn main_window_id() -> Option<iced::window::Id> {
-    MAIN_WINDOW.read().ok().and_then(|slot| *slot)
+/// The resident window's id, when boot opened one.
+pub(crate) fn resident_window_id() -> Option<iced::window::Id> {
+    RESIDENT_WINDOW.read().ok().and_then(|slot| *slot)
 }
 
-/// The main window, as a task: what every "do this to OUR window" used
-/// to ask `window::latest()` / `oldest()` for, which stopped naming one
-/// window the day there could be two. Falls back to the oldest window
+/// The resident window, as a task. Falls back to the oldest window
 /// when boot opened none (a bare `Oryxis` in a unit test).
-pub(crate) fn main_window() -> iced::Task<Option<iced::window::Id>> {
-    match main_window_id() {
+pub(crate) fn resident_window() -> iced::Task<Option<iced::window::Id>> {
+    match resident_window_id() {
         Some(id) => iced::Task::done(Some(id)),
         None => iced::window::oldest(),
     }
@@ -336,20 +339,6 @@ pub struct Oryxis {
 
     // UI state
     pub(crate) active_view: View,
-    pub(crate) active_group: Option<Uuid>,  // None = root, Some(id) = inside folder
-    pub(crate) host_search: String,
-    /// When set, the dashboard grid hides every host / group whose
-    /// cloud origin doesn't match this profile id. Activated by
-    /// clicking the small provider badge on a cloud-sourced host card,
-    /// cleared from the chip at the top of the grid. None means no
-    /// cloud filter.
-    pub(crate) host_filter_cloud_profile: Option<Uuid>,
-    /// Dashboard tag filter: only hosts carrying AT LEAST ONE of these
-    /// tags (case-insensitive) are listed, and only groups whose
-    /// subtree contains such a host render. In-memory like the search
-    /// needle, not persisted; empty = no filter.
-    pub(crate) host_filter_tags: Vec<String>,
-    pub(crate) quick_host_input: String,
 
     // Tabs
     pub(crate) tabs: Vec<TerminalTab>,
@@ -653,15 +642,6 @@ pub struct Oryxis {
     /// `card_context_menu` for hosts.
     pub(crate) snippet_context_menu: Option<usize>,
     pub(crate) card_context_menu: Option<uuid::Uuid>,
-    /// Multi-selected host cards (issue #230): Ctrl / Shift + click, the
-    /// hover check on a card, Space on a ringed card. Session-only.
-    pub(crate) dash_selection: crate::state::DashSelection,
-    /// The dashboard's multi-select mode (issue #230): while on, a click
-    /// on a host card selects it instead of connecting, so a batch is
-    /// built by pointing at cards rather than by holding Ctrl. A mode,
-    /// not a modifier - toggled from the toolbar, left by Esc, and reset
-    /// whenever the dashboard leaves the screen.
-    pub(crate) dash_multi_select: bool,
     /// A host card drag in flight (onto a folder card, a tree folder
     /// row or the folder header's back arrow). Registered with
     /// `mouse_interest`, the `MouseMoved` promote, the focus-loss cancel
@@ -794,6 +774,10 @@ pub struct Oryxis {
     /// Unified left-to-right order of the tab strip (terminal + SFTP). Both
     /// vecs (`tabs`, `sftp_tabs`) are id-addressed storage; this list drives
     /// display order and drag-reorder across the terminal/SFTP boundary.
+    /// Where this window's user is in the vault screens: the open
+    /// folder, the searches and filters, the host selection. Per window
+    /// (see `window_ctx::WindowNav`); views read it through `cur_nav()`.
+    pub(crate) nav: crate::window_ctx::WindowNav,
     pub(crate) tab_order: Vec<crate::state::TabRef>,
     /// The extra windows (terminal tabs only), by window id. See
     /// `window_ctx`.
@@ -802,9 +786,16 @@ pub struct Oryxis {
     /// Set while an extra window's values are swapped into the
     /// per-window fields (`update_in_window`); holds the main window's.
     pub(crate) window_ctx: Option<crate::window_ctx::WindowCtx>,
-    /// A verb of the main window was used from an extra one: bring the
-    /// main window forward at the end of this update.
-    pub(crate) pending_focus_main: bool,
+    /// A window to bring forward at the end of this update (`Some(None)`
+    /// is the resident one): the window a tab was just moved into.
+    pub(crate) pending_focus: Option<Option<iced::window::Id>>,
+    /// Extra windows to close at the end of this update: closed by the
+    /// user, or left empty by a move.
+    pub(crate) windows_closing: Vec<iced::window::Id>,
+    /// The window the side panel (host editor, key import, the other
+    /// drawers) was opened in; `None` is the resident one. There is one
+    /// form behind each drawer, so it is drawn in one window.
+    pub(crate) panel_window: Option<iced::window::Id>,
     /// The extra window the user is working in (the focused one);
     /// `None` is the main window.
     pub(crate) input_window: Option<iced::window::Id>,
@@ -948,23 +939,12 @@ pub struct Oryxis {
     /// Parsed certificate on display in the read-only cert viewer modal
     /// (B2). `Some` = modal open; keyed to `Modal::CertificateViewer`.
     pub(crate) cert_viewer: Option<crate::state::CertViewerData>,
-    /// Workspace-mode contextual search backing for Snippets view.
-    /// Matches against snippet label + command.
-    pub(crate) snippet_search: String,
-    /// Workspace-mode contextual search backing for History view.
-    /// Matches against the connection label / hostname recorded in
-    /// each log row.
-    pub(crate) history_search: String,
     /// History view: also search inside recorded session content
     /// (typed commands + output), the toggle chip inside the search
     /// field. Session-scoped UI state, not persisted.
     pub(crate) history_search_content: bool,
     /// Async results + scan progress for the content search above.
     pub(crate) history_content: crate::state::HistoryContentSearch,
-    /// History view host-tag filter (multi-select, matches the host
-    /// tags of each row's connection), mirroring `host_filter_tags`;
-    /// empty = off.
-    pub(crate) history_filter_tags: Vec<String>,
 
     // Identities
     pub(crate) identities: Vec<Identity>,
@@ -1288,10 +1268,6 @@ pub struct Oryxis {
     /// Index of the port-forward card whose kebab menu is open. Keeps the
     /// kebab mounted while the pointer travels to the menu.
     pub(crate) port_forward_context_menu: Option<usize>,
-    pub(crate) port_forward_search: String,
-    /// Toolbar search needles for the Cloud Accounts and Proxies views.
-    pub(crate) cloud_search: String,
-    pub(crate) proxy_search: String,
 
     // Known hosts & logs
     pub(crate) known_hosts: Vec<oryxis_core::models::known_host::KnownHost>,
@@ -1396,13 +1372,6 @@ pub struct Oryxis {
     /// capture actually compares against lives in the terminal crate,
     /// installed at boot.
     pub(crate) shell_integration_nonce: String,
-    /// Vault Snippets view: multi-select tag filter (in-memory, like
-    /// the dashboard's `host_filter_tags`); empty = off.
-    pub(crate) snippet_filter_tags: Vec<String>,
-    /// Vault Snippets view: the snippet group currently opened as a
-    /// folder (dashboard-style drill-in). `None` = root (group cards +
-    /// ungrouped snippets).
-    pub(crate) active_snippet_group: Option<String>,
     /// Terminal-sidebar Snippets tab: its own drill-in group (kept
     /// separate from the vault view's so the two surfaces navigate
     /// independently).

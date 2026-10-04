@@ -5,7 +5,7 @@ use iced::widget::column;
 impl Oryxis {
     /// Folder + provider group cards for the dashboard grid.
     pub(crate) fn dashboard_group_cards(&self) -> Vec<(Element<'_, Message>, Color, DashNavItem)> {
-        let search_lower = self.host_search.to_lowercase();
+        let search_lower = self.cur_nav().host_search.to_lowercase();
         // Provider hiding, counts, brand inference and the filter
         // chips: the shared pre-pass (one scan over connections +
         // groups per view call; the tree view runs the same one), so
@@ -21,7 +21,7 @@ impl Oryxis {
         let mut group_cards: Vec<(Element<'_, Message>, Color, DashNavItem)> = Vec::new();
         let group_by_id: std::collections::HashMap<Uuid, _> =
             self.groups.iter().map(|g| (g.id, g)).collect();
-        if self.active_group.is_none() {
+        if self.cur_nav().active_group.is_none() {
             // Root view: show folder cards for manual groups that have
             // either direct connections or nested children (e.g. an
             // AWS profile folder whose only child is an ECS dynamic
@@ -180,7 +180,7 @@ impl Oryxis {
                         && !hidden_profiles.contains(&query.profile_id)
                         && (search_lower.is_empty()
                             || g.label.to_lowercase().contains(&search_lower))
-                        && self
+                        && self.cur_nav()
                             .host_filter_cloud_profile
                             .is_none_or(|pid| query.profile_id == pid)
                 })
@@ -334,7 +334,7 @@ impl Oryxis {
                     .on_right_press(Message::Cloud(CloudMessage::ShowDynamicGroupCardMenu(gid)));
                 group_cards.push((container(wrapped).width(Length::Fill).clip(true).boxed(), folder_bg, DashNavItem::Group(gid)));
             }
-        } else if let Some(active_gid) = self.active_group {
+        } else if let Some(active_gid) = self.cur_nav().active_group {
             // Inside a folder: manual subgroups render first as folder
             // cards (same builder as the root pass), then the nested
             // dynamic groups, mirroring the root view's manual-then-
@@ -394,7 +394,7 @@ impl Oryxis {
                         && !hidden_profiles.contains(&query.profile_id)
                         && (search_lower.is_empty()
                             || g.label.to_lowercase().contains(&search_lower))
-                        && self
+                        && self.cur_nav()
                             .host_filter_cloud_profile
                             .is_none_or(|pid| query.profile_id == pid)
                 })

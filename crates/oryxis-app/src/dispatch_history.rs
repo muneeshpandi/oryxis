@@ -678,22 +678,22 @@ impl Oryxis {
             HistoryMessage::ToggleHistoryTagFilterTag(tag) => {
                 // Multi-select: the dropdown stays open so several tags
                 // can be picked in one visit; the backdrop closes it.
-                match self
+                match self.cur_nav()
                     .history_filter_tags
                     .iter()
                     .position(|t| t.eq_ignore_ascii_case(&tag))
                 {
                     Some(i) => {
-                        self.history_filter_tags.remove(i);
+                        self.nav.history_filter_tags.remove(i);
                     }
-                    None => self.history_filter_tags.push(tag),
+                    None => self.nav.history_filter_tags.push(tag),
                 }
                 // Filter changed the visible set; drop the keyboard
                 // selection so Enter can't open a now-hidden row.
                 self.keynav.focus = None;
             }
             HistoryMessage::ClearHistoryTagFilter => {
-                self.history_filter_tags.clear();
+                self.nav.history_filter_tags.clear();
                 self.overlay = None;
                 self.keynav.focus = None;
             }
@@ -706,7 +706,7 @@ impl Oryxis {
     /// active and needs a way to be cleared. Mirrors
     /// `host_tag_filter_available`.
     pub(crate) fn history_tag_filter_available(&self) -> bool {
-        !self.history_filter_tags.is_empty()
+        !self.cur_nav().history_filter_tags.is_empty()
             || self.connections.iter().any(|c| !c.tags.is_empty())
     }
 
@@ -775,7 +775,7 @@ impl Oryxis {
     /// keystroke. Called on every History search edit while the
     /// content toggle is on, and on toggle-on itself.
     pub(crate) fn history_content_debounce(&mut self) -> Task<Message> {
-        let needle = self.history_search.trim().to_lowercase();
+        let needle = self.cur_nav().history_search.trim().to_lowercase();
         if needle.chars().count() < 2 {
             // Too short to scan usefully; fall back to the plain
             // label/hostname filter.
@@ -802,7 +802,7 @@ impl Oryxis {
     /// so the timeline has a row to light up, and the scan queue /
     /// "Scanning recordings X/Y" counter account for every recording.
     fn history_content_search_start(&mut self) -> Task<Message> {
-        let needle = self.history_search.trim().to_lowercase();
+        let needle = self.cur_nav().history_search.trim().to_lowercase();
         // Rows a previous query pulled in don't necessarily match this
         // one; drop them before recomputing.
         self.history_drop_extra_logs();

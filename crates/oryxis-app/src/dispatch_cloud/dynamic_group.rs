@@ -374,8 +374,8 @@ impl Oryxis {
                     // If the user was viewing this group, kick them
                     // back to root so they don't see a blank panel
                     // pointing at a deleted row.
-                    if self.active_group == Some(gid) {
-                        self.active_group = None;
+                    if self.cur_nav().active_group == Some(gid) {
+                        self.nav.active_group = None;
                     }
                     self.load_data_from_vault();
                 }

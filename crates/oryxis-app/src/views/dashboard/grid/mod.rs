@@ -281,7 +281,7 @@ impl Oryxis {
                 }
             }
         }
-        let cloud_filter_groups: Option<std::collections::HashSet<Uuid>> = self
+        let cloud_filter_groups: Option<std::collections::HashSet<Uuid>> = self.cur_nav()
             .host_filter_cloud_profile
             .map(|pid| self.groups_containing_cloud_profile(pid));
         let tag_filter_groups: Option<std::collections::HashSet<Uuid>> =
@@ -359,7 +359,7 @@ impl Oryxis {
     pub(crate) fn groups_containing_filtered_tags(
         &self,
     ) -> Option<std::collections::HashSet<Uuid>> {
-        if self.host_filter_tags.is_empty() {
+        if self.cur_nav().host_filter_tags.is_empty() {
             return None;
         }
         let parent_of: std::collections::HashMap<Uuid, Option<Uuid>> =
@@ -367,7 +367,7 @@ impl Oryxis {
         let mut set = std::collections::HashSet::new();
         for conn in &self.connections {
             let matches = conn.tags.iter().any(|tg| {
-                self.host_filter_tags.iter().any(|f| f.eq_ignore_ascii_case(tg))
+                self.cur_nav().host_filter_tags.iter().any(|f| f.eq_ignore_ascii_case(tg))
             });
             if !matches {
                 continue;
@@ -390,7 +390,7 @@ impl Oryxis {
     /// inside are resolved cloud tasks, so there is no `Connection` on
     /// screen to select, move, dial or delete as a batch.
     pub(crate) fn active_group_is_dynamic(&self) -> bool {
-        self.active_group.is_some_and(|gid| {
+        self.cur_nav().active_group.is_some_and(|gid| {
             self.groups
                 .iter()
                 .any(|g| g.id == gid && g.cloud_query.is_some())
@@ -473,9 +473,9 @@ impl Oryxis {
     /// grid renderer and the keyboard-selection navigation so Tab / arrows
     /// move through exactly what's on screen.
     pub(crate) fn dashboard_host_order(&self) -> Vec<usize> {
-        let at_root = self.active_group.is_none();
+        let at_root = self.cur_nav().active_group.is_none();
         let flatten = self.flatten_hosts && at_root;
-        let search_lower = self.host_search.to_lowercase();
+        let search_lower = self.cur_nav().host_search.to_lowercase();
         let hidden_profiles = self.hidden_cloud_profile_ids();
         let mut host_order: Vec<usize> = (0..self.connections.len())
             .filter(|&i| {
@@ -487,7 +487,7 @@ impl Oryxis {
                 {
                     return false;
                 }
-                if let Some(gid) = self.active_group {
+                if let Some(gid) = self.cur_nav().active_group {
                     if conn.group_id != Some(gid) {
                         return false;
                     }
@@ -501,14 +501,14 @@ impl Oryxis {
                 ) {
                     return false;
                 }
-                if let Some(filter_pid) = self.host_filter_cloud_profile
+                if let Some(filter_pid) = self.cur_nav().host_filter_cloud_profile
                     && conn.cloud_ref.as_ref().map(|r| r.profile_id) != Some(filter_pid)
                 {
                     return false;
                 }
-                if !self.host_filter_tags.is_empty()
+                if !self.cur_nav().host_filter_tags.is_empty()
                     && !conn.tags.iter().any(|tg| {
-                        self.host_filter_tags.iter().any(|f| f.eq_ignore_ascii_case(tg))
+                        self.cur_nav().host_filter_tags.iter().any(|f| f.eq_ignore_ascii_case(tg))
                     })
                 {
                     return false;
@@ -719,10 +719,10 @@ impl Oryxis {
         // above the Save button. Slot reserved for future list-level
         // statuses.
         let status: Element<'_, Message> = Space::new().boxed();
-        let at_root = self.active_group.is_none();
+        let at_root = self.cur_nav().active_group.is_none();
         let flatten = self.flatten_hosts && at_root;
 
-        if let Some(gid) = self.active_group
+        if let Some(gid) = self.cur_nav().active_group
             && let Some(group) = self.groups.iter().find(|g| g.id == gid)
             && let Some(query) = group.cloud_query.as_ref()
         {
@@ -808,7 +808,7 @@ impl Oryxis {
             self.session_groups
                 .iter()
                 .enumerate()
-                .filter(|(_, g)| g.group_id == self.active_group)
+                .filter(|(_, g)| g.group_id == self.cur_nav().active_group)
                 .map(|(i, g)| {
                     let (el, color) = self.session_group_card(i, g);
                     (el, color, DashNavItem::SessionGroup(i))
@@ -876,8 +876,8 @@ impl Oryxis {
             && session_group_cards.is_empty()
             && host_cards.is_empty()
             && tree_cards.is_empty()
-            && !self.host_search.trim().is_empty()
-            && let Some(conn) = self.dashboard_quick_connect_target(&self.host_search)
+            && !self.cur_nav().host_search.trim().is_empty()
+            && let Some(conn) = self.dashboard_quick_connect_target(&self.cur_nav().host_search)
         {
             content_rows.push(self.quick_connect_card(conn));
         }
@@ -890,8 +890,8 @@ impl Oryxis {
         // Connect in reach from the bottom of it. It is also the
         // multi-select mode's own surface: entering the mode shows it
         // with nothing selected yet.
-        let selection_bar: Element<'_, Message> = if !self.dash_selection.is_empty()
-            || self.dash_multi_select
+        let selection_bar: Element<'_, Message> = if !self.cur_nav().dash_selection.is_empty()
+            || self.cur_nav().dash_multi_select
         {
             container(self.dashboard_selection_bar())
                 .width(Length::Fill)
@@ -968,7 +968,7 @@ impl Oryxis {
         // colour from the active profile's provider so AWS reads
         // orange, K8s blue, etc.
         let filter_chip: Element<'_, Message> = if let Some(filter_pid) =
-            self.host_filter_cloud_profile
+            self.cur_nav().host_filter_cloud_profile
         {
             let profile = self.cloud_profiles.iter().find(|p| p.id == filter_pid);
             let profile_label = profile.map(|p| p.label.clone()).unwrap_or_default();
@@ -1062,7 +1062,7 @@ impl Oryxis {
         // live OUTSIDE the card button (a button inside a button never
         // gets its own press), directly under it.
         let badges: Option<Element<'_, Message>> = self
-            .quick_connect_badges(&self.host_search)
+            .quick_connect_badges(&self.cur_nav().host_search)
             .map(|(options, selected)| {
                 let chips: Vec<Element<'_, Message>> = options
                     .into_iter()

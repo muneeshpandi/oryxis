@@ -457,7 +457,7 @@ impl Oryxis {
         if matches!(named, Named::ArrowLeft | Named::ArrowRight)
             && self.cur_view() == View::Dashboard
             && self.prefs.host_view_mode == crate::state::HostViewMode::Tree
-            && self.host_search.trim().is_empty()
+            && self.cur_nav().host_search.trim().is_empty()
             && let NavItem::Dash(DashNavItem::Group(gid)) = cur
             && self
                 .groups
@@ -564,10 +564,10 @@ impl Oryxis {
     /// connecting whatever host happens to sort first is not something
     /// the user asked for. A named target is unambiguous either way.
     fn search_named_connect(&mut self) -> Option<Task<Message>> {
-        if self.cur_view() != View::Dashboard || self.host_search.trim().is_empty() {
+        if self.cur_view() != View::Dashboard || self.cur_nav().host_search.trim().is_empty() {
             return None;
         }
-        let input = self.host_search.trim().to_string();
+        let input = self.cur_nav().host_search.trim().to_string();
         // Precedence: an exact saved-host match (label or its
         // canonical user@host form) always beats quick connect,
         // so typing something that names a saved host connects
@@ -597,7 +597,7 @@ impl Oryxis {
     fn keynav_activate(&mut self) -> Option<Task<Message>> {
         match self.keynav.focus {
             None => {
-                if self.cur_view() == View::Dashboard && !self.host_search.is_empty() {
+                if self.cur_view() == View::Dashboard && !self.cur_nav().host_search.is_empty() {
                     if let Some(task) = self.search_named_connect() {
                         return Some(task);
                     }
@@ -784,7 +784,7 @@ impl Oryxis {
             && let Some((FocusZone::Content, NavItem::Dash(DashNavItem::Host(i)))) = self.keynav.focus
             && let Some(id) = self.connections.get(i).map(|c| c.id)
         {
-            self.dash_selection.toggle(id);
+            self.nav.dash_selection.toggle(id);
             return Some(Task::none());
         }
         self.keynav_activate()
@@ -795,12 +795,12 @@ impl Oryxis {
         // dashboard: one press clears it, the next leaves the
         // multi-select mode (so the cards go back to dialling), the last
         // idles the ring.
-        if self.cur_view() == crate::state::View::Dashboard && !self.dash_selection.is_empty() {
-            self.dash_selection.clear();
+        if self.cur_view() == crate::state::View::Dashboard && !self.nav.dash_selection.is_empty() {
+            self.nav.dash_selection.clear();
             return Some(Task::none());
         }
-        if self.cur_view() == crate::state::View::Dashboard && self.dash_multi_select {
-            self.dash_multi_select = false;
+        if self.cur_view() == crate::state::View::Dashboard && self.cur_nav().dash_multi_select {
+            self.nav.dash_multi_select = false;
             return Some(Task::none());
         }
         if self.keynav.focus.is_some() {
@@ -841,11 +841,11 @@ impl Oryxis {
         // usual verb, so the folder drill-downs and the ring's "open the
         // thing" contract are untouched.
         if self.cur_view() == crate::state::View::Dashboard
-            && self.dash_multi_select
+            && self.cur_nav().dash_multi_select
             && let NavItem::Dash(DashNavItem::Host(i)) = item
             && let Some(id) = self.connections.get(i).map(|c| c.id)
         {
-            self.dash_selection.toggle(id);
+            self.nav.dash_selection.toggle(id);
             return Task::none();
         }
         let msg = match item {

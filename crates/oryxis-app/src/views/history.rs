@@ -89,7 +89,7 @@ impl Oryxis {
 
         // ── Toolbar ──
         let per_page: usize = 50;
-        let needle = self.history_search.trim().to_lowercase();
+        let needle = self.cur_nav().history_search.trim().to_lowercase();
         // Content-search results only apply when they answer the live
         // query: typing is debounced and the output scan is async, so
         // the maps can lag a keystroke behind; a stale needle falls
@@ -161,7 +161,7 @@ impl Oryxis {
         // (session rows by id, failure rows by label) and survive when
         // it carries any selected tag; a deleted host can't match.
         // Composes with the search below as an AND.
-        if !self.history_filter_tags.is_empty() {
+        if !self.cur_nav().history_filter_tags.is_empty() {
             rows.retain(|r| {
                 let conn = match &r.kind {
                     TimelineKind::Session { entry, .. } => {
@@ -174,7 +174,7 @@ impl Oryxis {
                 };
                 conn.is_some_and(|c| {
                     c.tags.iter().any(|tg| {
-                        self.history_filter_tags
+                        self.cur_nav().history_filter_tags
                             .iter()
                             .any(|f| f.eq_ignore_ascii_case(tg))
                     })
@@ -342,7 +342,7 @@ impl Oryxis {
                 crate::keynav::ToolbarItem::TagFilter,
                 crate::widgets::bounds_reporter(
                     crate::widgets::tag_filter_toolbar_button(
-                        self.history_filter_tags.len(),
+                        self.cur_nav().history_filter_tags.len(),
                         Message::History(HistoryMessage::ShowHistoryTagFilterMenu),
                     ),
                     self.history_tag_filter_btn_bounds.clone(),
@@ -748,9 +748,9 @@ impl Oryxis {
                 let Some(conn) = conn_by_id.get(conn_id).copied() else {
                     continue;
                 };
-                if !self.history_filter_tags.is_empty()
+                if !self.cur_nav().history_filter_tags.is_empty()
                     && !conn.tags.iter().any(|tg| {
-                        self.history_filter_tags
+                        self.cur_nav().history_filter_tags
                             .iter()
                             .any(|f| f.eq_ignore_ascii_case(tg))
                     })

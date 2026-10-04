@@ -56,14 +56,21 @@ impl Oryxis {
         }
     }
 
-    /// Cheap check: is a vault-area side panel currently open? Mirrors
-    /// `active_side_panel` without building the element, so callers (e.g.
-    /// the sub-nav width budget) can branch without the render cost.
+    /// Cheap check: is a vault-area side panel currently open IN THIS
+    /// WINDOW? Mirrors `active_side_panel` without building the element,
+    /// so callers (e.g. the sub-nav width budget) can branch without the
+    /// render cost. A drawer has one form behind it and is drawn in one
+    /// window (`side_panel_here`), so the others reserve no room for it.
     pub(crate) fn side_panel_open(&self) -> bool {
-        if self.cur_active_tab().is_some() {
-            return false;
-        }
-        match self.cur_view() {
+        self.cur_active_tab().is_none()
+            && self.side_panel_wanted_on(self.cur_view())
+            && self.side_panel_here()
+    }
+
+    /// Whether a window on `view` has a side panel to show, wherever it
+    /// ends up drawn: the open-panel flags of that view.
+    pub(crate) fn side_panel_wanted_on(&self, view: View) -> bool {
+        match view {
             View::Dashboard => {
                 self.cloud_discover.visible
                     || self.cloud_dynamic_form.visible
@@ -194,7 +201,9 @@ impl Oryxis {
     /// `view_terminal`, so this returns `None` whenever a session tab is
     /// active.
     pub(crate) fn active_side_panel(&self) -> Option<Element<'_, Message>> {
-        if self.cur_active_tab().is_some() {
+        // One form behind each drawer, so one window draws it: the one
+        // it was opened in.
+        if self.cur_active_tab().is_some() || !self.side_panel_here() {
             return None;
         }
         match self.cur_view() {

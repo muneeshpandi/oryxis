@@ -275,9 +275,12 @@ impl Oryxis {
         // prompt is included here (its text fields own the keyboard); the
         // inline connect-progress path is gated separately by
         // `connecting.is_none()`.
-        crate::state::Modal::ALL
-            .iter()
-            .any(|&m| m.blocks_input() && self.is_modal_open(m))
+        // A modal is drawn in one window (`floats_here`), and that is the
+        // only window whose typing it owns.
+        self.floats_here()
+            && crate::state::Modal::ALL
+                .iter()
+                .any(|&m| m.blocks_input() && self.is_modal_open(m))
     }
 
     /// Closes the topmost open modal / overlay if any, and returns

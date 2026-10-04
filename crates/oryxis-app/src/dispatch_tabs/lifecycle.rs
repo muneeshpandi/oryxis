@@ -19,7 +19,7 @@ impl Oryxis {
         if let Some(id) = self.tabs.get(idx).map(|t| t._id) {
             let owner = self.window_of_tab(id);
             if owner != self.window_ctx.as_ref().map(|c| c.id) {
-                let focus = match owner.or_else(crate::app::main_window_id) {
+                let focus = match owner.or_else(crate::app::resident_window_id) {
                     Some(w) => iced::window::gain_focus(w),
                     None => Task::none(),
                 };
@@ -301,7 +301,7 @@ impl Oryxis {
     }
 
     /// How many of `idxs` would drop a live session.
-    fn live_session_count(&self, idxs: &[usize]) -> usize {
+    pub(super) fn live_session_count(&self, idxs: &[usize]) -> usize {
         idxs.iter()
             .filter(|&&i| self.tab_has_live_session(i))
             .count()

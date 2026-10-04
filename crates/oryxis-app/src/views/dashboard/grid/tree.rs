@@ -115,7 +115,7 @@ impl Oryxis {
     /// to bottom, with the filters, the search and the fold state
     /// applied.
     fn dashboard_tree_entries(&self) -> Vec<TreeEntry<'_>> {
-        let search_lower = self.host_search.to_lowercase();
+        let search_lower = self.cur_nav().host_search.to_lowercase();
         let searching = !search_lower.trim().is_empty();
         // Provider hiding, counts, brand inference and the filter
         // chips: the same pre-pass the folder cards run.
@@ -139,14 +139,14 @@ impl Oryxis {
             {
                 return false;
             }
-            if let Some(filter_pid) = self.host_filter_cloud_profile
+            if let Some(filter_pid) = self.cur_nav().host_filter_cloud_profile
                 && conn.cloud_ref.as_ref().map(|r| r.profile_id) != Some(filter_pid)
             {
                 return false;
             }
-            if !self.host_filter_tags.is_empty()
+            if !self.cur_nav().host_filter_tags.is_empty()
                 && !conn.tags.iter().any(|tg| {
-                    self.host_filter_tags.iter().any(|f| f.eq_ignore_ascii_case(tg))
+                    self.cur_nav().host_filter_tags.iter().any(|f| f.eq_ignore_ascii_case(tg))
                 })
             {
                 return false;
@@ -633,7 +633,7 @@ impl Oryxis {
             Message::Tabs(TabsMessage::ShowCardMenu(idx)),
             Message::Tabs(TabsMessage::CardHovered(idx)),
             Message::Tabs(TabsMessage::CardUnhovered(idx)),
-            self.dash_selection.contains(conn.id),
+            self.cur_nav().dash_selection.contains(conn.id),
         );
         // Same press account as the card (issue #230): a tree row can
         // start a drag onto a folder row too.

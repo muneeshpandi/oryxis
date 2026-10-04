@@ -188,7 +188,7 @@ impl Oryxis {
                 // drill-down cursor would only confuse the walk once
                 // the user cycles back to grid/list from inside it.
                 if self.prefs.host_view_mode == crate::state::HostViewMode::Tree {
-                    self.active_group = None;
+                    self.nav.active_group = None;
                 }
             }
             SettingsMessage::ToggleCardAccentGlass => {

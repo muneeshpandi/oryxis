@@ -86,7 +86,7 @@ impl Oryxis {
                 | TabsMessage::ConnectHostsInNewWindow(..)
                 | TabsMessage::MoveTabToNewWindow(..)
                 | TabsMessage::DetachTabAt(..)
-                | TabsMessage::MoveTabToMainWindow(..)
+                | TabsMessage::MoveTabToWindow(..)
             ) => self.handle_tabs_window(m),
             m @ (
                 TabsMessage::CardHovered(..)

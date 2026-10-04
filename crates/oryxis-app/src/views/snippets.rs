@@ -63,7 +63,7 @@ impl Oryxis {
         let mut row_items: Vec<Element<'_, Message>> = Vec::new();
         // Breadcrumb while inside a snippet group (dashboard-style):
         // "Snippets" routes back to the root, then the open group.
-        if let Some(open_group) = &self.active_snippet_group {
+        if let Some(open_group) = &self.cur_nav().active_snippet_group {
             row_items.push(
                 dir_row(vec![
                     iced_fonts::lucide::folder()
@@ -107,7 +107,7 @@ impl Oryxis {
         });
         row_items.push(Space::new().width(10).boxed());
         let show_tag_filter = !self.distinct_snippet_tags().is_empty()
-            || !self.snippet_filter_tags.is_empty();
+            || !self.cur_nav().snippet_filter_tags.is_empty();
         if buttons_overflow {
             // The sort trigger is off screen: blank the anchor cells so
             // the menu falls back cleanly.
@@ -130,7 +130,7 @@ impl Oryxis {
                     // under it instead of at the cursor.
                     crate::widgets::bounds_reporter(
                         crate::widgets::tag_filter_toolbar_button(
-                            self.snippet_filter_tags.len(),
+                            self.cur_nav().snippet_filter_tags.len(),
                             Message::Snippet(SnippetMessage::ShowSnippetTagFilterMenu),
                         ),
                         self.snippet_tag_filter_btn_bounds.clone(),
@@ -180,7 +180,7 @@ impl Oryxis {
             return main_content.boxed();
         }
 
-        let snippet_needle = self.snippet_search.to_lowercase();
+        let snippet_needle = self.cur_nav().snippet_search.to_lowercase();
         // Apply the toolbar sort by reordering an index list, the source
         // collection stays in insertion order (its index is what the
         // EditSnippet / RunSnippet messages carry). The needle also
@@ -207,9 +207,9 @@ impl Oryxis {
                         .group
                         .as_ref()
                         .is_some_and(|g| g.to_lowercase().contains(&snippet_needle));
-                let tags_ok = self.snippet_filter_tags.is_empty()
+                let tags_ok = self.cur_nav().snippet_filter_tags.is_empty()
                     || snip.tags.iter().any(|tg| {
-                        self.snippet_filter_tags
+                        self.cur_nav().snippet_filter_tags
                             .iter()
                             .any(|f| f.eq_ignore_ascii_case(tg))
                     });
@@ -228,7 +228,7 @@ impl Oryxis {
         let mut section_blocks: Vec<(Option<&'static str>, Vec<Element<'_, Message>>)> =
             Vec::new();
 
-        if let Some(open_group) = self.active_snippet_group.as_ref().filter(|_| !searching) {
+        if let Some(open_group) = self.cur_nav().active_snippet_group.as_ref().filter(|_| !searching) {
             let items: Vec<usize> = visible
                 .iter()
                 .copied()

@@ -293,30 +293,30 @@ impl Oryxis {
             }
             SnippetMessage::ToggleSnippetTagFilterTag(tag) => {
                 // Multi-select, dropdown stays open (backdrop closes).
-                match self
+                match self.cur_nav()
                     .snippet_filter_tags
                     .iter()
                     .position(|t| t.eq_ignore_ascii_case(&tag))
                 {
                     Some(i) => {
-                        self.snippet_filter_tags.remove(i);
+                        self.nav.snippet_filter_tags.remove(i);
                     }
-                    None => self.snippet_filter_tags.push(tag),
+                    None => self.nav.snippet_filter_tags.push(tag),
                 }
                 self.keynav.focus = None;
             }
             SnippetMessage::ClearSnippetTagFilter => {
-                self.snippet_filter_tags.clear();
+                self.nav.snippet_filter_tags.clear();
                 self.overlay = None;
                 self.keynav.focus = None;
             }
             SnippetMessage::OpenSnippetGroup(name) => {
-                self.active_snippet_group = Some(name);
-                self.snippet_search.clear();
+                self.nav.active_snippet_group = Some(name);
+                self.nav.snippet_search.clear();
                 self.keynav.focus = None;
             }
             SnippetMessage::CloseSnippetGroup => {
-                self.active_snippet_group = None;
+                self.nav.active_snippet_group = None;
                 self.keynav.focus = None;
             }
             SnippetMessage::OpenSidebarSnippetGroup(name) => {

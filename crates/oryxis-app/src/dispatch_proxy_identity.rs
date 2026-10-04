@@ -195,7 +195,7 @@ impl Oryxis {
                     self.load_data_from_vault();
                 }
             }
-            ProxyIdentityMessage::ProxySearchChanged(v) => self.proxy_search = v,
+            ProxyIdentityMessage::ProxySearchChanged(v) => self.nav.proxy_search = v,
         }
         Task::none()
     }

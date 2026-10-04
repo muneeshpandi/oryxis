@@ -214,7 +214,7 @@ impl Oryxis {
                 // take hosts (the same guard the host editor's group
                 // prefill applies): a dynamic group's contents come
                 // from its query.
-                self.import_target_group = self.active_group.filter(|gid| {
+                self.import_target_group = self.cur_nav().active_group.filter(|gid| {
                     self.groups
                         .iter()
                         .any(|g| g.id == *gid && g.cloud_query.is_none())

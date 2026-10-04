@@ -12,11 +12,11 @@ project uses [SemVer](https://semver.org/spec/v2.0.0.html).
 - The MCP plugin 0.1.7 lists `effective_username` beside `username`: the login `ssh_execute` uses when a host leaves the user to its group or identity.
 - The MCP plugin 0.1.8 dials with russh 0.63.3.
 - The MCP plugin 0.1.9 unlocks the vault with the same password check as the app.
-- Tabs move between windows with their session intact: drag a tab out of the window, or use "Move to New Window" / "Move to Main Window" on the tab menu. Extra windows hold terminal and SFTP tabs; Settings and the vault stay in the main one.
+- Several windows, each a whole one: its own tabs, its own Home and vault screens, its own search and folder. "New Window" (Ctrl+Shift+N) opens one; a tab moves to another window with its session intact by dragging it out or from its menu ("Move to New Window", "Move to Window").
 - Drag a host card (or a selection) out of the window to connect it in a new one, or use "Connect in New Window" on the card menu.
 
 ### Changed
-- Every window is the same app: a new window no longer starts a second process with its own settings, sync and update check. Closing an extra window returns its tabs to the main one.
+- Every window is the same app: a new window no longer starts a second process with its own settings, sync and update check. Any window can be closed, and closing one closes its tabs (it asks first when a session is live; pinned tabs move to another window).
 - A command proxy line runs as `exec <line>`, the way OpenSSH runs it, and stopping a dial ends the proxy together with anything it started.
 
 ### Fixed

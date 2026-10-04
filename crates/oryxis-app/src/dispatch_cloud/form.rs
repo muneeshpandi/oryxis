@@ -437,7 +437,7 @@ impl Oryxis {
             CloudMessage::CloudCardUnhovered(id) => {
                 self.hover.leave_cloud_card(id);
             }
-            CloudMessage::CloudSearchChanged(v) => self.cloud_search = v,
+            CloudMessage::CloudSearchChanged(v) => self.nav.cloud_search = v,
             CloudMessage::ShowCloudProviderPicker => {
                 // Anchor below the "+ Host [▾]" split button, on its
                 // real drawn bounds (2 px gap, trailing edges aligned;

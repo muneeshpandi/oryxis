@@ -203,7 +203,7 @@ impl Oryxis {
             // Keyboard-navigation order, collected as the cards render
             // so it always matches the filtered set on screen.
             let mut cloud_nav: Vec<crate::keynav::NavItem> = Vec::new();
-            let needle = self.cloud_search.trim().to_lowercase();
+            let needle = self.cur_nav().cloud_search.trim().to_lowercase();
             // Hide accounts whose provider plugin isn't installed; they
             // stay in the vault and reappear when the plugin is back.
             // Also apply the toolbar search needle (label / provider match).

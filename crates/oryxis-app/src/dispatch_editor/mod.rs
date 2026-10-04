@@ -158,7 +158,7 @@ impl Oryxis {
         // Creating a host while inside a folder (root or subgroup)
         // lands it there: prefill with the full breadcrumb path, which
         // is what the combo displays and what the save resolves first.
-        if let Some(gid) = self.active_group
+        if let Some(gid) = self.cur_nav().active_group
             && self.groups.iter().any(|g| g.id == gid && g.cloud_query.is_none())
         {
             self.editor_form.group_name =

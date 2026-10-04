@@ -267,7 +267,7 @@ impl Oryxis {
             // (`WindowFullscreenSettled`) catches the exit, whose state
             // only clears after its last resize. Elsewhere F11 is the
             // only writer and the sync leaves the flag alone.
-            let sync = crate::app::main_window().then(move |id_opt| match id_opt {
+            let sync = crate::app::resident_window().then(move |id_opt| match id_opt {
                 Some(id) => iced::window::is_maximized(id).then(move |maximized| {
                     let synced = move |fullscreen| {
                         Message::Tabs(TabsMessage::WindowStateSynced {
@@ -293,7 +293,7 @@ impl Oryxis {
                 async { tokio::time::sleep(std::time::Duration::from_millis(900)).await },
                 |_| (),
             )
-            .then(|_| crate::app::main_window())
+            .then(|_| crate::app::resident_window())
             .then(|id_opt| match id_opt {
                 Some(id) => iced::window::mode(id).map(|mode| {
                     Message::Tabs(TabsMessage::WindowFullscreenSettled(
@@ -318,7 +318,7 @@ impl Oryxis {
         // platform can't say (Wayland), in which case the WM
         // already placed us somewhere visible and we skip.
         let win_size = self.cur_window_size();
-        crate::app::main_window().then(move |id_opt| {
+        crate::app::resident_window().then(move |id_opt| {
             let Some(id) = id_opt else { return Task::none(); };
             iced::window::position(id).then(move |pos_opt| {
                 let Some(pos) = pos_opt else { return Task::none(); };
@@ -458,7 +458,7 @@ impl Oryxis {
             return Task::none();
         }
         let current_width = self.cur_window_size().width;
-        crate::app::main_window().then(move |id_opt| {
+        crate::app::resident_window().then(move |id_opt| {
             let Some(id) = id_opt else { return Task::none(); };
             iced::window::position(id).then(move |pos_opt| {
                 let Some(pos) = pos_opt else { return Task::none(); };
@@ -502,7 +502,7 @@ impl Oryxis {
             // process (no tray of its own) and off Windows.
             crate::tray::set_visible(true);
             self.broadcast_ipc_state_if_child();
-            return crate::app::main_window()
+            return crate::app::resident_window()
                 .and_then(|id| {
                     iced::window::run(id, |window| {
                         crate::tray::hide_window(window);
@@ -510,7 +510,7 @@ impl Oryxis {
                 })
                 .discard();
         }
-        crate::app::main_window().then(|id_opt| match id_opt {
+        crate::app::resident_window().then(|id_opt| match id_opt {
             Some(id) => iced::window::minimize(id, true),
             None => Task::none(),
         })
@@ -533,6 +533,12 @@ impl Oryxis {
     /// confirmation for a fresh close request, nor a later real request
     /// for a confirmation that already happened.
     pub(super) fn handle_window_close(&mut self) -> Task<Message> {
+        // Not the last window: it closes like any other, taking its
+        // tabs with it. Everything below (the tray, the exit) is about
+        // the app going away, which only the last window decides.
+        if self.window_count() > 1 {
+            return self.request_close_this_window();
+        }
         if self.prefs.confirm_close_session_tab
             && !(self.tabs.is_empty() && self.sftp_tabs.is_empty())
             && !self.hides_to_tray()
@@ -604,7 +610,7 @@ impl Oryxis {
             // only way back once the window is hidden.
             crate::tray::set_visible(true);
             self.broadcast_ipc_state_if_child();
-            return crate::app::main_window()
+            return crate::app::resident_window()
                 .and_then(|id| {
                     iced::window::run(id, |window| {
                         crate::tray::hide_window(window);
@@ -653,7 +659,7 @@ impl Oryxis {
         } else {
             iced::window::Mode::Windowed
         };
-        let mode_task = crate::app::main_window().then(move |id_opt| match id_opt {
+        let mode_task = crate::app::resident_window().then(move |id_opt| match id_opt {
             Some(id) => iced::window::set_mode(id, next),
             None => Task::none(),
         });
@@ -726,7 +732,7 @@ impl Oryxis {
                 if !self.consume_window_press() {
                     return Task::none();
                 }
-                return crate::app::main_window().then(|id_opt| match id_opt {
+                return crate::app::resident_window().then(|id_opt| match id_opt {
                     Some(id) => iced::window::drag(id),
                     None => Task::none(),
                 });
@@ -740,7 +746,7 @@ impl Oryxis {
                 if !self.consume_window_press() {
                     return Task::none();
                 }
-                return crate::app::main_window().then(move |id_opt| match id_opt {
+                return crate::app::resident_window().then(move |id_opt| match id_opt {
                     Some(id) => iced::window::drag_resize(id, direction),
                     None => Task::none(),
                 });
@@ -803,13 +809,18 @@ impl Oryxis {
                 // even when the process later dies without reaching an
                 // exit path (OS shutdown, kill).
                 self.persist_window_geometry();
-                return crate::app::main_window().then(|id_opt| match id_opt {
+                return crate::app::resident_window().then(|id_opt| match id_opt {
                     Some(id) => iced::window::toggle_maximize(id),
                     None => Task::none(),
                 });
             }
             TabsMessage::WindowClose => return self.handle_window_close(),
-            TabsMessage::ConfirmCloseWindow => return self.close_window_now(),
+            TabsMessage::ConfirmCloseWindow => {
+                if self.window_count() > 1 {
+                    return self.close_this_window_now();
+                }
+                return self.close_window_now();
+            }
             TabsMessage::WindowFullscreenToggle => return self.handle_window_fullscreen_toggle(),
             TabsMessage::FullscreenHintHide => {
                 self.fullscreen_hint_visible = false;
@@ -831,7 +842,9 @@ impl Oryxis {
             TabsMessage::DetachTabAt(id, at) => {
                 return self.detach_tab_to_new_window(id, at);
             }
-            TabsMessage::MoveTabToMainWindow(id) => return self.move_tab_to_main_window(id),
+            TabsMessage::MoveTabToWindow(id, target) => {
+                return self.move_tab_to_window(id, target);
+            }
             // Routed here by the parent; anything else is a
             // grouping mistake, not a runtime case.
             m => return crate::dispatch::unrouted(m),

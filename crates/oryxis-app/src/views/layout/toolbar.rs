@@ -74,7 +74,7 @@ impl Oryxis {
                 };
                 // Action button: none inside a dynamic group, "Discover"
                 // inside a cloud-linked folder, else the "+ Host" split.
-                let action = match self.active_group {
+                let action = match self.cur_nav().active_group {
                     Some(_) if self.active_group_is_dynamic() => 0.0,
                     Some(_) => 115.0,
                     None => 113.0,
@@ -88,7 +88,7 @@ impl Oryxis {
             // [tag filter(44+6)] + sort(44) + gap(8) + "+ Snippet"(~92).
             View::Snippets => {
                 let tag_filter = if !self.distinct_snippet_tags().is_empty()
-                    || !self.snippet_filter_tags.is_empty()
+                    || !self.cur_nav().snippet_filter_tags.is_empty()
                 {
                     Self::TB_ICON + 6.0
                 } else {
@@ -119,7 +119,7 @@ impl Oryxis {
         if self.cur_view() != View::Dashboard {
             return 0.0;
         }
-        let Some(gid) = self.active_group else {
+        let Some(gid) = self.cur_nav().active_group else {
             return 0.0;
         };
         let mut w = 0.0_f32;
@@ -239,7 +239,7 @@ impl Oryxis {
                     // the quick-connect entry point (Enter on a parseable
                     // user@host target connects it).
                     "search_hosts_quick_connect",
-                    self.host_search.as_str(),
+                    self.cur_nav().host_search.as_str(),
                     |v| Message::Navigation(NavigationMessage::HostSearchChanged(v)),
                 ),
                 View::Keys => (
@@ -249,27 +249,27 @@ impl Oryxis {
                 ),
                 View::Snippets => (
                     "search_snippets",
-                    self.snippet_search.as_str(),
+                    self.cur_nav().snippet_search.as_str(),
                     |v| Message::Keys(KeysMessage::SnippetSearchChanged(v)),
                 ),
                 View::PortForwarding => (
                     "search_port_forwards",
-                    self.port_forward_search.as_str(),
+                    self.cur_nav().port_forward_search.as_str(),
                     |v| Message::PortForward(PortForwardMessage::PortForwardSearchChanged(v)),
                 ),
                 View::History => (
                     "search_logs",
-                    self.history_search.as_str(),
+                    self.cur_nav().history_search.as_str(),
                     |v| Message::Keys(KeysMessage::HistorySearchChanged(v)),
                 ),
                 View::Cloud => (
                     "search_cloud_accounts",
-                    self.cloud_search.as_str(),
+                    self.cur_nav().cloud_search.as_str(),
                     |v| Message::Cloud(CloudMessage::CloudSearchChanged(v)),
                 ),
                 View::Proxies => (
                     "search_proxies",
-                    self.proxy_search.as_str(),
+                    self.cur_nav().proxy_search.as_str(),
                     |v| Message::ProxyIdentity(ProxyIdentityMessage::ProxySearchChanged(v)),
                 ),
                 View::Monitoring => (
@@ -296,7 +296,7 @@ impl Oryxis {
         // (`keynav_activate`), which already owns plain Enter in the vault
         // area; wiring `.on_submit` here too would double-dispatch.
         let quick_hint = self.cur_view() == View::Dashboard
-            && self.dashboard_quick_connect_target(&self.host_search).is_some();
+            && self.dashboard_quick_connect_target(&self.cur_nav().host_search).is_some();
         // History only: the "search in session content" toggle floats
         // inside the field's trailing edge, so it travels with the
         // search box (including into the collapsed-search overlay).
