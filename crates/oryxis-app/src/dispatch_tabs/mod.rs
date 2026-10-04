@@ -87,6 +87,9 @@ impl Oryxis {
                 | TabsMessage::MoveTabToNewWindow(..)
                 | TabsMessage::DetachTabAt(..)
                 | TabsMessage::MoveTabToWindow(..)
+                | TabsMessage::ToplevelDragStarted { .. }
+                | TabsMessage::CarryHovered(..)
+                | TabsMessage::CarryReleased
             ) => self.handle_tabs_window(m),
             m @ (
                 TabsMessage::CardHovered(..)

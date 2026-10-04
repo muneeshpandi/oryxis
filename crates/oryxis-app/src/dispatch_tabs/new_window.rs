@@ -414,7 +414,29 @@ impl Oryxis {
                 .and_then(|(_, position)| *position)
         };
         let Some(origin) = holder_id.and_then(position_of) else {
-            return self.detach_tab_to_new_window(tab_id, None);
+            // No positions (Wayland): the app cannot put a window under
+            // the cursor, but the compositor can carry it if it has the
+            // protocol for that. Asked once the window is open; a "no"
+            // leaves the window where the compositor placed it.
+            let before: Vec<window::Id> = self.extra_windows.keys().copied().collect();
+            let open = self.detach_tab_to_new_window(tab_id, None);
+            let carried = self
+                .extra_windows
+                .keys()
+                .copied()
+                .find(|id| !before.contains(id));
+            let (Some(holder_id), Some(carried)) = (holder_id, carried) else {
+                return open;
+            };
+            return open.chain(
+                window::drag_toplevel(holder_id, carried, DROP_OFFSET).map(move |started| {
+                    Message::Tabs(TabsMessage::ToplevelDragStarted {
+                        started,
+                        window: carried,
+                        tab: tab_id,
+                    })
+                }),
+            );
         };
         let cursor = self.mouse_position;
         let at = Point::new(
@@ -446,8 +468,75 @@ impl Oryxis {
             holder,
             origin,
             docks,
+            native: false,
+            hover: None,
         });
         open
+    }
+
+    /// The compositor answered whether it carries the torn-off window.
+    pub(super) fn native_carry_started(&mut self, started: bool, window: window::Id, tab: Uuid) {
+        if !started || !self.extra_windows.contains_key(&window) {
+            return;
+        }
+        self.window_carry = Some(crate::window_ctx::WindowCarry {
+            window,
+            tab,
+            holder: self.window_ctx.as_ref().map(|c| c.id),
+            origin: Point::ORIGIN,
+            docks: Vec::new(),
+            native: true,
+            hover: None,
+        });
+    }
+
+    /// A window the compositor carries is over the current window at
+    /// `position`, or (`None`) just left it.
+    pub(super) fn native_carry_hovered(&mut self, position: Option<Point>) {
+        let here = self.window_ctx.as_ref().map(|c| c.id);
+        let Some(carry) = self.window_carry.as_mut().filter(|c| c.native) else {
+            return;
+        };
+        match position {
+            // The carried window takes no part in the drag, but be
+            // strict about it: a tab does not dock into its own window.
+            Some(position) if here != Some(carry.window) => {
+                carry.hover = Some((here, position));
+            }
+            Some(_) => {}
+            None => {
+                if carry.hover.is_some_and(|(window, _)| window == here) {
+                    carry.hover = None;
+                }
+            }
+        }
+    }
+
+    /// The compositor's carry ended. Over another window's strip the
+    /// tab docks there; anywhere else its window stays where it was let
+    /// go. Reported twice for a drop on a window (by that window and by
+    /// the one the drag started in): the second finds nothing to do.
+    pub(super) fn native_carry_released(&mut self) -> Task<Message> {
+        if !self.window_carry.as_ref().is_some_and(|c| c.native) {
+            return Task::none();
+        }
+        let Some(carry) = self.window_carry.take() else {
+            return Task::none();
+        };
+        let target = carry
+            .hover
+            .filter(|(_, position)| position.y <= DOCK_BAND)
+            .map(|(window, _)| window);
+        let Some(target) = target else {
+            return Task::none();
+        };
+        if !self.extra_windows.contains_key(&carry.window)
+            && self.window_ctx.as_ref().map(|c| c.id) != Some(carry.window)
+        {
+            return Task::none();
+        }
+        let (window, tab) = (carry.window, carry.tab);
+        self.run_in_window(Some(window), |s| s.move_tab_to_window(tab, target))
     }
 
     /// While a window is carried: put it under the cursor. `Some` when
@@ -455,7 +544,9 @@ impl Oryxis {
     /// button is held in).
     pub(super) fn carry_window_to_cursor(&mut self) -> Option<Task<Message>> {
         let carry = self.window_carry.as_ref()?;
-        if carry.holder != self.window_ctx.as_ref().map(|c| c.id) {
+        // A window the compositor carries needs no help, and the holder
+        // gets no pointer for it anyway.
+        if carry.native || carry.holder != self.window_ctx.as_ref().map(|c| c.id) {
             return None;
         }
         if !self.extra_windows.contains_key(&carry.window) {
@@ -478,7 +569,10 @@ impl Oryxis {
     /// carry was in flight for this window.
     pub(crate) fn finish_window_carry(&mut self) -> Option<Task<Message>> {
         let holder = self.window_ctx.as_ref().map(|c| c.id);
-        if self.window_carry.as_ref()?.holder != holder {
+        let carry = self.window_carry.as_ref()?;
+        // A compositor's carry ends with its own events
+        // (`native_carry_released`), not with a button release.
+        if carry.native || carry.holder != holder {
             return None;
         }
         let carry = self.window_carry.take()?;

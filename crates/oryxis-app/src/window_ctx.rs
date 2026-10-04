@@ -218,8 +218,10 @@ impl ExtraWindow {
 /// under the cursor, and on the release the cursor is tested against
 /// the tab strips of the other windows, where the tab docks.
 ///
-/// Needs window positions, which Wayland does not give: there no carry
-/// starts and the new window stays where the compositor put it.
+/// That needs window positions, which Wayland does not give. There the
+/// compositor carries the window itself when it offers
+/// `xdg-toplevel-drag` (`native`); without the protocol no carry starts
+/// and the new window stays where the compositor put it.
 #[derive(Debug, Clone)]
 pub(crate) struct WindowCarry {
     /// The window being carried.
@@ -233,6 +235,16 @@ pub(crate) struct WindowCarry {
     /// The screen rectangle of every OTHER window (the carried one
     /// excluded), as measured when the carry began: where it can dock.
     pub(crate) docks: Vec<(Option<window::Id>, iced::Rectangle)>,
+    /// The COMPOSITOR is carrying the window (Wayland's
+    /// `xdg-toplevel-drag`, `window::drag_toplevel`) instead of the app
+    /// moving it. The holder then receives no pointer at all for the
+    /// length of the drag, and the windows under the cursor report it
+    /// themselves (`hover`).
+    pub(crate) native: bool,
+    /// For a native carry: the window the carried one is over right
+    /// now (`None` is the resident one), and the cursor's position in
+    /// it.
+    pub(crate) hover: Option<(Option<window::Id>, Point)>,
 }
 
 /// Who holds the live SFTP buffer (`Oryxis::sftp`).

@@ -847,6 +847,11 @@ impl Oryxis {
             TabsMessage::DetachTabAt(id, positions) => {
                 return self.tear_off_tab(id, positions);
             }
+            TabsMessage::ToplevelDragStarted { started, window, tab } => {
+                self.native_carry_started(started, window, tab);
+            }
+            TabsMessage::CarryHovered(position) => self.native_carry_hovered(position),
+            TabsMessage::CarryReleased => return self.native_carry_released(),
             TabsMessage::MoveTabToWindow(id, target) => {
                 return self.move_tab_to_window(id, target);
             }

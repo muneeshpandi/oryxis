@@ -250,6 +250,20 @@ impl Oryxis {
                 iced::event::Event::Window(iced::window::Event::FileHovered(_)) => {
                     Some(Message::Sftp(SftpMessage::SftpFileHovered))
                 }
+                // A torn-off tab's window carried by the compositor
+                // (Wayland): the windows it passes over say where the
+                // cursor is, and its end comes from the window it was
+                // dropped on or from the one the drag started in.
+                iced::event::Event::Window(iced::window::Event::ToplevelDragMoved {
+                    position,
+                }) => Some(Message::Tabs(TabsMessage::CarryHovered(Some(position)))),
+                iced::event::Event::Window(iced::window::Event::ToplevelDragLeft) => {
+                    Some(Message::Tabs(TabsMessage::CarryHovered(None)))
+                }
+                iced::event::Event::Window(
+                    iced::window::Event::ToplevelDragDropped
+                    | iced::window::Event::ToplevelDragEnded,
+                ) => Some(Message::Tabs(TabsMessage::CarryReleased)),
                 iced::event::Event::Window(iced::window::Event::FilesHoveredLeft) => {
                     Some(Message::Sftp(SftpMessage::SftpFilesHoveredLeft))
                 }

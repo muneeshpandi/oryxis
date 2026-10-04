@@ -308,6 +308,20 @@ pub enum TabsMessage {
     /// positions): the new window opens under the cursor, is carried by
     /// it until the release, and can dock on another window's strip.
     DetachTabAt(uuid::Uuid, Vec<(iced::window::Id, Option<iced::Point>)>),
+    /// Whether the compositor took over carrying a torn-off tab's window
+    /// (`window::drag_toplevel`, Wayland only): the answer for the
+    /// window and the tab it was opened for.
+    ToplevelDragStarted {
+        started: bool,
+        window: iced::window::Id,
+        tab: uuid::Uuid,
+    },
+    /// A window carried by the compositor is over the window this came
+    /// from, at this position; `None` when it left.
+    CarryHovered(Option<iced::Point>),
+    /// The compositor's carry ended: dropped on the window this came
+    /// from, or let go anywhere (reported by the window it started in).
+    CarryReleased,
     /// Move a tab (terminal or SFTP, by strip id) into another open
     /// window (`None` is the resident one, see `window_ctx`).
     MoveTabToWindow(uuid::Uuid, Option<iced::window::Id>),
