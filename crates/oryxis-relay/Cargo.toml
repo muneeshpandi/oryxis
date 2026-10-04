@@ -31,7 +31,7 @@ hex = { workspace = true }
 # at all here. It used to ask for `rustls-tls`, which expands to
 # `__rustls-ring` and kept `ring` in the lock for a client that never speaks
 # TLS. Real deployments terminate TLS at the reverse proxy.
-reqwest = { version = "0.12", default-features = false, features = ["json"] }
+reqwest = { version = "0.13", default-features = false, features = ["json"] }
 # Not for the tests' own traffic: a workspace build unifies reqwest's
 # features, so the app's no-provider rustls lands in this build too and
 # `Client::new` needs a provider installed. See `tests::client`.

@@ -26,10 +26,9 @@ chacha20poly1305 = { workspace = true }
 sha2 = "0.11"
 hkdf = "0.13"
 subtle = "2"
-# No-provider webpki roots: `rustls-tls` expands to `__rustls-ring` and would
-# put a second crypto backend back in the tree. The provider is installed at
-# process start (`engine::start`, and `main` in the app).
-reqwest = { version = "0.12", features = ["json", "rustls-tls-webpki-roots-no-provider"], default-features = false }
+# Same TLS as the app: the OS verifies certificates, aws-lc-rs (the one
+# backend in the tree) does the crypto.
+reqwest = { version = "0.13", features = ["json", "rustls"], default-features = false }
 
 [dev-dependencies]
 tempfile = "3"

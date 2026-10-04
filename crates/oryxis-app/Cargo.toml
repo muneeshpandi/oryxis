@@ -133,13 +133,12 @@ ttf-parser = "0.25"
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
-# `rustls-tls` would pull its own `ring` in (the feature expands to
-# `__rustls-ring`), so take the same webpki roots without a provider and let
-# the aws-lc-rs one installed in `main` serve it.
-# Stays on 0.12 on purpose: 0.13 drops the bundled webpki roots and always
-# verifies through the OS trust store (rustls-platform-verifier), which is
-# a change in what the app trusts, not a version bump.
-reqwest = { version = "0.12", features = ["json", "rustls-tls-webpki-roots-no-provider", "stream"], default-features = false }
+# Certificates are verified by the OS (rustls-platform-verifier): the
+# system's roots, the ones a company or the user installed, and its
+# revocation checks, instead of a root list frozen into the binary. The
+# `rustls` feature brings aws-lc-rs, the backend russh already links, so
+# the build still carries one crypto provider.
+reqwest = { version = "0.13", features = ["json", "rustls", "stream"], default-features = false }
 # Async stream combinators, used by the AI streaming path to fold the
 # reqwest byte stream into provider-specific SSE chunks.
 futures-util = "0.3"
