@@ -429,6 +429,47 @@ fn sync_secret_unchanged_by_tuning() {
 }
 
 #[test]
+fn legacy_check_whose_salt_opens_with_the_format_tag_still_unlocks() {
+    // A legacy blob starts with its random salt, and the derived-key
+    // format starts with a tag byte: one legacy salt in 256 opens with
+    // that same byte. Built by hand so the salt is not left to chance.
+    use chacha20poly1305::aead::{Aead, KeyInit};
+    use chacha20poly1305::{ChaCha20Poly1305, Nonce};
+
+    let mut vault = temp_vault();
+    let pw = "legacy-pass";
+    let mut salt = [0x33u8; crate::store::SALT_LEN];
+    salt[0] = crate::store::FIELD_FORMAT_V2;
+    let nonce = [0x44u8; crate::store::NONCE_LEN];
+    let key = crate::store::derive_key(pw.as_bytes(), &salt).unwrap();
+    let ciphertext = ChaCha20Poly1305::new_from_slice(&key)
+        .unwrap()
+        .encrypt(&Nonce::from(nonce), b"oryxis_vault_ok".as_slice())
+        .unwrap();
+    let mut check = salt.to_vec();
+    check.extend_from_slice(&nonce);
+    check.extend_from_slice(&ciphertext);
+    // The hand-built blob is what `encrypt` writes: it opens the same way.
+    assert_eq!(decrypt(&check, pw.as_bytes()).unwrap(), b"oryxis_vault_ok");
+    vault
+        .db
+        .execute(
+            "INSERT INTO vault_meta (key, value) VALUES ('password_check', ?1)",
+            params![check],
+        )
+        .unwrap();
+
+    assert!(!vault.verify_password("not-it").unwrap());
+    assert!(vault.verify_password(pw).unwrap());
+    assert!(vault.unlock("not-it").is_err());
+    vault.unlock(pw).unwrap();
+
+    // Migrated: a second session unlocks through the current format.
+    vault.lock();
+    vault.unlock(pw).unwrap();
+}
+
+#[test]
 fn tuned_vault_key_matches_its_golden_vector() {
     // The vault master key with EXPLICIT parameters, the path a tuned
     // vault unlocks through. A fixed password, salt and parameter set

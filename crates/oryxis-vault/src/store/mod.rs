@@ -385,6 +385,21 @@ pub(crate) fn encrypt_with_key(plaintext: &[u8], key: &[u8]) -> Result<Vec<u8>, 
     Ok(result)
 }
 
+/// The plaintext the `password_check` row encrypts.
+const CHECK_PLAIN: &[u8] = b"oryxis_vault_ok";
+
+/// Whether a stored `password_check` is in the derived-key format.
+///
+/// The tag byte alone cannot say: a legacy blob opens with its random
+/// salt, and one salt in 256 starts with the same byte. The check value
+/// has a fixed plaintext, so its two formats have two fixed lengths (the
+/// legacy one carries a `SALT_LEN` salt where this one carries a tag),
+/// and the length settles it.
+fn check_is_derived_key_format(check: &[u8]) -> bool {
+    check.first() == Some(&FIELD_FORMAT_V2)
+        && check.len() == 1 + NONCE_LEN + CHECK_PLAIN.len() + 16
+}
+
 /// Decrypt data produced by `encrypt_with_key`.
 pub(crate) fn decrypt_with_key(data: &[u8], key: &[u8]) -> Result<Vec<u8>, VaultError> {
     if data.len() < 1 + NONCE_LEN + 16 || data[0] != FIELD_FORMAT_V2 {
@@ -581,7 +596,7 @@ impl VaultStore {
         let pw_bytes = password.as_bytes();
         let key = self.derive_vault_key(pw_bytes)?;
         // Store an encrypted known value so we can verify the password on unlock.
-        let check = encrypt_with_key(b"oryxis_vault_ok", &key)?;
+        let check = encrypt_with_key(CHECK_PLAIN, &key)?;
         self.db.execute(
             "INSERT INTO vault_meta (key, value) VALUES ('password_check', ?1)",
             params![check],
@@ -612,12 +627,12 @@ impl VaultStore {
             .map_err(|_| VaultError::Locked)?;
 
         let pw_bytes = password.as_bytes();
-        if check.first() == Some(&FIELD_FORMAT_V2) {
+        if check_is_derived_key_format(&check) {
             // Current format: one KDF over the vault salt, then the
             // check value verifies password + key in one shot.
             let key = self.derive_vault_key(pw_bytes)?;
             let plain = decrypt_with_key(&check, &key)?;
-            if plain != b"oryxis_vault_ok" {
+            if plain != CHECK_PLAIN {
                 return Err(VaultError::InvalidPassword);
             }
             self.master_key = Some(Zeroizing::new(key.to_vec()));
@@ -628,7 +643,7 @@ impl VaultStore {
             // pass per stored secret), after which every field
             // operation is microseconds.
             let plain = decrypt(&check, pw_bytes)?;
-            if plain != b"oryxis_vault_ok" {
+            if plain != CHECK_PLAIN {
                 return Err(VaultError::InvalidPassword);
             }
             let key = self.derive_vault_key(pw_bytes)?;
@@ -654,13 +669,13 @@ impl VaultStore {
             )
             .map_err(|_| VaultError::Locked)?;
         let pw_bytes = password.as_bytes();
-        let plain = if check.first() == Some(&FIELD_FORMAT_V2) {
+        let plain = if check_is_derived_key_format(&check) {
             let key = self.derive_vault_key(pw_bytes)?;
             decrypt_with_key(&check, &key)
         } else {
             decrypt(&check, pw_bytes)
         };
-        Ok(matches!(plain, Ok(p) if p == b"oryxis_vault_ok"))
+        Ok(matches!(plain, Ok(p) if p == CHECK_PLAIN))
     }
 
     /// Argon2id over the vault-level salt stored in `vault_meta`
@@ -755,7 +770,7 @@ impl VaultStore {
         self.db.execute_batch("BEGIN")?;
         let result = (|| -> Result<(), VaultError> {
             self.convert_all_fields(&dec, &enc, true)?;
-            let check = encrypt_with_key(b"oryxis_vault_ok", key)?;
+            let check = encrypt_with_key(CHECK_PLAIN, key)?;
             self.db.execute(
                 "INSERT OR REPLACE INTO vault_meta (key, value) VALUES ('password_check', ?1)",
                 params![check],
@@ -951,7 +966,7 @@ impl VaultStore {
             )?;
             self.write_kdf_params(params)?;
             self.re_encrypt_all(old_key, new_key)?;
-            let check = encrypt_with_key(b"oryxis_vault_ok", new_key)?;
+            let check = encrypt_with_key(CHECK_PLAIN, new_key)?;
             self.db.execute(
                 "INSERT OR REPLACE INTO vault_meta (key, value) VALUES ('password_check', ?1)",
                 params![check],
