@@ -105,8 +105,8 @@ rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", 
 # through a transitive default set.
 tokio-rustls = { version = "0.26", default-features = false, features = ["aws-lc-rs"] }
 webpki-roots = "1"
-rcgen = { version = "0.13", default-features = false, features = ["pem", "aws_lc_rs"] }
-mdns-sd = "0.20"
+rcgen = { version = "0.14", default-features = false, features = ["pem", "aws_lc_rs"] }
+mdns-sd = "0.21"
 x25519-dalek = { version = "3", features = ["static_secrets", "getrandom"] }
 ed25519-dalek = { version = "3", features = ["rand_core", "serde"] }
 rand = "0.8"
