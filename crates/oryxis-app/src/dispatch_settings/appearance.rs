@@ -128,7 +128,7 @@ impl Oryxis {
                     // so a listing in flight lands on a pane whose entry
                     // is gone and is dropped by `Listed`.
                     self.tmux_reset_all();
-                    self.hover.tmux_row = None;
+                    self.nav.hover.tmux_row = None;
                 }
             }
             SettingsMessage::SettingToggleMonitorAllHosts => {

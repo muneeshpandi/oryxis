@@ -136,12 +136,12 @@ impl Oryxis {
             }
             TmuxMessage::ConfirmKill(pane_id) => self.tmux_kill(pane_id),
             TmuxMessage::RowHovered(idx) => {
-                self.hover.tmux_row = Some(idx);
+                self.nav.hover.tmux_row = Some(idx);
                 Task::none()
             }
             TmuxMessage::RowExit(idx) => {
                 // Guarded clear: see `HoverState::leave`.
-                self.hover.leave_tmux_row(idx);
+                self.nav.hover.leave_tmux_row(idx);
                 Task::none()
             }
             TmuxMessage::ActionDone(pane_id, result) => {

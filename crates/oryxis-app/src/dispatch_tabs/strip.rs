@@ -21,7 +21,7 @@ impl Oryxis {
             // the cursor next shows its own X on arrival instead of
             // asking for another dwell (issue #186).
             TabsMessage::CloseTabFromStrip(idx) => {
-                self.hover.tab_close_click_at = Some(std::time::Instant::now());
+                self.nav.hover.tab_close_click_at = Some(std::time::Instant::now());
                 return self.handle_close_tab(idx);
             }
             // The Confirm* arms resolve the dialog's tab id to an index

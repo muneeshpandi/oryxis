@@ -12,7 +12,7 @@ impl Oryxis {
         group: &'a oryxis_core::models::SessionGroup,
     ) -> (Element<'a, Message>, Color) {
         let rtl = crate::i18n::is_rtl_layout();
-        let hovered = self.hover.session_group_card == Some(idx);
+        let hovered = self.cur_nav().hover.session_group_card == Some(idx);
         let bg_color = group
             .color
             .as_deref()

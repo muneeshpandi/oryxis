@@ -256,10 +256,10 @@ impl Oryxis {
                 self.panels.icon_picker = true;
             }
             SettingsMessage::LocalTerminalCardHovered(idx) => {
-                self.hover.local_terminal_card = Some(idx);
+                self.nav.hover.local_terminal_card = Some(idx);
             }
             SettingsMessage::LocalTerminalCardUnhovered(idx) => {
-                self.hover.leave_local_terminal_card(idx);
+                self.nav.hover.leave_local_terminal_card(idx);
             }
             SettingsMessage::LocalTerminalFormLabelChanged(v) => {
                 self.local_terminal_form.label = v;

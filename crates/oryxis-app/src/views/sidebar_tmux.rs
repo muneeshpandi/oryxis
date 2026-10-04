@@ -215,7 +215,7 @@ impl Oryxis {
         // Floating kill, revealed on hover so it reserves no inline
         // width (card-action convention).
         let mut stack = Stack::<iced::Element<'_, _>>::new().push(row_body.boxed());
-        if self.hover.tmux_row == Some(idx) {
+        if self.cur_nav().hover.tmux_row == Some(idx) {
             stack = stack.push(
                 container(crate::views::terminal::icon_tooltip(
                     button(

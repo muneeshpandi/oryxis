@@ -442,8 +442,8 @@ impl Oryxis {
     /// empty space at a folder nobody pointed at. Only the enters that
     /// arrive DURING the drag name a target.
     pub(crate) fn arm_card_drag(&mut self, id: Uuid) {
-        self.hover.folder_card = None;
-        self.hover.folder_back = false;
+        self.nav.hover.folder_card = None;
+        self.nav.hover.folder_back = false;
         // Through the visible order, like every other verb, so the drag
         // carries exactly the hosts the bar counts.
         let ids = if self.cur_nav().dash_selection.contains(id) {
@@ -476,7 +476,7 @@ impl Oryxis {
     /// the target and by the release to perform the drop, from the same
     /// inputs, so the two agree by construction. `None` = no target.
     pub(crate) fn card_drop_target(&self) -> Option<Option<Uuid>> {
-        if self.hover.folder_back {
+        if self.cur_nav().hover.folder_back {
             let open = self.cur_nav().active_group?;
             let parent = self.groups.iter().find(|g| g.id == open).and_then(|g| g.parent_id);
             return match parent.and_then(|pid| self.groups.iter().find(|g| g.id == pid)) {
@@ -489,7 +489,7 @@ impl Oryxis {
                 None => Some(None),
             };
         }
-        let gid = self.hover.folder_card?;
+        let gid = self.cur_nav().hover.folder_card?;
         self.groups
             .iter()
             .any(|g| g.id == gid && g.cloud_query.is_none())

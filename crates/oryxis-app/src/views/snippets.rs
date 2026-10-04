@@ -484,7 +484,7 @@ impl Oryxis {
             const SNIP_DOTS_SLOT_W: f32 = 22.0;
             // Keep the kebab mounted while its context menu is open, even
             // if the pointer drifts off the card, mirroring the host cards.
-            let show_dots = self.hover.snippet_card == Some(idx)
+            let show_dots = self.cur_nav().hover.snippet_card == Some(idx)
                 || self.snippet_context_menu == Some(idx)
                 || kb_selected;
             let edit_btn: Element<'_, Message> = if show_dots {

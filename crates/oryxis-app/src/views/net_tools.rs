@@ -242,7 +242,7 @@ impl Oryxis {
         // Floating, hover-revealed, in a Stack overlay: the card-action
         // convention, so the copy icon reserves no inline width and the
         // card content never shifts when the pointer arrives.
-        let overlay: Element<'a, Message> = if self.hover.net_tools_card == Some(idx) {
+        let overlay: Element<'a, Message> = if self.cur_nav().hover.net_tools_card == Some(idx) {
             // The TRAILING corner, which is the physical left one under
             // RTL. `dir_align_x` answers for the leading edge, so this is
             // its opposite rather than a second call to it; the padding

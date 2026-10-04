@@ -501,7 +501,7 @@ impl Oryxis {
         pos: usize,
     ) -> Element<'a, Message> {
         let c = OryxisColors::t();
-        let hovered = self.hover.files_row == Some(pos);
+        let hovered = self.cur_nav().hover.files_row == Some(pos);
 
         // A folder's ICON enters it on a single click (issue #143), the
         // dual-pane affordance; the rest of the row keeps single-click

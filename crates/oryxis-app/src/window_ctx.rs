@@ -96,6 +96,10 @@ impl Drop for ViewPass {
 /// reads the one of the window being drawn through `Oryxis::cur_nav`.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct WindowNav {
+    /// What the cursor is over (cards, chips, rows), for the
+    /// hover-revealed actions. Per window: the positions it names are
+    /// positions in this window's lists, and a cursor is over one window.
+    pub(crate) hover: crate::state::HoverState,
     pub(crate) active_group: Option<Uuid>,
     pub(crate) host_search: String,
     /// When set, the dashboard grid hides every host / group whose

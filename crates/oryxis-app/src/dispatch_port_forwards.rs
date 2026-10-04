@@ -420,10 +420,10 @@ impl Oryxis {
                 return self.handle_port_forward_agent_census(agents);
             }
             PortForwardMessage::PortForwardCardHovered(idx) => {
-                self.hover.port_forward_card = Some(idx);
+                self.nav.hover.port_forward_card = Some(idx);
             }
             PortForwardMessage::PortForwardCardUnhovered(idx) => {
-                self.hover.leave_port_forward_card(idx);
+                self.nav.hover.leave_port_forward_card(idx);
             }
             PortForwardMessage::PortForwardSearchChanged(v) => self.nav.port_forward_search = v,
         }

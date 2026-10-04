@@ -141,7 +141,7 @@ impl Oryxis {
             return false;
         }
         let (Some(dest_idx), Some(src_idx)) =
-            (self.hover.tab, self.tabs.iter().position(|t| t._id == src_id))
+            (self.cur_nav().hover.tab, self.tabs.iter().position(|t| t._id == src_id))
         else {
             return false;
         };

@@ -257,7 +257,7 @@ impl Oryxis {
                 // Always-mounted with a transparent glyph + no-hover bg
                 // when not active so the surrounding MouseArea sees
                 // stable child bounds (avoids hover event loop).
-                let show_dots = self.hover.cloud_card == Some(cp_id) || kb_selected;
+                let show_dots = self.cur_nav().hover.cloud_card == Some(cp_id) || kb_selected;
                 let rtl = crate::i18n::is_rtl_layout();
                 let pad_trailing = 30.0_f32;
                 let card_padding = if rtl {

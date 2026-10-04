@@ -1033,7 +1033,7 @@ impl Oryxis {
                 == viewable.map(crate::keynav::NavItem::HistoryLog);
         // Keyboard selection reuses the hover treatment (bg tint) plus
         // the shared ring below.
-        let hovered = (viewable.is_some() && viewable == self.hover.log_row) || kb_selected;
+        let hovered = (viewable.is_some() && viewable == self.cur_nav().hover.log_row) || kb_selected;
 
         // Trailing controls. Session rows: timestamp, then the shared
         // kebab (Export .cast / Export transcript / Delete live in its
@@ -1049,7 +1049,7 @@ impl Oryxis {
                 );
                 const LOG_DOTS_SLOT_W: f32 = 22.0;
                 let show_dots =
-                    (viewable.is_some() && viewable == self.hover.log_row)
+                    (viewable.is_some() && viewable == self.cur_nav().hover.log_row)
                         || menu_open
                         || kb_selected;
                 let kebab: Element<'_, Message> = if show_dots {
@@ -1086,7 +1086,7 @@ impl Oryxis {
                     Some(crate::state::OverlayContent::ChatConversationActions(i)) if *i == idx
                 );
                 const LOG_DOTS_SLOT_W: f32 = 22.0;
-                let show_dots = (viewable.is_some() && viewable == self.hover.log_row)
+                let show_dots = (viewable.is_some() && viewable == self.cur_nav().hover.log_row)
                     || menu_open
                     || kb_selected;
                 let kebab: Element<'_, Message> = if show_dots {

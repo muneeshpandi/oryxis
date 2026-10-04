@@ -389,10 +389,10 @@ impl Oryxis {
                 });
             }
             CloudMessage::DynamicGroupCardHovered(gid) => {
-                self.hover.dynamic_group_card = Some(gid);
+                self.nav.hover.dynamic_group_card = Some(gid);
             }
             CloudMessage::DynamicGroupCardUnhovered(id) => {
-                self.hover.leave_dynamic_group_card(id);
+                self.nav.hover.leave_dynamic_group_card(id);
             }
             m => return Err(m),
         }

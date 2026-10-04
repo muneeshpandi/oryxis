@@ -256,7 +256,7 @@ impl Oryxis {
                 // manual-folder cards. Edit + Delete via the overlay
                 // menu wired in `dispatch_cloud`.
                 const DG_DOTS_SLOT_W: f32 = 22.0;
-                let show_dots = self.hover.dynamic_group_card == Some(gid);
+                let show_dots = self.cur_nav().hover.dynamic_group_card == Some(gid);
                 let dyn_actions_btn: Element<'_, Message> = if show_dots {
                     crate::widgets::card_kebab_button(
                         OryxisColors::t().text_muted,
@@ -460,7 +460,7 @@ impl Oryxis {
                 );
 
                 const DG_DOTS_SLOT_W: f32 = 22.0;
-                let show_dots = self.hover.dynamic_group_card == Some(gid);
+                let show_dots = self.cur_nav().hover.dynamic_group_card == Some(gid);
                 let dyn_actions_btn: Element<'_, Message> = if show_dots {
                     crate::widgets::card_kebab_button(
                         OryxisColors::t().text_muted,
@@ -625,7 +625,7 @@ impl Oryxis {
         // group affordance that distinguishes folder cards from host
         // cards at a glance, issue #38 polish).
         let folder_rtl = crate::i18n::is_rtl_layout();
-        let folder_show_dots = self.hover.folder_card == Some(gid);
+        let folder_show_dots = self.cur_nav().hover.folder_card == Some(gid);
         // A host card dragged over this folder: the same inputs the
         // release reads (`card_drop_target`), so the fill promises
         // exactly the drop that will happen.

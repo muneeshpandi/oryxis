@@ -49,7 +49,7 @@ impl Oryxis {
             // this folder (issue #230): dropping on it moves the host
             // one level up, the only door out of a folder by drag.
             let back_drop = self.card_drag.as_ref().is_some_and(|d| d.active)
-                && self.hover.folder_back;
+                && self.cur_nav().hover.folder_back;
             let back_btn = button(
                 container(back_glyph.size(16).color(OryxisColors::t().text_primary))
                     .center_x(Length::Fixed(28.0))

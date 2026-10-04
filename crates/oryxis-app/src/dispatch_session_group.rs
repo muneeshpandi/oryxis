@@ -252,11 +252,11 @@ impl Oryxis {
             }
 
             SessionGroupMessage::SessionGroupCardHovered(idx) => {
-                self.hover.session_group_card = Some(idx);
+                self.nav.hover.session_group_card = Some(idx);
                 Task::none()
             }
             SessionGroupMessage::SessionGroupCardUnhovered(idx) => {
-                self.hover.leave_session_group_card(idx);
+                self.nav.hover.leave_session_group_card(idx);
                 Task::none()
             }
 

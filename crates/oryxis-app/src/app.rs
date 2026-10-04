@@ -756,7 +756,6 @@ pub struct Oryxis {
     /// See [`crate::state::SftpChrome`].
     pub(crate) sftp_chrome: crate::state::SftpChrome,
     pub(crate) prefs: crate::state::AppPrefs,
-    pub(crate) hover: crate::state::HoverState,
     pub(crate) sftp: crate::state::SftpState,
     /// Open SFTP browser tabs. Share the unified strip with terminal tabs.
     /// The active tab's live state is hoisted to `self.sftp`; inactive tabs

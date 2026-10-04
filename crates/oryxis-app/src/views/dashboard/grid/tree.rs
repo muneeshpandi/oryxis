@@ -427,7 +427,7 @@ impl Oryxis {
                 )
             };
         let icon_box = self.dash_tree_row_icon(folder_bg, &group.label, folder_glyph);
-        let hovered = self.hover.folder_card == Some(gid);
+        let hovered = self.cur_nav().hover.folder_card == Some(gid);
         let el = self.dash_tree_row(
             depth,
             TreeLead::Fold { expanded },
@@ -467,12 +467,12 @@ impl Oryxis {
         depth: usize,
     ) -> (Element<'a, Message>, Color) {
         let conn = &self.connections[idx];
-        let hovered = self.hover.card == Some(idx) || self.card_context_menu == Some(conn.id);
+        let hovered = self.cur_nav().hover.card == Some(idx) || self.card_context_menu == Some(conn.id);
         let dragging_this = self
             .card_drag
             .as_ref()
             .is_some_and(|d| d.active && d.ids.contains(&conn.id));
-        let display_label = if self.privacy_active(conn) && self.hover.card != Some(idx) {
+        let display_label = if self.privacy_active(conn) && self.cur_nav().hover.card != Some(idx) {
             crate::widgets::redact_for_display(
                 &conn.label,
                 privacy_terms,
@@ -489,7 +489,7 @@ impl Oryxis {
         let subtitle = if self.prefs.show_host_address {
             use oryxis_core::models::connection::ConnectionProtocol;
             let address = crate::util::host_address_label(conn, username.as_deref());
-            let address = if self.privacy_active(conn) && self.hover.card != Some(idx) {
+            let address = if self.privacy_active(conn) && self.cur_nav().hover.card != Some(idx) {
                 crate::widgets::mask_blocks(&address)
             } else {
                 address
@@ -668,7 +668,7 @@ impl Oryxis {
             self.overlay.as_ref().map(|o| &o.content),
             Some(crate::state::OverlayContent::SessionGroupActions(i)) if *i == idx
         );
-        let hovered = self.hover.session_group_card == Some(idx) || menu_open;
+        let hovered = self.cur_nav().hover.session_group_card == Some(idx) || menu_open;
         let el = self.dash_tree_row(
             depth,
             TreeLead::Drill,
@@ -727,7 +727,7 @@ impl Oryxis {
                 crate::os_icon::provider_icon(icon_id, OryxisColors::t().accent).1
             });
         let icon_box = self.dash_tree_row_icon(folder_bg, &group.label, folder_glyph);
-        let hovered = self.hover.dynamic_group_card == Some(gid);
+        let hovered = self.cur_nav().hover.dynamic_group_card == Some(gid);
         let el = self.dash_tree_row(
             depth,
             TreeLead::Drill,

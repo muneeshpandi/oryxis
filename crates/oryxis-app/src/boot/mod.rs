@@ -360,7 +360,6 @@ impl Oryxis {
                 split_menu_hovered: false,
                 active_tab: None,
                 last_terminal_tab: None,
-                hover: crate::state::HoverState::default(),
                 new_tab_picker_search: String::new(),
                 new_tab_picker_group: None,
                 tab_jump_search: String::new(),

@@ -47,7 +47,7 @@ impl Oryxis {
         let ctx = StripCtx {
             privacy_terms: self.privacy_terms(),
             close_on_right: self.prefs.tab_close_button_side == "right",
-            close_armed: self.hover.tab_close_armed,
+            close_armed: self.cur_nav().hover.tab_close_armed,
             compact_pins,
             solid_fill,
             dragging_any,

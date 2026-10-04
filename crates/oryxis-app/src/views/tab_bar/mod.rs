@@ -337,7 +337,7 @@ impl Oryxis {
         StripCtx {
             privacy_terms: self.privacy_terms(),
             close_on_right,
-            close_armed: self.hover.tab_close_armed,
+            close_armed: self.cur_nav().hover.tab_close_armed,
             compact_pins: self.prefs.pinned_tab_style == "compact",
             solid_fill: self.prefs.tab_fill_style == "solid"
                 || self.prefs.performance_mode,
@@ -610,7 +610,7 @@ impl Oryxis {
         let ctx = StripCtx {
             privacy_terms,
             close_on_right,
-            close_armed: self.hover.tab_close_armed,
+            close_armed: self.cur_nav().hover.tab_close_armed,
             compact_pins,
             solid_fill,
             dragging_any,

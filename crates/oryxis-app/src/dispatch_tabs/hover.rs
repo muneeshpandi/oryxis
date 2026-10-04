@@ -30,9 +30,9 @@ impl Oryxis {
     /// show their X unconditionally, because the episode counter is what
     /// retires the dwell of the chip the cursor just left.
     pub(crate) fn arm_tab_close_dwell(&mut self) -> Task<Message> {
-        let seq = self.hover.begin_tab_hover();
-        if closing_streak(self.hover.tab_close_click_at) {
-            self.hover.tab_close_armed = true;
+        let seq = self.nav.hover.begin_tab_hover();
+        if closing_streak(self.cur_nav().hover.tab_close_click_at) {
+            self.nav.hover.tab_close_armed = true;
             return Task::none();
         }
         Task::perform(
@@ -44,65 +44,65 @@ impl Oryxis {
     pub(super) fn handle_tabs_hover(&mut self, message: TabsMessage) -> Task<Message> {
         match message {
             TabsMessage::CardHovered(idx) => {
-                self.hover.card = Some(idx);
+                self.nav.hover.card = Some(idx);
             }
             TabsMessage::CardUnhovered(idx) => {
-                self.hover.leave_card(idx);
+                self.nav.hover.leave_card(idx);
             }
             TabsMessage::FolderCardHovered(gid) => {
-                self.hover.folder_card = Some(gid);
+                self.nav.hover.folder_card = Some(gid);
             }
             TabsMessage::FolderCardUnhovered(gid) => {
-                self.hover.leave_folder_card(gid);
+                self.nav.hover.leave_folder_card(gid);
             }
             TabsMessage::FolderBackHovered => {
-                self.hover.folder_back = true;
+                self.nav.hover.folder_back = true;
             }
             TabsMessage::FolderBackUnhovered => {
-                self.hover.folder_back = false;
+                self.nav.hover.folder_back = false;
             }
             TabsMessage::KeyCardHovered(idx) => {
-                self.hover.key_card = Some(idx);
+                self.nav.hover.key_card = Some(idx);
             }
             TabsMessage::KeyCardUnhovered(idx) => {
-                self.hover.leave_key_card(idx);
+                self.nav.hover.leave_key_card(idx);
             }
             TabsMessage::IdentityCardHovered(idx) => {
-                self.hover.identity_card = Some(idx);
+                self.nav.hover.identity_card = Some(idx);
             }
             TabsMessage::IdentityCardUnhovered(idx) => {
-                self.hover.leave_identity_card(idx);
+                self.nav.hover.leave_identity_card(idx);
             }
             TabsMessage::SnippetCardHovered(idx) => {
-                self.hover.snippet_card = Some(idx);
+                self.nav.hover.snippet_card = Some(idx);
             }
             TabsMessage::SnippetCardUnhovered(idx) => {
-                self.hover.leave_snippet_card(idx);
+                self.nav.hover.leave_snippet_card(idx);
             }
             TabsMessage::PanelTabHovered(kind) => {
-                self.hover.panel_tab = Some(kind);
+                self.nav.hover.panel_tab = Some(kind);
                 return self.arm_tab_close_dwell();
             }
             TabsMessage::PanelTabUnhovered(kind) => {
                 // Crossing from one chip to the next publishes the
                 // arriving chip's enter first, so the clear has to name
                 // the chip it is leaving (the card-action convention).
-                self.hover.leave_panel_tab(kind);
-                if !self.hover.any_tab_chip() {
-                    self.hover.tab_close_armed = false;
+                self.nav.hover.leave_panel_tab(kind);
+                if !self.cur_nav().hover.any_tab_chip() {
+                    self.nav.hover.tab_close_armed = false;
                 }
             }
             TabsMessage::TabCloseDwell(seq) => {
                 // Still the same hover episode, and a chip is still under
                 // the cursor: the pointer rested long enough to mean it.
-                if seq == self.hover.tab_hover_seq && self.hover.any_tab_chip() {
-                    self.hover.tab_close_armed = true;
+                if seq == self.cur_nav().hover.tab_hover_seq && self.cur_nav().hover.any_tab_chip() {
+                    self.nav.hover.tab_close_armed = true;
                 }
             }
             TabsMessage::TabHovered(idx) => {
-                self.hover.tab = Some(idx);
+                self.nav.hover.tab = Some(idx);
                 // Terminal / SFTP hover are mutually exclusive (one cursor).
-                self.hover.sftp_tab = None;
+                self.nav.hover.sftp_tab = None;
                 // Live-slide: while a drag is active, entering another tab in
                 // the same group slides the dragged tab into that slot right
                 // away. Stable because after the move the dragged tab sits
@@ -120,7 +120,7 @@ impl Oryxis {
                 return self.arm_tab_close_dwell();
             }
             TabsMessage::TabUnhovered(idx) => {
-                self.hover.leave_tab(idx);
+                self.nav.hover.leave_tab(idx);
             }
             // Routed here by the parent; anything else is a
             // grouping mistake, not a runtime case.

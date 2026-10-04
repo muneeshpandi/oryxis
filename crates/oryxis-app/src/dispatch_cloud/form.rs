@@ -432,10 +432,10 @@ impl Oryxis {
                 });
             }
             CloudMessage::CloudCardHovered(id) => {
-                self.hover.cloud_card = Some(id);
+                self.nav.hover.cloud_card = Some(id);
             }
             CloudMessage::CloudCardUnhovered(id) => {
-                self.hover.leave_cloud_card(id);
+                self.nav.hover.leave_cloud_card(id);
             }
             CloudMessage::CloudSearchChanged(v) => self.nav.cloud_search = v,
             CloudMessage::ShowCloudProviderPicker => {

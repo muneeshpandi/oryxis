@@ -408,7 +408,7 @@ impl Oryxis {
                 idx,
                 &snip.label,
                 &snip.command,
-                self.hover.snippet_card == Some(idx),
+                self.cur_nav().hover.snippet_card == Some(idx),
                 snip.install.then(|| {
                     install_host
                         .and_then(|h| self.install_runs.get(&(h, snip.id)).copied())
@@ -697,7 +697,7 @@ fn action_btn<'a>(
 /// One row in the Snippets tab. Label + a single ellipsized line of the
 /// command read inline; the Edit / Paste / Run actions float over the
 /// trailing edge and only appear on hover (see the card-icon convention
-/// in CLAUDE.md). `hovered` is `self.hover.snippet_card == Some(idx)`.
+/// in CLAUDE.md). `hovered` is `self.cur_nav().hover.snippet_card == Some(idx)`.
 fn snippet_row<'a>(
     idx: usize,
     label: &'a str,

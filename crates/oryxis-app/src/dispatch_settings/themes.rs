@@ -507,10 +507,10 @@ impl Oryxis {
                 self.theme_ui.color_popover = None;
             }
             SettingsMessage::ThemeCardHovered(idx) => {
-                self.hover.theme_card = Some(idx);
+                self.nav.hover.theme_card = Some(idx);
             }
             SettingsMessage::ThemeCardUnhovered(idx) => {
-                self.hover.leave_theme_card(idx);
+                self.nav.hover.leave_theme_card(idx);
             }
             SettingsMessage::ThemeEditorNew => {
                 // Seed from the active terminal palette so the user starts
@@ -644,10 +644,10 @@ impl Oryxis {
                 }
             }
             SettingsMessage::UiThemeCardHovered(idx) => {
-                self.hover.ui_theme_card = Some(idx);
+                self.nav.hover.ui_theme_card = Some(idx);
             }
             SettingsMessage::UiThemeCardUnhovered(idx) => {
-                self.hover.leave_ui_theme_card(idx);
+                self.nav.hover.leave_ui_theme_card(idx);
             }
             SettingsMessage::ThemeEditorEdit(idx) => {
                 if let Some(theme) = self.custom_terminal_themes.get(idx) {
@@ -730,10 +730,10 @@ impl Oryxis {
                 }
             }
             SettingsMessage::ThemeBuiltinCardHovered(idx) => {
-                self.hover.builtin_theme_card = Some(idx);
+                self.nav.hover.builtin_theme_card = Some(idx);
             }
             SettingsMessage::ThemeBuiltinCardUnhovered(idx) => {
-                self.hover.leave_builtin_theme_card(idx);
+                self.nav.hover.leave_builtin_theme_card(idx);
             }
             SettingsMessage::ThemeClone(idx) => {
                 if let Some(theme) = self.custom_terminal_themes.get(idx) {
@@ -863,10 +863,10 @@ impl Oryxis {
                 Err(e) => self.theme_ui.import_error = Some(e),
             },
             SettingsMessage::UiThemeBuiltinCardHovered(idx) => {
-                self.hover.builtin_ui_theme_card = Some(idx);
+                self.nav.hover.builtin_ui_theme_card = Some(idx);
             }
             SettingsMessage::UiThemeBuiltinCardUnhovered(idx) => {
-                self.hover.leave_builtin_ui_theme_card(idx);
+                self.nav.hover.leave_builtin_ui_theme_card(idx);
             }
             SettingsMessage::UiThemeClone(idx) => {
                 if let Some(theme) = self.custom_ui_themes.get(idx) {

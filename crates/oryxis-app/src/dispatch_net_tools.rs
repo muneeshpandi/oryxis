@@ -63,7 +63,7 @@ impl Oryxis {
                 ])
             }
             NetToolsMessage::ResultHovered(idx) => {
-                self.hover.net_tools_card = Some(idx);
+                self.nav.hover.net_tools_card = Some(idx);
                 Task::none()
             }
             NetToolsMessage::ResultUnhovered(idx) => {
@@ -71,7 +71,7 @@ impl Oryxis {
                 // arriving card's enter before the departing card's
                 // exit, so the clear has to name the card it is leaving
                 // (the card-action convention in CLAUDE.md).
-                self.hover.leave_net_tools_card(idx);
+                self.nav.hover.leave_net_tools_card(idx);
                 Task::none()
             }
         }

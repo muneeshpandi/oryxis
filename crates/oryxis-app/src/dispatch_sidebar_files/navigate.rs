@@ -19,10 +19,10 @@ impl Oryxis {
     ) -> Task<Message> {
         match message {
             SidebarFilesMessage::SidebarFilesRowHovered(idx) => {
-                self.hover.files_row = Some(idx);
+                self.nav.hover.files_row = Some(idx);
             }
             SidebarFilesMessage::SidebarFilesRowUnhovered(idx) => {
-                self.hover.leave_files_row(idx);
+                self.nav.hover.leave_files_row(idx);
             }
             SidebarFilesMessage::SidebarFilesSelectRow(path, is_dir) => {
                 // Single-click selects the row (highlight); double-click

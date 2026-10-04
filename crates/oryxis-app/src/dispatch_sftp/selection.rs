@@ -374,11 +374,11 @@ impl Oryxis {
                 }
                 let in_tab_strip = self.cursor_in_tab_strip();
                 if !in_tab_strip {
-                    self.hover.tab = None;
-                    self.hover.sftp_tab = None;
-                    self.hover.panel_tab = None;
+                    self.nav.hover.tab = None;
+                    self.nav.hover.sftp_tab = None;
+                    self.nav.hover.panel_tab = None;
                 }
-                if let Some(idx) = self.hover.tab.filter(|_| in_tab_strip)
+                if let Some(idx) = self.cur_nav().hover.tab.filter(|_| in_tab_strip)
                     && let Some(tab) = self.tabs.get(idx)
                 {
                     self.tab_drag = Some(crate::state::TabDrag {
@@ -386,7 +386,7 @@ impl Oryxis {
                         start: self.cur_mouse(),
                         active: false,
                     });
-                } else if let Some(idx) = self.hover.sftp_tab.filter(|_| in_tab_strip)
+                } else if let Some(idx) = self.cur_nav().hover.sftp_tab.filter(|_| in_tab_strip)
                     && let Some(tab) = self.sftp_tabs.get(idx)
                 {
                     // SFTP tabs arm the same unified reorder drag.
@@ -395,7 +395,7 @@ impl Oryxis {
                         start: self.cur_mouse(),
                         active: false,
                     });
-                } else if let Some(kind) = self.hover.panel_tab.filter(|_| in_tab_strip) {
+                } else if let Some(kind) = self.cur_nav().hover.panel_tab.filter(|_| in_tab_strip) {
                     // So do the panel tabs, under their synthetic ids
                     // (issue #120): the reorder machinery is uuid-keyed
                     // and `TabRef::strip_id` answers with the same value.
