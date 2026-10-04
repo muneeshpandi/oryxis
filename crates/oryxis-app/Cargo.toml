@@ -95,7 +95,7 @@ sha1 = "0.11"
 base64 = { workspace = true }
 # Plugin cache lives under the same `~/.oryxis` root the vault uses;
 # `dirs` resolves the home directory cross-platform.
-dirs = "6"
+dirs = "7"
 # Process-wide TLS crypto provider for rustls 0.23, the workspace
 # pins `ring`, but rustls 0.23 requires explicit `install_default()`
 # at startup before any TLS connection is opened. Without it the AWS
@@ -259,7 +259,7 @@ tauri-winrt-notification = "0.8"
 # advisory whose fix only lives in `glib 0.20`. Disable defaults and
 # keep only `common-controls-v6` (Windows menu styling) so the
 # vulnerable chain disappears from Cargo.lock for every target.
-tray-icon = { version = "0.24", default-features = false, features = ["common-controls-v6"] }
+tray-icon = { version = "0.26", default-features = false, features = ["muda-common-controls-v6"] }
 
 [dev-dependencies]
 # russh AgentClient drives the agent_server protocol tests (proves

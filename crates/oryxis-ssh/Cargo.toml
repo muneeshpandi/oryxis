@@ -27,7 +27,7 @@ encoding_rs = "0.8"
 unicode-width = "0.2"
 # X11 forwarding: `dirs` locates `~/.Xauthority`, `getrandom` mints the
 # fake MIT-MAGIC-COOKIE-1 announced to the remote in place of the real one.
-dirs = "6"
+dirs = "7"
 getrandom = "0.4"
 # `get -p` / `put -p` preserve modification times, and std has no way to
 # SET one. Already in the lock as a transitive, so this adds no weight.

@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 # Home-dir resolution for the well-known agent socket path
 # (`agent_paths`); tiny, already in the workspace tree via oryxis-app.
-dirs = "6"
+dirs = "7"
 serde = { workspace = true }
 serde_json = { workspace = true }
 uuid = { workspace = true }
