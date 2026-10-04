@@ -755,6 +755,74 @@ where
         }
     }
 
+    /// `windows` and `window <n> [at (x, y)]`: the emulated desktop.
+    ///
+    /// The emulator draws and instructs ONE window, the focused one. A
+    /// window the app opens takes the focus, the way it does on a
+    /// desktop; `window <n>` gives it to the n-th open window (1-based,
+    /// in the order they were opened), and `window <n> at (x, y)` moves
+    /// that window on the emulated screen, as a user dragging it would.
+    /// Both reach the app as the window events the shell would send.
+    ///
+    /// A held mouse button stays with the window it was pressed in: its
+    /// `move` and `release` are delivered there, in THAT window's
+    /// coordinates, even after another window took the focus. That is
+    /// what a real pointer does, and it is what lets a test drag a tab
+    /// out of one window and drop it on another.
+    fn window_command(&mut self, program: &P, list: bool, rest: &str) -> Result<String, String> {
+        let windows = self.emulator.windows();
+        if list {
+            let lines: Vec<String> = windows
+                .iter()
+                .enumerate()
+                .map(|(i, w)| {
+                    format!(
+                        "window {} @ ({:.0}, {:.0}) {:.0}x{:.0}{}",
+                        i + 1,
+                        w.position.x,
+                        w.position.y,
+                        w.size.width,
+                        w.size.height,
+                        if w.focused { " focused" } else { "" },
+                    )
+                })
+                .collect();
+            return Ok(lines.join("\n== "));
+        }
+        let (index, place) = match rest.split_once(char::is_whitespace) {
+            Some((index, place)) => (index, Some(place.trim())),
+            None => (rest, None),
+        };
+        let usage = "window wants an index, optionally a place: window 2 / window 2 at (40, 60)";
+        let n: usize = index.parse().map_err(|_| usage.to_owned())?;
+        let target = n
+            .checked_sub(1)
+            .and_then(|i| windows.get(i))
+            .ok_or_else(|| format!("no window {n} ({} open)", windows.len()))?;
+        match place {
+            None => {
+                self.emulator.focus(target.id);
+            }
+            Some(place) => {
+                let point = place
+                    .strip_prefix("at")
+                    .map(str::trim)
+                    .and_then(|p| p.strip_prefix('('))
+                    .and_then(|p| p.strip_suffix(')'))
+                    .and_then(|p| p.split_once(','))
+                    .and_then(|(x, y)| {
+                        Some(iced::Point::new(x.trim().parse().ok()?, y.trim().parse().ok()?))
+                    })
+                    .ok_or_else(|| usage.to_owned())?;
+                self.emulator.place(target.id, point);
+            }
+        }
+        // The window events are delivered through the subscriptions:
+        // let the app answer them before the next line runs.
+        self.settle(program, Duration::from_millis(60), Duration::from_secs(5));
+        Ok("ok".to_owned())
+    }
+
     /// The `clipboard` family, shared by the ctl / REPL front-end and the
     /// batch runner so a committed `.ice` behaves exactly like a live
     /// session:

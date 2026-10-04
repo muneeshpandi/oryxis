@@ -22,6 +22,7 @@ instructions: click [right] \"Text\"|#id|(x, y) / press / release / move <target
 harness:      screenshot [name] / texts / find \"Text\" / absent \"Text\" (assert)
               clipboard [primary] [\"text\"] / clipboard [primary] is \"text\" (assert)
               drop hover|leave / drop \"/local/path\" (synthesized OS drag-and-drop)
+              windows / window <n> (focus it) / window <n> at (x, y) (move it)
               wait <ms> / settle [idle_ms] / timeout <ms> / save <path.ice>
               reset [wipe] / status / help / quit
 responses:    == ok | == fail <instr> | == timeout | == shot <path> | == error <..>";
@@ -159,6 +160,10 @@ where
                 session.record(command);
                 out("ok".into());
             }
+            Err(reason) => out(format!("error {reason}")),
+        },
+        "windows" | "window" => match session.window_command(program, head == "windows", rest) {
+            Ok(line) => out(line),
             Err(reason) => out(format!("error {reason}")),
         },
         "clipboard" => match session.clipboard_command(rest) {

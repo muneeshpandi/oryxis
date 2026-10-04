@@ -287,6 +287,9 @@ where
                     }
                 }
             }
+            // The emulated desktop: which window is focused, and where
+            // each one sits (see `Session::window_command`).
+            "window" => session.window_command(program, false, rest).err(),
             "screenshot" => match session.screenshot(program, rest) {
                 Ok((path, _png)) => {
                     println!("== shot {}", path.display());

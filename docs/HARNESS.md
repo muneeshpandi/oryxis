@@ -122,6 +122,7 @@ Plus harness meta-commands:
 | `find "Text"` | like `texts`, filtered to matches |
 | `clipboard` / `clipboard "text"` | read / seed the emulated clipboard; `\n` / `\t` / `\"` / `\\` escapes decode, so multi-line content (PEM blocks) fits the line protocol |
 | `drop hover` / `drop leave` / `drop "/local/path"` | synthesized OS file drag-and-drop: the emulator has no OS to drag from, so these inject the exact messages the window subscription maps `FileHovered` / `FilesHoveredLeft` / `FileDropped` to; repeat `drop "path"` for a multi-file gesture (the app's own debounce coalesces them) |
+| `windows` / `window <n>` / `window <n> at (x, y)` | the emulated desktop: list the open windows, give the focus to the n-th (1-based, in opening order), or move it on the emulated screen. The emulator draws and instructs the FOCUSED window; a window the app opens takes the focus, and closing it hands the focus back to the previous one. A held mouse button stays with the window it was pressed in: its `move` and `release` are delivered there, in that window's coordinates, whichever window is focused |
 | `wait <ms>` | pump emulator events for a fixed duration |
 | `settle [idle_ms]` | pump until the event stream stays quiet (default 250 ms, 30 s cap) |
 | `timeout <ms>` | set the per-instruction completion timeout (default 20 s) |

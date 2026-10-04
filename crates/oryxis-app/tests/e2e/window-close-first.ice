@@ -5,13 +5,10 @@ mode: Zen
 # closed while another is open, and the app carries on in the other,
 # with its tabs untouched.
 #
-# The emulator draws ONE window, adopts the last one opened, and once
-# that one closes it draws under an id that names no window, which the
-# app treats as the first (resident) one. That is how this reaches the
-# first window while a second is still open: a third window is opened
-# and closed, which hands the emulator back to the first. Closing THAT
-# promotes the second window into its place, and the emulator, still on
-# an id that names no window, now shows the second window's strip.
+# The emulator draws the focused window. A window the app opens takes
+# the focus; `window 1` gives it back to the first one, which is then
+# closed with its own close button. The focus falls to the window that
+# is left, promoted into the first one's place.
 #
 # (19, 20) is the burger, (92, 20) the `+` of an empty strip, (1176, 20)
 # the window's close button.
@@ -52,14 +49,8 @@ type "second"
 type enter
 settle 300
 expect "second"
-# A third, only to be closed: the emulator comes back to the first.
-click right "second"
-settle 250
-click "Duplicate in New Window"
-settle 1200
-absent "second"
-click (1176, 20)
-settle 700
+# Back to the first window, which still shows only its own tab.
+window 1
 expect "first"
 absent "second"
 # Close the first window. The second one is what is left.
