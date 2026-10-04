@@ -428,5 +428,21 @@ fn sync_secret_unchanged_by_tuning() {
     );
 }
 
+#[test]
+fn tuned_vault_key_matches_its_golden_vector() {
+    // The vault master key with EXPLICIT parameters, the path a tuned
+    // vault unlocks through. A fixed password, salt and parameter set
+    // must derive the same 32 bytes on every argon2 release, or a vault
+    // written by one build stops unlocking on the next.
+    let key = crate::store::derive_key_with_params(
+        b"golden-passphrase",
+        &[0x5a; 16],
+        crate::store::KdfParams { m_kib: 32768, t: 3, p: 1 },
+    )
+    .unwrap();
+    let hex: String = key.iter().map(|b| format!("{b:02x}")).collect();
+    assert_eq!(hex, "391e2847d280581a34e35dcdaaaf3c3736a0f9ffe1fdcbafd04bbab49bde280b", "the tuned vault key moved");
+}
+
 // ── Connections CRUD ──
 
