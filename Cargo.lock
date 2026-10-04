@@ -10514,11 +10514,3 @@ dependencies = [
  "syn 3.0.6",
  "winnow",
 ]
-
-[[patch.unused]]
-name = "iced_beacon"
-version = "0.15.0-dev"
-
-[[patch.unused]]
-name = "iced_devtools"
-version = "0.15.0-dev"
