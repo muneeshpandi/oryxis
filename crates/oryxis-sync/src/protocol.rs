@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use wincode::{SchemaRead, SchemaWrite};
 use uuid::Uuid;
 
 /// Protocol version for wire compatibility.
@@ -81,7 +82,7 @@ use uuid::Uuid;
 pub const PROTOCOL_VERSION: u32 = 8;
 
 /// Entity types that can be synced.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, SchemaWrite, SchemaRead)]
 pub enum EntityType {
     Connection,
     SshKey,
@@ -197,7 +198,7 @@ impl EntityType {
 }
 
 /// Messages exchanged over QUIC streams.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SchemaWrite, SchemaRead)]
 pub enum SyncMessage {
     // Handshake. `auth_signature` is an Ed25519 signature over the QUIC
     // TLS RFC-5705 exporter (see `crypto::SESSION_EXPORTER_LABEL`). The
@@ -312,26 +313,28 @@ pub enum SyncMessage {
 }
 
 /// A single entry in a sync manifest.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SchemaWrite, SchemaRead)]
 pub struct ManifestEntry {
     pub entity_type: EntityType,
     pub entity_id: Uuid,
+    #[wincode(with = "WireTime")]
     pub updated_at: DateTime<Utc>,
     pub is_deleted: bool,
 }
 
 /// Reference to a record needed from the peer.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SchemaWrite, SchemaRead)]
 pub struct DeltaRef {
     pub entity_type: EntityType,
     pub entity_id: Uuid,
 }
 
 /// A complete record for syncing, with E2E encrypted payload.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, SchemaWrite, SchemaRead)]
 pub struct SyncRecord {
     pub entity_type: EntityType,
     pub entity_id: Uuid,
+    #[wincode(with = "WireTime")]
     pub updated_at: DateTime<Utc>,
     pub is_deleted: bool,
     /// E2E encrypted JSON payload (encrypted with shared secret).
@@ -468,10 +471,60 @@ pub struct SyncCloudProfile {
     pub secret_cleared: bool,
 }
 
+/// The wire encoding: bincode 1's layout (little-endian fixed-width
+/// integers, `u64` lengths, `u32` variant tags), which is wincode's default,
+/// with the preallocation cap raised to the largest frame an authenticated
+/// peer may send so a full `DeltaResponse` is never refused.
+type WireConfig = wincode::config::Configuration<
+    true,
+    { crate::transport::MAX_AUTHED_MESSAGE_BYTES },
+>;
+
+const WIRE: WireConfig = wincode::config::Configuration::new();
+
+/// A `DateTime<Utc>` on the wire as serde gave it to bincode: chrono's
+/// RFC 3339 string (`Z`, fraction only as long as it needs), as a
+/// length-prefixed string.
+pub struct WireTime;
+
+unsafe impl<C: wincode::config::Config> SchemaWrite<C> for WireTime {
+    type Src = DateTime<Utc>;
+
+    fn size_of(src: &Self::Src) -> wincode::WriteResult<usize> {
+        <String as SchemaWrite<C>>::size_of(&wire_time(src))
+    }
+
+    fn write(writer: impl wincode::io::Writer, src: &Self::Src) -> wincode::WriteResult<()> {
+        <String as SchemaWrite<C>>::write(writer, &wire_time(src))
+    }
+}
+
+unsafe impl<'de, C: wincode::config::Config> SchemaRead<'de, C> for WireTime {
+    type Dst = DateTime<Utc>;
+
+    fn read(
+        reader: impl wincode::io::Reader<'de>,
+        dst: &mut std::mem::MaybeUninit<Self::Dst>,
+    ) -> wincode::ReadResult<()> {
+        let text = <String as SchemaRead<'de, C>>::get(reader)?;
+        // chrono's serde reads a `DateTime<Utc>` with this same parse.
+        let time = text
+            .parse::<DateTime<Utc>>()
+            .map_err(|_| wincode::ReadError::Custom("timestamp is not RFC 3339"))?;
+        dst.write(time);
+        Ok(())
+    }
+}
+
+/// The string chrono's `Serialize` writes for a `DateTime<Utc>`.
+pub(crate) fn wire_time(time: &DateTime<Utc>) -> String {
+    time.to_rfc3339_opts(chrono::SecondsFormat::AutoSi, true)
+}
+
 /// Frame header for length-prefixed messages over QUIC streams.
-/// Format: [length: 4 bytes LE] [bincode data]
-pub fn encode_message(msg: &SyncMessage) -> Result<Vec<u8>, bincode::Error> {
-    let data = bincode::serialize(msg)?;
+/// Format: [length: 4 bytes LE] [encoded `SyncMessage`]
+pub fn encode_message(msg: &SyncMessage) -> Result<Vec<u8>, wincode::WriteError> {
+    let data = wincode::config::serialize(msg, WIRE)?;
     let len = (data.len() as u32).to_le_bytes();
     let mut frame = Vec::with_capacity(4 + data.len());
     frame.extend_from_slice(&len);
@@ -479,8 +532,8 @@ pub fn encode_message(msg: &SyncMessage) -> Result<Vec<u8>, bincode::Error> {
     Ok(frame)
 }
 
-pub fn decode_message(data: &[u8]) -> Result<SyncMessage, bincode::Error> {
-    bincode::deserialize(data)
+pub fn decode_message(data: &[u8]) -> Result<SyncMessage, wincode::ReadError> {
+    wincode::config::deserialize(data, WIRE)
 }
 
 #[cfg(test)]
@@ -893,7 +946,7 @@ mod tests {
         );
     }
 
-    /// `EntityType` rides the message ENVELOPE, and bincode encodes a
+    /// `EntityType` rides the message ENVELOPE, and the wire encodes a
     /// variant as a bare u32 index, so a peer that does not know an
     /// index fails to decode the whole message rather than skipping one
     /// entry. That makes every new variant a wire break, which is why
@@ -905,14 +958,14 @@ mod tests {
     /// that peers on the old version would go silently out of sync.
     #[test]
     fn a_new_entity_type_is_a_wire_break_and_needs_a_version_bump() {
-        let bytes = bincode::serialize(&EntityType::LoginScript).unwrap();
+        let bytes = wincode::config::serialize(&EntityType::LoginScript, WIRE).unwrap();
         assert_eq!(bytes, vec![10, 0, 0, 0], "variant index is the wire form");
-        let unknown = bincode::deserialize::<EntityType>(&[
+        let unknown = wincode::config::deserialize::<EntityType, _>(&[
             u8::try_from(EntityType::ALL.len()).unwrap(),
             0,
             0,
             0,
-        ]);
+        ], WIRE);
         assert!(
             unknown.is_err(),
             "an unknown variant index must fail loudly, not decode to something"

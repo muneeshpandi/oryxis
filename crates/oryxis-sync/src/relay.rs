@@ -3,7 +3,7 @@
 //! `oryxis-relay` binary, which serves the same API). Used as
 //! transport fallback when QUIC direct can't punch through NAT.
 //!
-//! Wire format is identical to the QUIC streams: bincode-encoded
+//! Wire format is identical to the QUIC streams: bincode-layout
 //! `SyncMessage` frames, sealed at the application layer by the
 //! pairing-derived ChaCha20-Poly1305 key (see `engine::collect_records`
 //! / `apply_records`). The relay sees opaque bytes only.

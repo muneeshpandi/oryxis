@@ -2,6 +2,8 @@ pub mod config;
 pub mod conflict;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod wire_golden;
 pub mod crypto;
 pub mod discovery;
 pub mod engine;
