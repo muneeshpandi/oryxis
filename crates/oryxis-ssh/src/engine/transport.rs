@@ -24,11 +24,11 @@ use std::sync::Arc;
 use russh::client;
 
 use super::net_quality::{NetQuality, NetQualitySnapshot};
-use super::ClientHandler;
+use super::{ClientHandler, SharedHandle};
 
 /// An authenticated SSH connection that sessions open channels on.
 pub struct SshTransport {
-    handle: Arc<tokio::sync::Mutex<client::Handle<ClientHandler>>>,
+    handle: SharedHandle,
     /// Rolling RTT / jitter / stall figures for this CONNECTION. One
     /// prober regardless of how many sessions ride it.
     net_quality: Arc<NetQuality>,
@@ -49,7 +49,7 @@ pub struct SshTransport {
 impl SshTransport {
     /// Wrap an authenticated handle and start its prober.
     pub(crate) fn new(handle: client::Handle<ClientHandler>) -> Arc<Self> {
-        let handle = Arc::new(tokio::sync::Mutex::new(handle));
+        let handle: SharedHandle = Arc::new(handle);
         let net_quality = Arc::new(NetQuality::new());
         let quality_task = super::net_quality::spawn_quality_probe(
             Arc::clone(&handle),
@@ -76,7 +76,7 @@ impl SshTransport {
 
     /// The shared handle, for opening another channel on this
     /// connection.
-    pub(crate) fn handle(&self) -> &Arc<tokio::sync::Mutex<client::Handle<ClientHandler>>> {
+    pub(crate) fn handle(&self) -> &SharedHandle {
         &self.handle
     }
 
@@ -128,8 +128,7 @@ impl SshTransport {
         if let Ok(rt) = tokio::runtime::Handle::try_current() {
             let handle = Arc::clone(&self.handle);
             rt.spawn(async move {
-                let h = handle.lock().await;
-                let _ = h
+                let _ = handle
                     .disconnect(russh::Disconnect::ByApplication, "session closed", "")
                     .await;
             });

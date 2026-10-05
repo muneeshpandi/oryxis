@@ -8,7 +8,15 @@ use super::*;
 /// Used between `establish_transport` and `do_authenticate` / `open_session`.
 pub struct SshHandle(pub(crate) client::Handle<ClientHandler>);
 
-pub(crate) type SharedHandle = Arc<tokio::sync::Mutex<client::Handle<ClientHandler>>>;
+/// An authenticated connection shared by every session, forward, SFTP
+/// client and probe riding it. No lock: past authentication every
+/// `Handle` method takes `&self` and waits on a reply channel of its own
+/// (a channel open on its confirmation, a global request on a oneshot),
+/// so concurrent callers never cross. A lock here would hold every caller
+/// across a server round trip, and a `direct-tcpip` open lasts as long as
+/// the SERVER's connect to its target: one unreachable destination behind
+/// a SOCKS proxy would stall every other request on the connection.
+pub(crate) type SharedHandle = Arc<client::Handle<ClientHandler>>;
 
 /// The routing table proper: (bind address, bind port) as requested via
 /// `tcpip_forward` -> the drain of the `-R` rule that owns that
@@ -105,22 +113,19 @@ pub(crate) fn spawn_port_forward_tasks(
                 let shared = Arc::clone(&shared);
                 let remote_host = remote_host.clone();
                 tokio::spawn(async move {
-                    let channel: russh::Channel<russh::client::Msg> = {
-                        let handle = shared.lock().await;
-                        match handle.channel_open_direct_tcpip(
-                            remote_host.clone(),
-                            remote_port as u32,
-                            "127.0.0.1",
-                            local_port as u32,
-                        ).await {
-                            Ok(ch) => ch,
-                            Err(e) => {
-                                tracing::error!(
-                                    "direct-tcpip to {}:{} failed: {}",
-                                    remote_host, remote_port, e
-                                );
-                                return;
-                            }
+                    let channel = match shared.channel_open_direct_tcpip(
+                        remote_host.clone(),
+                        remote_port as u32,
+                        "127.0.0.1",
+                        local_port as u32,
+                    ).await {
+                        Ok(ch) => ch,
+                        Err(e) => {
+                            tracing::error!(
+                                "direct-tcpip to {}:{} failed: {}",
+                                remote_host, remote_port, e
+                            );
+                            return;
                         }
                     };
 
@@ -174,14 +179,9 @@ pub struct ForwardSession {
 }
 
 impl ForwardSession {
-    /// Whether the underlying SSH connection is still up. Uses `try_lock` so
-    /// the liveness poll never blocks behind an in-flight bridge (a busy lock
-    /// means the connection is being used, i.e. alive).
+    /// Whether the underlying SSH connection is still up.
     pub fn is_alive(&self) -> bool {
-        match self.handle.try_lock() {
-            Ok(h) => !h.is_closed(),
-            Err(_) => true,
-        }
+        !self.handle.is_closed()
     }
 
     /// Stop the forward: signal cancellation to all tasks and, for `-R`,
@@ -190,8 +190,7 @@ impl ForwardSession {
         let _ = self.cancel_tx.send(true);
         self.remove_remote_route();
         if let Some((host, port)) = &self.remote_bind {
-            let handle = self.handle.lock().await;
-            let _ = handle.cancel_tcpip_forward(host.clone(), *port as u32).await;
+            let _ = self.handle.cancel_tcpip_forward(host.clone(), *port as u32).await;
         }
     }
 
@@ -256,14 +255,9 @@ pub struct ForwardConn {
 }
 
 impl ForwardConn {
-    /// Whether the underlying SSH connection is still up. Same `try_lock`
-    /// reasoning as `ForwardSession::is_alive`: a busy lock means the
-    /// connection is being used, i.e. alive.
+    /// Whether the underlying SSH connection is still up.
     pub fn is_alive(&self) -> bool {
-        match self.handle.try_lock() {
-            Ok(h) => !h.is_closed(),
-            Err(_) => true,
-        }
+        !self.handle.is_closed()
     }
 
     /// Attach one rule to this connection: bind its local listener
@@ -318,11 +312,10 @@ impl ForwardConn {
                 // Ask the server to listen on `listen_host:listen_port` and
                 // tunnel inbound connections back to us. A denied request
                 // (e.g. `AllowTcpForwarding no`) fails the toggle.
-                let requested = {
-                    let h = self.handle.lock().await;
-                    h.tcpip_forward(rule.listen_host.clone(), rule.listen_port as u32)
-                        .await
-                };
+                let requested = self
+                    .handle
+                    .tcpip_forward(rule.listen_host.clone(), rule.listen_port as u32)
+                    .await;
                 if let Err(e) = requested {
                     lock_routes(&self.remote_routes).remove(&key);
                     return Err(SshError::Channel(format!(
@@ -633,22 +626,19 @@ pub(crate) async fn bridge_direct_tcpip(
     src_port: u16,
     mut cancel: tokio::sync::watch::Receiver<bool>,
 ) {
-    let channel: russh::Channel<russh::client::Msg> = {
-        let handle = shared.lock().await;
-        match handle
-            .channel_open_direct_tcpip(
-                target_host.clone(),
-                target_port as u32,
-                "127.0.0.1",
-                src_port as u32,
-            )
-            .await
-        {
-            Ok(ch) => ch,
-            Err(e) => {
-                tracing::error!("direct-tcpip to {}:{} failed: {}", target_host, target_port, e);
-                return;
-            }
+    let channel = match shared
+        .channel_open_direct_tcpip(
+            target_host.clone(),
+            target_port as u32,
+            "127.0.0.1",
+            src_port as u32,
+        )
+        .await
+    {
+        Ok(ch) => ch,
+        Err(e) => {
+            tracing::error!("direct-tcpip to {}:{} failed: {}", target_host, target_port, e);
+            return;
         }
     };
 
@@ -831,17 +821,14 @@ pub(crate) async fn bridge_socks5(
         }
     };
 
-    let channel = {
-        let handle = shared.lock().await;
-        handle
-            .channel_open_direct_tcpip(
-                dest_host.clone(),
-                dest_port as u32,
-                "127.0.0.1",
-                src_port as u32,
-            )
-            .await
-    };
+    let channel = shared
+        .channel_open_direct_tcpip(
+            dest_host.clone(),
+            dest_port as u32,
+            "127.0.0.1",
+            src_port as u32,
+        )
+        .await;
     let channel = match channel {
         Ok(c) => c,
         Err(e) => {

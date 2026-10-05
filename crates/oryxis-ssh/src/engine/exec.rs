@@ -105,12 +105,10 @@ impl SshEngine {
         rows: u32,
         pf_listeners: Vec<(PortForward, tokio::net::TcpListener)>,
     ) -> Result<(SshSession, mpsc::UnboundedReceiver<Vec<u8>>), SshError> {
-        // Open session channel. The lock is held only while talking to
-        // the connection (channel open, and the terminfo probe below,
-        // which opens its own exec channel through this same borrow);
-        // everything after works on the channel and leaves the
-        // connection free for the other sessions riding it.
-        let handle = transport.handle().lock().await;
+        // Open session channel. Nothing here holds the connection: the
+        // other sessions and forwards riding it open their own channels
+        // meanwhile.
+        let handle = transport.handle();
         let channel = handle.channel_open_session().await
             .map_err(|e| SshError::Channel(format!("Failed to open session channel: {}", e)))?;
 
@@ -127,7 +125,7 @@ impl SshEngine {
         let mut term_fallback: Option<TermFallback> = None;
         let mut term = requested.to_string();
         if requested != DEFAULT_TERMINAL_TYPE {
-            match self.probe_terminfo(&handle, requested).await {
+            match self.probe_terminfo(handle, requested).await {
                 TermProbe::Fallback(used) => {
                     tracing::warn!(
                         "host lacks terminfo for {requested}, requesting PTY with {used}"
@@ -211,11 +209,6 @@ impl SshEngine {
         // Request shell
         channel.request_shell(false).await
             .map_err(|e| SshError::Channel(format!("Shell request failed: {}", e)))?;
-
-        // Everything past this point works on the CHANNEL, so the
-        // connection lock goes back: the port-forward tasks below (and
-        // any other session on this transport) need it.
-        drop(handle);
 
         // I/O bridging
         let (output_tx, output_rx) = mpsc::unbounded_channel::<Vec<u8>>();

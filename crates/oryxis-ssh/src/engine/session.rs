@@ -13,18 +13,15 @@ pub struct ExecResult {
 
 /// Open one exec side channel on the shared handle, run `command`, and
 /// collect bounded stdout. The body behind both [`SshSession::probe`]
-/// and [`MonitorConn::probe`](super::MonitorConn::probe): the handle
-/// lock is released as soon as the channel is open, so other tasks
-/// (SFTP, forwards) aren't blocked while the command runs.
+/// and [`MonitorConn::probe`](super::MonitorConn::probe). Other tasks
+/// on the connection (SFTP, forwards) are never blocked by it.
 pub(crate) async fn probe_on(
-    handle: &Arc<tokio::sync::Mutex<client::Handle<ClientHandler>>>,
+    handle: &SharedHandle,
     command: &str,
     timeout: std::time::Duration,
 ) -> Option<String> {
-    let handle = handle.lock().await;
     let mut channel = handle.channel_open_session().await.ok()?;
     channel.exec(true, command).await.ok()?;
-    drop(handle); // release so other tasks can use the shared handle
 
     // Hard cap on collected output: probe payloads are a few KB, and
     // the host side is untrusted, so an unbounded collect would let a
@@ -93,14 +90,13 @@ pub(crate) async fn cancelled(rx: &mut tokio::sync::watch::Receiver<bool>) {
 /// its own, and dropping a pending open mid-flight is what the timeout
 /// already does.
 ///
-/// The handle lock is released as soon as the channel is open, so other
-/// channels on the same connection are not blocked while the command
-/// runs. Output is capped (the host is untrusted), the loop reads until
+/// Other channels on the same connection are never blocked by this one,
+/// opening or running. Output is capped (the host is untrusted), the loop reads until
 /// the channel CLOSES rather than stopping at `Eof` because some
 /// servers deliver `ExitStatus` afterwards, and a server that closes
 /// without a status reports 255.
 pub(crate) async fn exec_capture_on(
-    handle: &Arc<tokio::sync::Mutex<client::Handle<ClientHandler>>>,
+    handle: &SharedHandle,
     command: &str,
     stdin: Option<Vec<u8>>,
     open_timeout: std::time::Duration,
@@ -108,7 +104,6 @@ pub(crate) async fn exec_capture_on(
     mut cancel: Option<tokio::sync::watch::Receiver<bool>>,
 ) -> Result<ExecResult, SshError> {
     let open = async {
-        let handle = handle.lock().await;
         let channel = handle
             .channel_open_session()
             .await
@@ -280,8 +275,9 @@ impl SshSession {
         let timeout = self.sftp_open_timeout;
         let handle_for_exec = Arc::clone(self.transport.handle());
         let inner = async {
-            let handle = self.transport.handle().lock().await;
-            let channel = handle
+            let channel = self
+                .transport
+                .handle()
                 .channel_open_session()
                 .await
                 .map_err(|e| SshError::Channel(format!("sftp channel open: {e}")))?;
@@ -376,9 +372,8 @@ impl SshSession {
     /// monitor batches its whole `/proc` read into one `sh -c` per tick,
     /// keeping the cost at a single channel round trip.
     ///
-    /// Nothing reaches the user's PTY, and the shared handle lock is
-    /// released as soon as the channel is open so other tasks (SFTP,
-    /// forwards) aren't blocked while the command runs. Returns `None` on
+    /// Nothing reaches the user's PTY, and other tasks on the connection
+    /// (SFTP, forwards) are never blocked by it. Returns `None` on
     /// any channel failure or if the command outlives `timeout`.
     pub async fn probe(
         &self,
@@ -507,10 +502,8 @@ impl SshSession {
     /// | "openbsd" | "netbsd")` or `None` on any parse / channel failure.
     pub async fn detect_os(&self) -> Option<String> {
         let cmd = "cat /etc/os-release 2>/dev/null; echo '---OXYXIS-SEP---'; uname -s";
-        let handle = self.transport.handle().lock().await;
-        let mut channel = handle.channel_open_session().await.ok()?;
+        let mut channel = self.transport.handle().channel_open_session().await.ok()?;
         channel.exec(true, cmd).await.ok()?;
-        drop(handle); // release so other tasks can use the shared handle
 
         let mut stdout = Vec::new();
         let collect = async {

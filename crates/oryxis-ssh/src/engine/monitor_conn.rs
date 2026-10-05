@@ -14,7 +14,7 @@ use super::*;
 /// A probe-only SSH connection: the shared authenticated handle plus a
 /// close latch. Cheap to clone via `Arc` at the call sites.
 pub struct MonitorConn {
-    handle: Arc<tokio::sync::Mutex<client::Handle<ClientHandler>>>,
+    handle: SharedHandle,
     /// Latched by [`close`](Self::close) so teardown runs exactly once
     /// even when both an explicit close and the `Drop` backstop fire.
     closed: std::sync::atomic::AtomicBool,
@@ -23,15 +23,14 @@ pub struct MonitorConn {
 impl MonitorConn {
     pub(crate) fn new(handle: client::Handle<ClientHandler>) -> Self {
         Self {
-            handle: Arc::new(tokio::sync::Mutex::new(handle)),
+            handle: Arc::new(handle),
             closed: std::sync::atomic::AtomicBool::new(false),
         }
     }
 
     /// Run a short, silent command and return its stdout. Same contract
     /// (and same implementation) as [`SshSession::probe`]: bounded
-    /// output, bounded time, the handle lock released as soon as the
-    /// channel is open.
+    /// output, bounded time, nothing else on the connection blocked.
     pub async fn probe(
         &self,
         command: &str,
@@ -78,11 +77,7 @@ impl MonitorConn {
         if self.closed.load(std::sync::atomic::Ordering::SeqCst) {
             return false;
         }
-        match self.handle.try_lock() {
-            Ok(handle) => !handle.is_closed(),
-            // A held lock means a probe is mid-open on a live handle.
-            Err(_) => true,
-        }
+        !self.handle.is_closed()
     }
 
     /// Tear the connection down and wait for the disconnect to go out.
@@ -95,8 +90,8 @@ impl MonitorConn {
         if self.closed.swap(true, Ordering::SeqCst) {
             return;
         }
-        let h = self.handle.lock().await;
-        let _ = h
+        let _ = self
+            .handle
             .disconnect(russh::Disconnect::ByApplication, "monitor closed", "")
             .await;
     }
@@ -112,8 +107,7 @@ impl MonitorConn {
         if let Ok(rt) = tokio::runtime::Handle::try_current() {
             let handle = Arc::clone(&self.handle);
             rt.spawn(async move {
-                let h = handle.lock().await;
-                let _ = h
+                let _ = handle
                     .disconnect(russh::Disconnect::ByApplication, "monitor closed", "")
                     .await;
             });

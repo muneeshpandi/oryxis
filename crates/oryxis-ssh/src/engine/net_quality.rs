@@ -45,17 +45,15 @@ const PROBE_WINDOW: usize = 20;
 /// is gone (the ping send errors) and is aborted by
 /// `SshSession::close` as a backstop.
 pub(crate) fn spawn_quality_probe(
-    handle: std::sync::Arc<tokio::sync::Mutex<russh::client::Handle<super::ClientHandler>>>,
+    handle: super::SharedHandle,
     quality: std::sync::Arc<NetQuality>,
 ) -> tokio::task::JoinHandle<()> {
     tokio::spawn(async move {
         loop {
             tokio::time::sleep(PROBE_INTERVAL).await;
-            // Time the ping under the shared-handle lock so a concurrent
-            // channel open can't queue behind it mid-measurement; the
-            // lock is held for one round trip (PROBE_TIMEOUT at worst).
+            // The shared handle has no lock, so the ping queues behind
+            // nothing on this side: what it times is the round trip.
             let outcome = {
-                let handle = handle.lock().await;
                 let start = Instant::now();
                 match tokio::time::timeout(PROBE_TIMEOUT, handle.send_ping()).await {
                     Ok(Ok(())) => Some(start.elapsed()),

@@ -297,6 +297,31 @@ impl russh::server::Handler for SshHarness {
         Ok(())
     }
 
+    /// A `direct-tcpip` open to [`UNREACHABLE_TARGET`] is parked like a
+    /// stalled session open: what a server looks like while its own
+    /// connect to a host that drops SYNs is still pending (minutes, on a
+    /// real sshd). Any other target is accepted, and the channel kept
+    /// open for as long as the server runs.
+    #[allow(clippy::too_many_arguments)]
+    async fn channel_open_direct_tcpip(
+        &mut self,
+        channel: Channel<Msg>,
+        host_to_connect: &str,
+        _port_to_connect: u32,
+        _originator_address: &str,
+        _originator_port: u32,
+        reply: russh::server::ChannelOpenHandle,
+        _session: &mut Session,
+    ) -> Result<(), russh::Error> {
+        if host_to_connect == UNREACHABLE_TARGET {
+            self.parked.push(reply);
+            return Ok(());
+        }
+        reply.accept().await;
+        self.channels.lock().await.insert(channel.id(), channel);
+        Ok(())
+    }
+
     async fn subsystem_request(
         &mut self,
         channel_id: ChannelId,
@@ -324,6 +349,9 @@ impl russh::server::Handler for SshHarness {
     }
 }
 
+/// The `direct-tcpip` target the harness server never answers for.
+const UNREACHABLE_TARGET: &str = "unreachable.invalid";
+
 // ---------------------------------------------------------------------------
 // Harness entry point
 // ---------------------------------------------------------------------------
@@ -339,6 +367,27 @@ async fn connect_in_memory() -> (SftpClient, SharedFs) {
 /// answering new session channel opens (the sftp channel is already
 /// open by then, so the client stays usable for everything else).
 async fn connect_in_memory_stallable() -> (SftpClient, SharedFs, Arc<std::sync::atomic::AtomicBool>) {
+    let (shared, fs, stall_opens) = connect_handle_in_memory().await;
+
+    // Open the sftp subsystem the same way `engine::open_sftp` does.
+    let timeout = std::time::Duration::from_secs(10);
+    let session = {
+        let channel = shared.channel_open_session().await.expect("channel_open_session");
+        channel
+            .request_subsystem(true, "sftp")
+            .await
+            .expect("request_subsystem");
+        russh_sftp::client::SftpSession::new(channel.into_stream())
+            .await
+            .expect("SftpSession::new")
+    };
+    let client = SftpClient::new(session, shared, timeout);
+    (client, fs, stall_opens)
+}
+
+/// The authenticated connection itself, before any channel: what a
+/// forward rides.
+async fn connect_handle_in_memory() -> (SharedHandle, SharedFs, Arc<std::sync::atomic::AtomicBool>) {
     use russh::keys::PrivateKey;
 
     let fs: SharedFs = Arc::new(Mutex::new(Fs::default()));
@@ -377,23 +426,7 @@ async fn connect_in_memory_stallable() -> (SftpClient, SharedFs, Arc<std::sync::
         .await
         .expect("authenticate_password");
     assert!(auth.success(), "harness auth rejected");
-
-    // Open the sftp subsystem the same way `engine::open_sftp` does.
-    let timeout = std::time::Duration::from_secs(10);
-    let shared: SharedHandle = Arc::new(Mutex::new(handle));
-    let session = {
-        let h = shared.lock().await;
-        let channel = h.channel_open_session().await.expect("channel_open_session");
-        channel
-            .request_subsystem(true, "sftp")
-            .await
-            .expect("request_subsystem");
-        russh_sftp::client::SftpSession::new(channel.into_stream())
-            .await
-            .expect("SftpSession::new")
-    };
-    let client = SftpClient::new(session, shared, timeout);
-    (client, fs, stall_opens)
+    (Arc::new(handle), fs, stall_opens)
 }
 
 // ---------------------------------------------------------------------------
@@ -1012,4 +1045,58 @@ async fn harness_exec_timeout_bounds_an_unanswered_channel_open() {
         "an unanswered open reads as a timeout"
     );
     assert!(started.elapsed() < std::time::Duration::from_secs(5));
+}
+
+/// One SOCKS5 CONNECT by domain name, returning the reply code.
+async fn socks5_connect(port: u16, host: &str) -> u8 {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    let mut s = tokio::net::TcpStream::connect(("127.0.0.1", port))
+        .await
+        .expect("connect to socks listener");
+    s.write_all(&[0x05, 0x01, 0x00]).await.expect("greeting");
+    let mut method = [0u8; 2];
+    s.read_exact(&mut method).await.expect("method reply");
+    let mut req = vec![0x05, 0x01, 0x00, 0x03, host.len() as u8];
+    req.extend_from_slice(host.as_bytes());
+    req.extend_from_slice(&443u16.to_be_bytes());
+    s.write_all(&req).await.expect("connect request");
+    let mut reply = [0u8; 10];
+    s.read_exact(&mut reply).await.expect("connect reply");
+    reply[1]
+}
+
+/// A SOCKS request whose destination the server is still trying to
+/// reach must not hold up the others on the same connection (issue
+/// #246): a browser behind `-D` sends dozens at once, and one host that
+/// drops SYNs used to stall every page until the server gave up on it.
+#[tokio::test]
+async fn harness_socks_request_is_not_held_up_by_an_unanswered_one() {
+    let (shared, _fs, _) = connect_handle_in_memory().await;
+    let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
+        .await
+        .expect("bind socks listener");
+    let port = listener.local_addr().expect("listener addr").port();
+    let (cancel_tx, cancel_rx) = tokio::sync::watch::channel(false);
+    let _task = crate::engine::spawn_dynamic_forward_task(
+        listener,
+        Arc::clone(&shared),
+        port,
+        cancel_rx,
+    );
+
+    let stuck = tokio::spawn(socks5_connect(port, UNREACHABLE_TARGET));
+    // Let the unanswered open reach the server first.
+    tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+    let reply = tokio::time::timeout(
+        std::time::Duration::from_secs(5),
+        socks5_connect(port, "reachable.invalid"),
+    )
+    .await
+    .expect("a reachable target answers while another open is pending");
+    assert_eq!(reply, 0x00, "the reachable target is granted");
+    assert!(!stuck.is_finished(), "the unreachable target is still pending");
+    assert!(!shared.is_closed(), "the connection reads as alive");
+
+    stuck.abort();
+    let _ = cancel_tx.send(true);
 }

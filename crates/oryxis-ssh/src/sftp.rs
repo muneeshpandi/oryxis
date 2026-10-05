@@ -2015,8 +2015,8 @@ impl SftpClient {
         let timeout = self.open_timeout;
         let handle_for_new = self.handle.clone();
         let inner = async {
-            let handle = self.handle.lock().await;
-            let channel = handle
+            let channel = self
+                .handle
                 .channel_open_session()
                 .await
                 .map_err(|e| SshError::Channel(format!("sftp sibling channel: {e}")))?;
@@ -2062,8 +2062,8 @@ impl SftpClient {
         let timeout = self.open_timeout;
         let op_secs = self.current_op_timeout().as_secs().max(10);
         let inner = async {
-            let handle = self.handle.lock().await;
-            let channel = handle
+            let channel = self
+                .handle
                 .channel_open_session()
                 .await
                 .map_err(|e| SshError::Channel(format!("sftp raw channel: {e}")))?;
@@ -2197,10 +2197,6 @@ impl SftpClient {
         // cut. The open and the exec request share the budget with the
         // run, so `limit` is the most the caller ever waits.
         let deadline = limit.map(|l| (tokio::time::Instant::now() + l, l));
-        // The handle lock covers the OPEN only: a channel is independent
-        // of the guard once granted, and holding it for the whole run
-        // would stall every other channel open on this connection behind
-        // one slow command.
         // The OPEN and the exec REQUEST are two bounded steps, not one
         // future, so a deadline that lands between them still has the
         // granted channel in hand to close: dropped inside a timed-out
@@ -2208,8 +2204,7 @@ impl SftpClient {
         // went. A deadline during the open itself has nothing granted to
         // close.
         let open = async {
-            let handle = self.handle.lock().await;
-            handle
+            self.handle
                 .channel_open_session()
                 .await
                 .map_err(|e| SshError::Channel(format!("exec channel open: {e}")))

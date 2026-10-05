@@ -260,7 +260,7 @@ impl SshEngine {
         let mut handle = self.establish_transport(connection, resolver).await?;
         self.do_authenticate(&mut handle, connection, password, key_material)
             .await?;
-        let shared = Arc::new(tokio::sync::Mutex::new(handle.0));
+        let shared: SharedHandle = Arc::new(handle.0);
 
         // Port 0 -> the OS picks a free port; read it back from the bound
         // listener before spawning, so what we return is what's bound.
@@ -325,7 +325,7 @@ impl SshEngine {
         self.do_authenticate(&mut handle, connection, password, key_material)
             .await?;
         Ok(ForwardConn {
-            handle: Arc::new(tokio::sync::Mutex::new(handle.0)),
+            handle: Arc::new(handle.0),
             remote_routes: routes,
         })
     }
