@@ -21,6 +21,17 @@
 //! lookup found nothing, and the test failed claiming gpu-allocator had
 //! no `windows` dependency at all. Both spellings mean the same thing
 //! and both have to resolve.
+//!
+//! The second invariant is the `windows-sys` line. The lock carries two
+//! of them and only the newest is compiled into a release build: the
+//! older one is held by a package that asks for it exactly and is
+//! never compiled (see `PINNED_TO_OLD_WINDOWS_SYS`).
+//! Many other packages accept a range that spans both (`errno` and
+//! `rustix` take `>=0.52, <0.62`), so for them the lock's edge is a
+//! preference and nothing more, and any pass of the resolver, a
+//! `cargo update -p <anything>` included, is free to move them onto the
+//! older line. Every gate stays green when that happens; the Windows
+//! build just compiles `windows-sys` twice from then on.
 
 use std::path::Path;
 
@@ -111,4 +122,105 @@ fn package_versions(lock: &str, package: &str) -> Vec<String> {
         }
     }
     versions
+}
+
+/// Packages that ask for the older `windows-sys` line by an exact
+/// requirement, so no resolution can move them, and that never put it
+/// in a build of the app:
+///
+/// - `ring` wants `0.52` on aarch64 Windows only, and nothing compiles
+///   it: the workspace is on aws-lc-rs, tests included. It stays in the
+///   lock through quinn-proto's wasm-only dependency.
+///
+/// Before adding a name here, check that it is the same case:
+/// `cargo tree --target x86_64-pc-windows-msvc -i windows-sys@<old>`
+/// has to stay empty, and the same for aarch64.
+const PINNED_TO_OLD_WINDOWS_SYS: &[&str] = &["ring"];
+
+#[test]
+fn windows_sys_edges_stay_on_the_newest_line() {
+    let lock_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Cargo.lock");
+    let lock = std::fs::read_to_string(&lock_path).expect("read workspace Cargo.lock");
+
+    let versions = package_versions(&lock, "windows-sys");
+    assert!(
+        !versions.is_empty(),
+        "windows-sys not found in Cargo.lock; if it left the graph, delete this test"
+    );
+    // With a single version in the lock every edge is a bare
+    // `windows-sys` and there is nothing to drift onto.
+    let newest = versions
+        .iter()
+        .max_by_key(|v| version_key(v))
+        .expect("checked non-empty");
+
+    let strays: Vec<String> = lock_packages(&lock)
+        .into_iter()
+        .filter(|package| !PINNED_TO_OLD_WINDOWS_SYS.contains(&package.name.as_str()))
+        .flat_map(|package| {
+            let LockPackage { name, version, deps } = package;
+            deps.into_iter()
+                .filter_map(move |dep| {
+                    let resolved = dep.strip_prefix("windows-sys ")?;
+                    (resolved != newest).then(|| format!("{name} {version} -> windows-sys {resolved}"))
+                })
+        })
+        .collect();
+
+    assert!(
+        strays.is_empty(),
+        "these packages resolved onto an older windows-sys than {newest}, \
+         which makes the Windows build compile it twice: {strays:#?}. A \
+         resolver pass re-decided edges the change never asked about \
+         (`cargo update -p` does that). Restore Cargo.lock and make the \
+         change by editing the lock by hand (a fork is re-pinned by \
+         rewriting its revision), then validate with `--locked`."
+    );
+}
+
+/// One `[[package]]` block of Cargo.lock.
+struct LockPackage {
+    name: String,
+    version: String,
+    deps: Vec<String>,
+}
+
+/// Every package block in Cargo.lock, with its dependency lines.
+fn lock_packages(lock: &str) -> Vec<LockPackage> {
+    let mut packages: Vec<LockPackage> = Vec::new();
+    for line in lock.lines() {
+        let line = line.trim();
+        if line == "[[package]]" {
+            packages.push(LockPackage {
+                name: String::new(),
+                version: String::new(),
+                deps: Vec::new(),
+            });
+            continue;
+        }
+        let Some(package) = packages.last_mut() else {
+            continue;
+        };
+        if let Some(name) = quoted_value(line, "name = ") {
+            package.name = name.to_owned();
+        } else if let Some(version) = quoted_value(line, "version = ") {
+            package.version = version.to_owned();
+        } else if let Some(dep) = line.strip_prefix('"').and_then(|l| l.strip_suffix("\",")) {
+            package.deps.push(dep.to_owned());
+        }
+    }
+    packages
+}
+
+/// The text between the quotes of a `key = "value"` line.
+fn quoted_value<'a>(line: &'a str, key: &str) -> Option<&'a str> {
+    line.strip_prefix(key)?.strip_prefix('"')?.strip_suffix('"')
+}
+
+/// A version's numeric components, for ordering `0.9.0` below `0.61.2`.
+fn version_key(version: &str) -> Vec<u64> {
+    version
+        .split(['.', '-', '+'])
+        .map_while(|part| part.parse().ok())
+        .collect()
 }

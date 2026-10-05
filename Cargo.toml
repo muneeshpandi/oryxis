@@ -51,7 +51,11 @@ repository = "https://github.com/wilsonglasser/oryxis"
 # `text-selection + monitor-position` merged into one tree so the app
 # can use both upstream-bound features at once. Each underlying branch
 # stays clean for its own PR.
-iced = { git = "https://github.com/wilsonglasser/iced", branch = "oryxis", features = ["canvas", "tokio", "advanced", "image", "svg", "markdown", "highlighter"] }
+# The default set is spelled out to leave `linux-theme-detection` off: it
+# reports the desktop's light / dark preference, which nothing here reads
+# (the app always hands iced a theme of its own), and it is what brought
+# `mundy`, and through its build script `android-build`, into the tree.
+iced = { git = "https://github.com/wilsonglasser/iced", branch = "oryxis", default-features = false, features = ["wgpu", "tiny-skia", "crisp", "web-colors", "thread-pool", "x11", "wayland", "wayland-dlopen", "wayland-decorations", "canvas", "tokio", "advanced", "image", "svg", "markdown", "highlighter"] }
 
 # SSH
 # `des` enables 3des-cbc, needed for the per-host legacy-cipher override

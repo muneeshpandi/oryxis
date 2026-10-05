@@ -71,8 +71,11 @@ libc = "0.2"
 rand010 = { package = "rand", version = "0.10", features = ["thread_rng"] }
 # Spin up an ephemeral OpenSSH container per test for hermetic SFTP /
 # SSH integration coverage, no real credentials, no shared state, no
-# need for a running daemon on the dev machine.
-testcontainers = "0.28"
+# need for a running daemon on the dev machine. Its default feature is
+# `ring`, which a workspace test build would unify into rustls for every
+# crate; it talks to the Docker daemon with the provider the rest of the
+# tree already links.
+testcontainers = { version = "0.28", default-features = false, features = ["aws-lc-rs"] }
 # Real files on disk for the agent-presence fingerprint test (it asserts
 # on existence, so a fixture path has to actually exist).
 tempfile = "3"
