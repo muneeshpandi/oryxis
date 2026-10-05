@@ -336,6 +336,11 @@ pub fn default_bindings() -> HotkeyMap {
     // so it fires from inside a live terminal, where a dropped session
     // is actually noticed.
     put(&mut m, ReconnectTab, primary_ctrl, true, false, primary_logo, Char('r'));
+    // Ctrl+Shift+D (Cmd+Shift+D on macOS): Windows Terminal's
+    // duplicate-tab chord, the only terminal that ships one. It used to
+    // be the side-by-side split; that moved to Windows Terminal's own
+    // split chords below so the two keep the convention together.
+    put(&mut m, DuplicateTab, primary_ctrl, true, false, primary_logo, Char('d'));
     // Keychain pair on Ctrl+Shift (Cmd+Shift on macOS): Shift lifts
     // both out of the terminal control-sequence gate; K mirrors the
     // key mnemonic (exact-modifier matching keeps it clear of the
@@ -403,13 +408,40 @@ pub fn default_bindings() -> HotkeyMap {
         ],
     );
     put(&mut m, FontZoomReset, primary_ctrl, false, false, primary_logo, Char('0'));
-    // Terminal split panes. Ctrl+Shift (Cmd+Shift on macOS): Shift lifts
-    // these out of the terminal control-sequence gate and the directional
-    // arrows out of cursor-key reach. Vertical split is on D ("divide")
-    // because Ctrl+Shift+E is the OpenSftp binding above; O keeps the
-    // GNOME Terminal stacked-split convention.
-    put(&mut m, SplitPaneVertical, primary_ctrl, true, false, primary_logo, Char('d'));
-    put(&mut m, SplitPaneHorizontal, primary_ctrl, true, false, primary_logo, Char('o'));
+    // Terminal split panes. Off macOS, Windows Terminal's chords:
+    // Alt+Shift+Plus side by side, Alt+Shift+Minus stacked. Matching
+    // reads the key WITHOUT modifiers, so "Plus" on a US / ABNT row is
+    // Shift+`=` and is bound as `=`; the bare `+` chord covers layouts
+    // with a `+` key of its own (German, Nordic) and the numpad. Plain
+    // Ctrl+D could never be the split: it is EOF, and the terminal
+    // control-sequence gate rightly leaves it with the PTY. Ctrl+Shift+O
+    // (the GNOME Terminal / Terminator stacked split, this binding's
+    // factory chord before the move) stays as the stacked alternate.
+    //
+    // macOS takes iTerm2's Cmd+D: Cmd sends no control byte, so the
+    // bare chord is free there. iTerm2's stacked Cmd+Shift+D is
+    // `DuplicateTab` above, so the stacked split keeps Cmd+Shift+O.
+    if mac {
+        put(&mut m, SplitPaneVertical, false, false, false, true, Char('d'));
+        put(&mut m, SplitPaneHorizontal, false, true, false, true, Char('o'));
+    } else {
+        put_many(
+            &mut m,
+            SplitPaneVertical,
+            &[
+                (false, true, true, false, Punct("=")),
+                (false, true, true, false, Punct("+")),
+            ],
+        );
+        put_many(
+            &mut m,
+            SplitPaneHorizontal,
+            &[
+                (false, true, true, false, Punct("-")),
+                (true, true, false, false, Char('o')),
+            ],
+        );
+    }
     put(&mut m, FocusPaneLeft, primary_ctrl, true, false, primary_logo, Named(keyboard::key::Named::ArrowLeft));
     put(&mut m, FocusPaneRight, primary_ctrl, true, false, primary_logo, Named(keyboard::key::Named::ArrowRight));
     put(&mut m, FocusPaneUp, primary_ctrl, true, false, primary_logo, Named(keyboard::key::Named::ArrowUp));

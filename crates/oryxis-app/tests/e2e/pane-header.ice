@@ -35,7 +35,11 @@ expect "Local Shell"
 timeout 800
 click "Local Shell"
 settle 900
-type ctrl+shift+d
+type ctrl+shift+p
+settle 400
+type "split side by side"
+settle 400
+type enter
 settle 800
 click "Local Shell"
 settle 1200

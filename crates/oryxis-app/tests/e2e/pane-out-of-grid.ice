@@ -43,7 +43,11 @@ expect "Local Shell"
 timeout 800
 click "Local Shell"
 settle 900
-type ctrl+shift+d
+type ctrl+shift+p
+settle 400
+type "split side by side"
+settle 400
+type enter
 settle 800
 click "Local Shell"
 settle 1200
@@ -90,7 +94,11 @@ absent "Broadcast"
 expect "Session ended"
 # Header menu: right-click on the pane's NAME raises its whole menu,
 # whatever the terminal does with a right-click.
-type ctrl+shift+d
+type ctrl+shift+p
+settle 400
+type "split side by side"
+settle 400
+type enter
 settle 600
 click "Local Shell"
 settle 1200
@@ -107,7 +115,11 @@ settle 900
 absent "Broadcast"
 expect "Session ended"
 # The header button, on the same pane after one more split.
-type ctrl+shift+d
+type ctrl+shift+p
+settle 400
+type "split side by side"
+settle 400
+type enter
 settle 600
 click "Local Shell"
 settle 1200

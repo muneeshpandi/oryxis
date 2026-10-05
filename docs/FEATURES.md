@@ -895,10 +895,11 @@ the app's own actions sit on `Ctrl+Shift`.
 | `Ctrl+Shift+W` | Close tab |
 | `Ctrl+Shift+Y` | Reopen the last closed tab |
 | `Ctrl+Shift+R` | Reconnect the active tab |
+| `Ctrl+Shift+D` | Duplicate the active tab |
 | `Ctrl+Shift+F` | Toggle Files mode on an SSH tab |
 | `Ctrl+Shift+S` | Open the active tab's SFTP console, or switch between it and the shell |
 | `Ctrl+Shift+Z` | Maximize / restore the focused pane |
-| `Ctrl+Shift+D` / `Ctrl+Shift+O` | Split the tab side by side / stacked |
+| `Alt+Shift++` / `Alt+Shift+-` | Split the tab side by side / stacked (`Cmd+D` / `Cmd+Shift+O` on macOS) |
 | `Ctrl+Alt+P` | Move the focused pane into a tab of its own |
 | `Ctrl+Shift+H` | Focus the terminal sidebar |
 | `Ctrl+Shift+P` | Command palette |

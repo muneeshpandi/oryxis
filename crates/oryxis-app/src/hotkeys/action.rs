@@ -135,6 +135,11 @@ pub enum HotkeyAction {
     /// "restart this host"), same handler either way. Terminal-only:
     /// there is no focused tab to reconnect anywhere else.
     ReconnectTab,
+    /// Open a second session like the focused tab's: the tab context
+    /// menu's "Duplicate Tab" entry on a chord, same handler (so the
+    /// copy lands where `duplicate_tab_position` says). Terminal-only,
+    /// like `ReconnectTab`: there is no focused tab to copy elsewhere.
+    DuplicateTab,
     /// Open/close the OTHER sidebar region: the counterpart of
     /// whatever `ToggleSidebar` targets right now. Only meaningful
     /// with tabs docked to both sides (issue #102); no-op otherwise,
@@ -162,6 +167,7 @@ impl HotkeyAction {
             NewKey,
             NewIdentity,
             ReconnectTab,
+            DuplicateTab,
             CloseActiveTab,
             OpenPortForwards,
             OpenSettings,
@@ -244,6 +250,7 @@ impl HotkeyAction {
             NewHost => "new_host",
             ShowQuickConnect => "show_quick_connect",
             ReconnectTab => "reconnect_tab",
+            DuplicateTab => "duplicate_tab",
             NewKey => "new_key",
             NewIdentity => "new_identity",
             TerminalCopy => "terminal_copy",
@@ -304,6 +311,7 @@ impl HotkeyAction {
             ShowQuickConnect => "quick_connect",
             // Reuses the tab context menu's entry label, same pattern.
             ReconnectTab => "reconnect",
+            DuplicateTab => "duplicate_tab",
             NewKey => "import_key",
             NewIdentity => "new_identity",
             // Reuse the terminal context-menu labels (already
@@ -342,6 +350,7 @@ impl HotkeyAction {
                 | ToggleTabFiles
                 | ToggleBroadcastInput
                 | ReconnectTab
+                | DuplicateTab
                 | TerminalCopy
                 | TerminalPaste
                 | TerminalPasteSelection

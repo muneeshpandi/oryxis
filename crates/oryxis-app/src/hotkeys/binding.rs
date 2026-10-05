@@ -459,11 +459,21 @@ impl HotkeyBinding {
         let mut shift = false;
         let mut alt = false;
         let mut logo = false;
-        let parts: Vec<&str> = s.split('+').collect();
-        let (mods, primary_str) = parts.split_at(parts.len().saturating_sub(1));
-        let primary_str = primary_str.first()?;
-        for m in mods {
-            match *m {
+        // The separator is also a bindable primary, so a trailing `++`
+        // (`shift+alt++`) is "modifiers, then the `+` key"; a plain
+        // split would leave an empty primary and drop the row.
+        let (mods, primary_str) = if let Some(head) = s.strip_suffix("++") {
+            (Some(head), "+")
+        } else if s == "+" {
+            (None, "+")
+        } else {
+            match s.rsplit_once('+') {
+                Some((head, primary)) => (Some(head), primary),
+                None => (None, s),
+            }
+        };
+        for m in mods.into_iter().flat_map(|h| h.split('+')) {
+            match m {
                 "ctrl" => ctrl = true,
                 "shift" => shift = true,
                 "alt" => alt = true,
@@ -471,12 +481,12 @@ impl HotkeyBinding {
                 _ => return None,
             }
         }
-        let primary = match *primary_str {
+        let primary = match primary_str {
             "digit" => PrimaryKey::Digit1to9,
             "arrows" => PrimaryKey::ArrowLeftRight,
             "," | "." | ";" | "=" | "-" | "+" | "/" | "\\" | "[" | "]" => {
                 // Static slice lookup keeps the &'static str alive.
-                match *primary_str {
+                match primary_str {
                     "," => PrimaryKey::Punct(","),
                     "." => PrimaryKey::Punct("."),
                     ";" => PrimaryKey::Punct(";"),
@@ -895,6 +905,20 @@ mod tests {
             b.match_event(&Key::Character("k".into()), &Modifiers::CTRL),
             Some(FamilyMatch::Plain)
         );
+    }
+
+    /// `+` is both the chord separator and a bindable primary, so a
+    /// chord ending in it must still round-trip (Alt+Shift+Plus is the
+    /// side-by-side split off macOS).
+    #[test]
+    fn plus_primary_round_trips() {
+        for (ctrl, shift, alt) in [(false, false, false), (true, false, false), (false, true, true)] {
+            let b = HotkeyBinding { ctrl, shift, alt, logo: false, primary: PrimaryKey::Punct("+") };
+            let s = b.serialize();
+            assert_eq!(HotkeyBinding::parse(&s), Some(b), "{s}");
+        }
+        assert_eq!(HotkeyBinding::parse("ctrl+"), None);
+        assert_eq!(HotkeyBinding::parse("ctrl+shift+n").map(|b| b.primary), Some(PrimaryKey::Char('n')));
     }
 
     #[test]

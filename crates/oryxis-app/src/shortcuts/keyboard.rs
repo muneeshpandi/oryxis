@@ -670,6 +670,13 @@ impl Oryxis {
                 Some(idx) => Task::done(Message::Tabs(TabsMessage::ReconnectTab(idx))),
                 None => Task::none(),
             },
+            // Duplicate the focused tab: the tab context menu's handler,
+            // so the chord and the menu open the same copy in the same
+            // slot.
+            DuplicateTab => match self.cur_active_tab() {
+                Some(idx) => Task::done(Message::Tabs(TabsMessage::DuplicateTab(idx))),
+                None => Task::none(),
+            },
             // Privacy Mode session override (issue #78): volatile
             // forced-on/off above the global setting and the per-host
             // overrides; global, works from any surface.
