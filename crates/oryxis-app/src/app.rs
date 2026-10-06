@@ -791,9 +791,22 @@ pub struct Oryxis {
     /// A window being carried by a tab drag that left its strip (see
     /// `window_ctx::WindowCarry`).
     pub(crate) window_carry: Option<crate::window_ctx::WindowCarry>,
+    /// A tab drag that just left its window, waiting for the windows'
+    /// positions: the tab and the press point in that window. A release
+    /// before the answer clears it, and the answer then starts no carry.
+    pub(crate) tear_off_pending: Option<(uuid::Uuid, iced::Point)>,
+    /// The last-drawn rectangle of every strip chip, by tab id, in its
+    /// window's coordinates. A tab carried over another window's strip
+    /// takes its slot from them: that window gets no pointer while the
+    /// button is held elsewhere, so no chip there can report a hover.
+    pub(crate) strip_chip_bounds:
+        std::cell::RefCell<std::collections::HashMap<uuid::Uuid, crate::widgets::BoundsCell>>,
     /// Extra windows to close at the end of this update: closed by the
     /// user, or left empty by a move.
     pub(crate) windows_closing: Vec<iced::window::Id>,
+    /// Windows a carry hid and left hidden (its release never came), to
+    /// show again at the end of this update.
+    pub(crate) windows_revealing: Vec<iced::window::Id>,
     /// The window the side panel (host editor, key import, the other
     /// drawers) was opened in; `None` is the resident one. There is one
     /// form behind each drawer, so it is drawn in one window.

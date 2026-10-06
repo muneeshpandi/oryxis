@@ -149,7 +149,7 @@ impl Oryxis {
             .boxed();
 
         let mut leading: Vec<Element<'_, Message>> = vec![
-            burger_menu_btn(self.panels.burger_menu),
+            burger_menu_btn(self.cur_burger_open()),
             Space::new().width(1).height(TAB_HEIGHT).boxed(),
         ];
         if side {
@@ -206,7 +206,7 @@ impl Oryxis {
                 &ctx.privacy_terms,
             )
         {
-            let gx = (self.cur_mouse().x - ghost_w / 2.0).max(0.0);
+            let gx = (self.strip_cursor().x - ghost_w / 2.0).max(0.0);
             let positioned: Element<'_, Message> = iced::widget::Column::<iced::Element<'_, _>>::new()
                 .push(Space::new().height(7.0).boxed())
                 .push(
@@ -341,7 +341,7 @@ impl Oryxis {
             compact_pins: self.prefs.pinned_tab_style == "compact",
             solid_fill: self.prefs.tab_fill_style == "solid"
                 || self.prefs.performance_mode,
-            dragging_any: self.tab_drag.map(|d| d.active).unwrap_or(false),
+            dragging_any: self.strip_drag_id().is_some(),
             drag_uniform_w: max_inactive_content.clamp(TAB_MIN_WIDTH, TAB_NATURAL_WIDTH),
             uniform_w: None,
             session_widths,
@@ -595,7 +595,7 @@ impl Oryxis {
         // the strip geometry is uniform. The active-vs-inactive width
         // difference otherwise shifts positions on each live-slide swap and
         // bounces the dragged tab back and forth over a seam.
-        let dragging_any = self.tab_drag.map(|d| d.active).unwrap_or(false);
+        let dragging_any = self.strip_drag_id().is_some();
         // One terms pass for the whole strip: Privacy Mode redacts the
         // rendered tab labels (issue #78) and must not rebuild the
         // hostname list per tab.
@@ -724,7 +724,7 @@ impl Oryxis {
             // vault destination + global actions. Leading breathing space is
             // the burger button's own left padding (not a margin), so the gap
             // is part of its clickable / hover area.
-            leading.push(burger_menu_btn(self.panels.burger_menu));
+            leading.push(burger_menu_btn(self.cur_burger_open()));
             // 1 px breather between the burger and the first area tab (home).
             leading.push(Space::new().width(1).height(TAB_HEIGHT).boxed());
         } else {
@@ -814,7 +814,7 @@ impl Oryxis {
             .then(|| self.strip_drag_ghost_el(drag_uniform_w, compact_pins, &ctx.privacy_terms))
             .flatten();
         if let Some((ghost, ghost_w)) = drag_ghost_el {
-            let gx = (self.cur_mouse().x - ghost_w / 2.0).max(0.0);
+            let gx = (self.strip_cursor().x - ghost_w / 2.0).max(0.0);
             let positioned: Element<'_, Message> = iced::widget::Column::<iced::Element<'_, _>>::new()
                 .push(Space::new().height(7.0).boxed())
                 .push(
@@ -933,6 +933,14 @@ impl Oryxis {
         let mut order: Vec<StripEntry> = Vec::new();
         order.extend(self.cur_tab_order().iter().filter(|r| pinned_of(r)).filter_map(to_entry));
         order.extend(self.cur_tab_order().iter().filter(|r| !pinned_of(r)).filter_map(to_entry));
+        // A tab carried from another window over this strip takes the
+        // slot it would dock into, where it draws as the drag gap.
+        if let Some((tab, hover)) = self.carry_hover_here()
+            && let Some(entry) = self.ref_of_tab(tab).as_ref().and_then(to_entry)
+            && !order.contains(&entry)
+        {
+            order.insert(hover.slot.min(order.len()), entry);
+        }
         order
     }
 

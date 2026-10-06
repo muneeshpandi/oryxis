@@ -88,7 +88,7 @@ impl Oryxis {
             ));
             header_items.push(Space::new().width(8).boxed());
             let menu_open = matches!(
-                self.overlay.as_ref().map(|o| &o.content),
+                self.cur_overlay().map(|o| &o.content),
                 Some(crate::state::OverlayContent::SessionLogViewerActions(i)) if *i == idx
             );
             let kebab = super::history::viewer_header_btn(

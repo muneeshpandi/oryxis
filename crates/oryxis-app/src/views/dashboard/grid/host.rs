@@ -125,8 +125,8 @@ impl Oryxis {
         // surrounding MouseArea sees stable child bounds, no hover
         // event loop) and just toggles its glyph color + hover bg.
         let show_dots = self.cur_nav().hover.card == Some(idx)
-            || (self.card_context_menu.is_some()
-                && self.card_context_menu == self.connections.get(idx).map(|c| c.id));
+            || (self.cur_card_context_menu().is_some()
+                && self.cur_card_context_menu() == self.connections.get(idx).map(|c| c.id));
         // Multi-selection (issue #230): the card wears the selected
         // fill and accent border whenever it is in the selection, and its
         // leading check appears ONLY while the multi-select mode is on.

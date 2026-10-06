@@ -34,7 +34,7 @@ impl Oryxis {
     pub(crate) fn cursor_in_tab_strip(&self) -> bool {
         crate::views::tab_bar::cursor_in_tab_strip_band(
             crate::views::tab_bar::tab_bar_pos(),
-            self.cur_mouse(),
+            self.strip_cursor(),
             self.cur_window_size(),
             self.prefs.pinned_tabs_top_bar && !self.top_bar_hidden(),
         )

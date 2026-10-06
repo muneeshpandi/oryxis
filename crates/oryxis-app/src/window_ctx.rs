@@ -207,16 +207,19 @@ impl ExtraWindow {
     }
 }
 
-/// A window being carried by the mouse: the one a tab was just dragged
-/// out into, with the button still down.
+/// A window being carried by the mouse, with the button still down:
+/// the one a tab was just dragged out into, or the window itself when
+/// the dragged tab was the only one in it.
 ///
-/// The button was pressed in another window (the HOLDER), and the
-/// system keeps delivering the pointer to the window a press began in,
-/// so the holder goes on receiving the moves and, in the end, the
-/// release, in ITS coordinates. Its position on the screen turns those
-/// into screen coordinates: on each move the carried window is put
-/// under the cursor, and on the release the cursor is tested against
-/// the tab strips of the other windows, where the tab docks.
+/// The button was pressed in the HOLDER, and the system keeps
+/// delivering the pointer to the window a press began in, so the holder
+/// goes on receiving the moves and, in the end, the release, in ITS
+/// coordinates. Its position on the screen turns those into screen
+/// coordinates. On each move the cursor is tested against the tab
+/// strips of the other windows: over one, the carried window is hidden
+/// and that strip shows the tab as a ghost at the slot it would take
+/// (`hover`); anywhere else the carried window is shown and put under
+/// the cursor. The release over a strip docks the tab at that slot.
 ///
 /// That needs window positions, which Wayland does not give. There the
 /// compositor carries the window itself when it offers
@@ -226,12 +229,20 @@ impl ExtraWindow {
 pub(crate) struct WindowCarry {
     /// The window being carried.
     pub(crate) window: window::Id,
-    /// The tab it was opened for.
+    /// The tab it carries.
     pub(crate) tab: Uuid,
     /// The window the button is held in (`None` is the resident one).
+    /// It is also the carried window when the tab was the only one in
+    /// it.
     pub(crate) holder: Option<window::Id>,
-    /// The holder's position on the screen.
+    /// The holder's position on the screen. Follows the moves when the
+    /// holder is the window being carried.
     pub(crate) origin: Point,
+    /// Where the carried window's corner sits relative to the cursor.
+    pub(crate) grab: Point,
+    /// The carried window is hidden: the cursor is over another
+    /// window's strip, which shows the tab instead.
+    pub(crate) hidden: bool,
     /// The screen rectangle of every OTHER window (the carried one
     /// excluded), as measured when the carry began: where it can dock.
     pub(crate) docks: Vec<(Option<window::Id>, iced::Rectangle)>,
@@ -241,10 +252,18 @@ pub(crate) struct WindowCarry {
     /// length of the drag, and the windows under the cursor report it
     /// themselves (`hover`).
     pub(crate) native: bool,
-    /// For a native carry: the window the carried one is over right
-    /// now (`None` is the resident one), and the cursor's position in
-    /// it.
-    pub(crate) hover: Option<(Option<window::Id>, Point)>,
+    /// The strip the tab is over right now: the window (`None` is the
+    /// resident one), the cursor's position in it, and the slot of
+    /// that window's strip order the tab would take.
+    pub(crate) hover: Option<CarryHover>,
+}
+
+/// A carried tab over another window's strip (see [`WindowCarry`]).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct CarryHover {
+    pub(crate) window: Option<window::Id>,
+    pub(crate) cursor: Point,
+    pub(crate) slot: usize,
 }
 
 /// Who holds the live SFTP buffer (`Oryxis::sftp`).
@@ -350,6 +369,52 @@ impl Oryxis {
 
     pub(crate) fn cur_focused(&self) -> bool {
         self.viewed_extra().map_or(self.window_focused, |w| w.focused)
+    }
+
+    /// The context menu, when it belongs to the current window. Views
+    /// style the control that opened it as open, and only the window it
+    /// was raised from has one.
+    pub(crate) fn cur_overlay(&self) -> Option<&crate::state::OverlayState> {
+        self.overlay.as_ref().filter(|_| self.floats_here())
+    }
+
+    /// The host card whose context menu is up, when it is up here.
+    pub(crate) fn cur_card_context_menu(&self) -> Option<Uuid> {
+        self.card_context_menu.filter(|_| self.floats_here())
+    }
+
+    /// Whether the burger menu is open in the current window.
+    pub(crate) fn cur_burger_open(&self) -> bool {
+        self.panels.burger_menu && self.floats_here()
+    }
+
+    /// A carried tab hovering the current window's strip: the tab, the
+    /// cursor in this window's coordinates, and the slot it would take.
+    pub(crate) fn carry_hover_here(&self) -> Option<(Uuid, CarryHover)> {
+        let carry = self.window_carry.as_ref()?;
+        let hover = carry.hover?;
+        (hover.window == self.cur_window()).then_some((carry.tab, hover))
+    }
+
+    /// The tab being dragged over the current window's strip: a reorder
+    /// that began here, or a carried tab from another window. The strip
+    /// leaves its gap and draws its ghost for it.
+    pub(crate) fn strip_drag_id(&self) -> Option<Uuid> {
+        if let Some((tab, _)) = self.carry_hover_here() {
+            return Some(tab);
+        }
+        self.tab_drag
+            .filter(|d| d.active && self.floats_here())
+            .map(|d| d.from_id)
+    }
+
+    /// Where the strip's drag ghost follows: the carried tab's cursor
+    /// while one hovers here (this window does not get the pointer, the
+    /// holder does), else this window's own cursor.
+    pub(crate) fn strip_cursor(&self) -> Point {
+        self.carry_hover_here()
+            .map(|(_, hover)| hover.cursor)
+            .unwrap_or_else(|| self.cur_mouse())
     }
 
     /// Whether the terminal tab at `idx` is in the strip of the window
@@ -902,6 +967,80 @@ impl Oryxis {
         }
     }
 
+    /// The strip ref of a terminal or SFTP tab, wherever it is shown.
+    pub(crate) fn ref_of_tab(&self, id: Uuid) -> Option<TabRef> {
+        if self.tabs.iter().any(|t| t._id == id) {
+            Some(TabRef::Terminal(id))
+        } else if self.sftp_tabs.iter().any(|t| t.id == id) {
+            Some(TabRef::Sftp(id))
+        } else {
+            None
+        }
+    }
+
+    /// Whether a strip ref is pinned. Pinned tabs lead the strip.
+    pub(crate) fn ref_pinned(&self, r: &TabRef) -> bool {
+        match r {
+            TabRef::Terminal(id) => self.tabs.iter().any(|t| t._id == *id && t.pinned),
+            TabRef::Sftp(id) => self.sftp_tabs.iter().any(|t| t.id == *id && t.pinned),
+            TabRef::Panel(_) => false,
+        }
+    }
+
+    /// The strip order of `target` (`None` is the resident one), from
+    /// whichever window's values are swapped in.
+    pub(crate) fn order_of_window(&self, target: Option<window::Id>) -> &[TabRef] {
+        if target == self.window_ctx.as_ref().map(|c| c.id) {
+            return &self.tab_order;
+        }
+        match target {
+            Some(id) => self.extra_windows.get(&id).map(|w| w.order.as_slice()).unwrap_or(&[]),
+            None => self.window_ctx.as_ref().map(|c| c.order.as_slice()).unwrap_or(&self.tab_order),
+        }
+    }
+
+    /// The cell a strip chip reports its drawn rectangle into.
+    pub(crate) fn strip_chip_cell(&self, id: Uuid) -> crate::widgets::BoundsCell {
+        self.strip_chip_bounds
+            .borrow_mut()
+            .entry(id)
+            .or_insert_with(crate::widgets::new_bounds_cell)
+            .clone()
+    }
+
+    /// The slot of `target`'s strip (pinned tabs first, as drawn) the
+    /// carried tab `tab` would take with the cursor at `cursor` in that
+    /// window: after every chip of its own group (pinned or not) whose
+    /// middle lies before the cursor along the strip.
+    pub(crate) fn carry_slot(&self, target: Option<window::Id>, tab: Uuid, cursor: Point) -> usize {
+        let pinned = self.ref_of_tab(tab).is_some_and(|r| self.ref_pinned(&r));
+        let order = self.order_of_window(target);
+        let pinned_count = order
+            .iter()
+            .filter(|r| r.strip_id() != tab && self.ref_pinned(r))
+            .count();
+        // The side strips run down, except for the pins when they live
+        // in the top bar.
+        let across = !crate::views::tab_bar::tab_bar_pos().is_side()
+            || (pinned && self.prefs.pinned_tabs_top_bar);
+        let bounds = self.strip_chip_bounds.borrow();
+        let before = order
+            .iter()
+            .filter(|r| r.strip_id() != tab && self.ref_pinned(r) == pinned)
+            .filter(|r| {
+                bounds.get(&r.strip_id()).is_some_and(|cell| {
+                    let rect = cell.get();
+                    if across {
+                        rect.center_x() < cursor.x
+                    } else {
+                        rect.center_y() < cursor.y
+                    }
+                })
+            })
+            .count();
+        if pinned { before } else { pinned_count + before }
+    }
+
     /// Hand a tab's ref to another window's strip (`None` is the
     /// resident one), optionally making it that window's active tab.
     /// Called with the SOURCE window current, after the ref left its
@@ -912,6 +1051,25 @@ impl Oryxis {
         r: TabRef,
         activate: bool,
     ) {
+        self.give_ref_to_window_at(target, r, activate, None);
+    }
+
+    /// [`Self::give_ref_to_window`], landing at a slot of the target's
+    /// strip as drawn (pinned tabs first) instead of at its end. The
+    /// slot is kept inside the tab's own group.
+    pub(crate) fn give_ref_to_window_at(
+        &mut self,
+        target: Option<window::Id>,
+        r: TabRef,
+        activate: bool,
+        slot: Option<usize>,
+    ) {
+        let pinned_flags: Vec<(TabRef, bool)> = self
+            .order_of_window(target)
+            .iter()
+            .map(|o| (*o, self.ref_pinned(o)))
+            .collect();
+        let r_pinned = self.ref_pinned(&r);
         let (order, active, view, sftp_owner) = match target {
             Some(id) => match self.extra_windows.get_mut(&id) {
                 Some(w) => (&mut w.order, &mut w.active, &mut w.view, &mut w.sftp_owner),
@@ -924,7 +1082,11 @@ impl Oryxis {
             },
         };
         if !order.contains(&r) {
-            order.push(r);
+            let at = slot.map(|slot| storage_index(&pinned_flags, r_pinned, slot));
+            match at {
+                Some(at) => order.insert(at.min(order.len()), r),
+                None => order.push(r),
+            }
         }
         if !activate {
             return;
@@ -999,6 +1161,11 @@ impl Oryxis {
                 tasks.push(window::close(id));
             }
         }
+        for id in std::mem::take(&mut self.windows_revealing) {
+            if self.all_windows().iter().any(|(_, w)| *w == id) {
+                tasks.push(window::set_mode(id, window::Mode::Windowed));
+            }
+        }
         if let Some(target) = self.pending_focus.take()
             && let Some(id) = target
                 .filter(|id| self.extra_windows.contains_key(id))
@@ -1025,4 +1192,74 @@ fn is_frame_event(message: &Message) -> bool {
                 | T::MouseMoved(_)
         )
     )
+}
+
+/// Where in a strip's storage order a ref goes so that it is drawn at
+/// `slot` (the drawn order puts the pinned refs first, each group in
+/// storage order). `flags` is the storage order with each ref's pinned
+/// flag; the slot is clamped into the ref's own group.
+fn storage_index(flags: &[(TabRef, bool)], pinned: bool, slot: usize) -> usize {
+    let pinned_count = flags.iter().filter(|(_, p)| *p).count();
+    let within = if pinned {
+        slot.min(pinned_count)
+    } else {
+        slot.saturating_sub(pinned_count)
+    };
+    // Before the `within`-th member of the group, or after its last.
+    let mut seen = 0;
+    let mut last = None;
+    for (i, (_, p)) in flags.iter().enumerate() {
+        if *p != pinned {
+            continue;
+        }
+        if seen == within {
+            return i;
+        }
+        seen += 1;
+        last = Some(i);
+    }
+    match last {
+        Some(i) => i + 1,
+        // An empty group: pinned refs go first, the others last.
+        None if pinned => 0,
+        None => flags.len(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn flags(pins: &[bool]) -> Vec<(TabRef, bool)> {
+        pins.iter().map(|p| (TabRef::Terminal(Uuid::new_v4()), *p)).collect()
+    }
+
+    #[test]
+    fn a_slot_lands_inside_its_own_group() {
+        // Drawn: P0 P1 | U0 U1, stored interleaved: U0 P0 U1 P1.
+        let order = flags(&[false, true, false, true]);
+        // An unpinned tab at drawn slot 2 goes before U0, at 3 between
+        // U0 and U1, at 4 (or past the end) right after U1: the pin
+        // stored behind it is drawn first all the same.
+        assert_eq!(storage_index(&order, false, 2), 0);
+        assert_eq!(storage_index(&order, false, 3), 2);
+        assert_eq!(storage_index(&order, false, 4), 3);
+        assert_eq!(storage_index(&order, false, 9), 3);
+        // A slot among the pins clamps to the first unpinned place.
+        assert_eq!(storage_index(&order, false, 0), 0);
+        // A pinned tab at 0 goes before P0, at 1 before P1, past the
+        // pins after P1 and never among the unpinned.
+        assert_eq!(storage_index(&order, true, 0), 1);
+        assert_eq!(storage_index(&order, true, 1), 3);
+        assert_eq!(storage_index(&order, true, 3), 4);
+    }
+
+    #[test]
+    fn an_empty_group_puts_pins_first_and_the_rest_last() {
+        let order = flags(&[false, false]);
+        assert_eq!(storage_index(&order, true, 5), 0);
+        let order = flags(&[true]);
+        assert_eq!(storage_index(&order, false, 0), 1);
+        assert_eq!(storage_index(&[], false, 0), 0);
+    }
 }

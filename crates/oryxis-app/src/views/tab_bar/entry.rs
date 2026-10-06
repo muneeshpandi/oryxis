@@ -72,17 +72,17 @@ impl Oryxis {
     /// surface draws the floating ghost: the chrome bar (pinned) or the
     /// vertical strip (unpinned).
     pub(crate) fn dragged_tab_pinned(&self) -> bool {
-        let Some(drag) = self.tab_drag.filter(|d| d.active) else {
+        let Some(dragged) = self.strip_drag_id() else {
             return false;
         };
         self.tabs
             .iter()
-            .find(|t| t._id == drag.from_id)
+            .find(|t| t._id == dragged)
             .map(|t| t.pinned)
             .or_else(|| {
                 self.sftp_tabs
                     .iter()
-                    .find(|t| t.id == drag.from_id)
+                    .find(|t| t.id == dragged)
                     .map(|t| t.pinned)
             })
             .unwrap_or(false)
@@ -115,6 +115,25 @@ impl Oryxis {
         entry: StripEntry,
         slot: usize,
     ) -> Element<'_, Message> {
+        let id = match entry {
+            StripEntry::Terminal(idx) => self.tabs[idx]._id,
+            StripEntry::Sftp(idx) => self.sftp_tabs[idx].id,
+            StripEntry::Panel(kind) => kind.tab_id(),
+        };
+        // Every chip reports where it was drawn: a tab carried over
+        // this strip from another window takes its slot from them.
+        crate::widgets::bounds_reporter(
+            self.strip_tab_chip(ctx, entry, slot),
+            self.strip_chip_cell(id),
+        )
+    }
+
+    fn strip_tab_chip(
+        &self,
+        ctx: &StripCtx,
+        entry: StripEntry,
+        slot: usize,
+    ) -> Element<'_, Message> {
         let active_idx = self.cur_active_tab();
         let number = self.tab_number_at(slot);
         // Terminal and SFTP tabs share one strip; SFTP tabs are active
@@ -134,11 +153,7 @@ impl Oryxis {
                     panel_tab_width(label, ctx.number_px)
                 }
             });
-            let is_dragging = self
-                .tab_drag
-                .filter(|d| d.active)
-                .map(|d| d.from_id == kind.tab_id())
-                .unwrap_or(false);
+            let is_dragging = self.strip_drag_id() == Some(kind.tab_id());
             if is_dragging {
                 return Space::new().width(width).height(TAB_HEIGHT).boxed();
             }
@@ -214,11 +229,7 @@ impl Oryxis {
             });
             // The dragged tab floats as a ghost; leave a same-width
             // gap here that the other tabs slide around, like terminal tabs.
-            let is_dragging = self
-                .tab_drag
-                .filter(|d| d.active)
-                .map(|d| d.from_id == tab.id)
-                .unwrap_or(false);
+            let is_dragging = self.strip_drag_id() == Some(tab.id);
             if is_dragging {
                 let gap_w = if ctx.compact_pins && tab.pinned { CHIP_W } else { width };
                 return Space::new().width(gap_w).height(TAB_HEIGHT).boxed();
@@ -244,11 +255,7 @@ impl Oryxis {
         let is_hovered = self.cur_nav().hover.tab == Some(idx);
         // Reorder drag: the dragged tab gets the accent outline so the
         // user sees which one they picked up.
-        let is_dragging = self
-            .tab_drag
-            .filter(|d| d.active)
-            .map(|d| d.from_id == tab._id)
-            .unwrap_or(false);
+        let is_dragging = self.strip_drag_id() == Some(tab._id);
         // A split tab shows the focused pane's label + icon; a single
         // pane shows the tab's own label. Lookups (accent, OS badge)
         // key on the automatic label so a custom rename stays
@@ -572,8 +579,8 @@ impl Oryxis {
         compact_pins: bool,
         privacy_terms: &[String],
     ) -> Option<(Element<'_, Message>, f32)> {
-        let drag = self.tab_drag.filter(|d| d.active)?;
-        if let Some(tab) = self.tabs.iter().find(|t| t._id == drag.from_id) {
+        let dragged = self.strip_drag_id()?;
+        if let Some(tab) = self.tabs.iter().find(|t| t._id == dragged) {
             let lookup_label = tab
                 .auto_label(self.tab_auto_title(tab))
                 .trim_end_matches(" (disconnected)")
@@ -606,7 +613,7 @@ impl Oryxis {
                 drag_ghost(base_label, detected_os, compact, ghost_w, accent, self.prefs.tab_accent_text, sg_icon, sg_color),
                 ghost_w,
             ))
-        } else if let Some(sftp_tab) = self.sftp_tabs.iter().find(|t| t.id == drag.from_id) {
+        } else if let Some(sftp_tab) = self.sftp_tabs.iter().find(|t| t.id == dragged) {
             let detected_os = self.tab_detected_os(&sftp_tab.label);
             let brand = self.connections
                 .iter()
@@ -650,7 +657,7 @@ impl Oryxis {
             // being dragged.
             crate::state::PanelKind::ALL
                 .into_iter()
-                .find(|k| k.tab_id() == drag.from_id)
+                .find(|k| k.tab_id() == dragged)
                 .map(|kind| {
                     (
                         panel_drag_ghost(kind, crate::i18n::t(kind.label_key()), drag_uniform_w),

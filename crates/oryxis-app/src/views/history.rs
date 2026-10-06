@@ -289,7 +289,7 @@ impl Oryxis {
         // can't fit, it all moves into the `…` overflow menu.
         let (search_collapsed, buttons_overflow) = self.toolbar_tiers();
         let overflow_open = matches!(
-            self.overlay.as_ref().map(|o| &o.content),
+            self.cur_overlay().map(|o| &o.content),
             Some(crate::state::OverlayContent::ToolbarOverflow)
         );
         // `keynav_toolbar_slot` records each rendered action for the
@@ -308,7 +308,7 @@ impl Oryxis {
         // that field is on screen, inline or in the collapsed-search
         // overlay, so the toolbar walk reaches it.
         let search_overlay_open = matches!(
-            self.overlay.as_ref().map(|o| &o.content),
+            self.cur_overlay().map(|o| &o.content),
             Some(crate::state::OverlayContent::ToolbarSearch)
         );
         if !search_collapsed || search_overlay_open {
@@ -643,7 +643,7 @@ impl Oryxis {
                     header_items.push(Space::new().width(8).boxed());
                 }
                 let menu_open = matches!(
-                    self.overlay.as_ref().map(|o| &o.content),
+                    self.cur_overlay().map(|o| &o.content),
                     Some(crate::state::OverlayContent::SessionLogViewerActions(i)) if *i == idx
                 );
                 let kebab = viewer_header_btn(
@@ -1044,7 +1044,7 @@ impl Oryxis {
             TimelineKind::Session { idx, entry } => {
                 let idx = *idx;
                 let menu_open = matches!(
-                    self.overlay.as_ref().map(|o| &o.content),
+                    self.cur_overlay().map(|o| &o.content),
                     Some(crate::state::OverlayContent::SessionLogActions(i)) if *i == idx
                 );
                 const LOG_DOTS_SLOT_W: f32 = 22.0;
@@ -1082,7 +1082,7 @@ impl Oryxis {
             TimelineKind::Chat { idx, entry } => {
                 let idx = *idx;
                 let menu_open = matches!(
-                    self.overlay.as_ref().map(|o| &o.content),
+                    self.cur_overlay().map(|o| &o.content),
                     Some(crate::state::OverlayContent::ChatConversationActions(i)) if *i == idx
                 );
                 const LOG_DOTS_SLOT_W: f32 = 22.0;

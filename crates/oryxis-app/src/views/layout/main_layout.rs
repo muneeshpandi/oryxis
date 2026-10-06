@@ -896,7 +896,7 @@ impl Oryxis {
         // split anchor it proposes, plus its ghost chip (issue #112).
         // The strip stops drawing the chip at the same boundary, so
         // exactly one of the two is up at any moment.
-        if self.tab_drag.is_some_and(|d| d.active) && !self.cursor_in_tab_strip() {
+        if self.tab_drag.is_some_and(|d| d.active) && self.floats_here() && !self.cursor_in_tab_strip() {
             return self.layer_tab_drop(base, resize_overlay);
         }
 

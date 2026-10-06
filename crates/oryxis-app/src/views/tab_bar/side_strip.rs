@@ -43,7 +43,7 @@ impl Oryxis {
         let compact_pins = self.prefs.pinned_tab_style == "compact";
         let solid_fill =
             self.prefs.tab_fill_style == "solid" || self.prefs.performance_mode;
-        let dragging_any = self.tab_drag.map(|d| d.active).unwrap_or(false);
+        let dragging_any = self.strip_drag_id().is_some();
         let ctx = StripCtx {
             privacy_terms: self.privacy_terms(),
             close_on_right: self.prefs.tab_close_button_side == "right",
@@ -84,7 +84,7 @@ impl Oryxis {
                 ));
             }
             let mut header: Vec<Element<'_, Message>> = vec![
-                burger_menu_btn(self.panels.burger_menu),
+                burger_menu_btn(self.cur_burger_open()),
                 self.home_area_tab(solid_fill),
                 Space::new().width(Length::Fill).boxed(),
             ];
@@ -303,7 +303,7 @@ impl Oryxis {
             && let Some((ghost, _ghost_w)) =
                 self.strip_drag_ghost_el(SIDE_TAB_WIDTH, compact_pins, &ctx.privacy_terms)
         {
-            let gy = (self.cur_mouse().y - strip_top - 6.0 - SIDE_ROW_HEIGHT / 2.0)
+            let gy = (self.strip_cursor().y - strip_top - 6.0 - SIDE_ROW_HEIGHT / 2.0)
                 .max(0.0);
             let positioned: Element<'_, Message> = iced::widget::Column::<iced::Element<'_, _>>::new()
                 .push(Space::new().height(gy).boxed())

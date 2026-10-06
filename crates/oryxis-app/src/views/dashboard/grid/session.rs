@@ -94,7 +94,7 @@ impl Oryxis {
         // `⋮` kebab → context menu (Open / Edit / Duplicate / Delete), same
         // as the host card. Shown on hover or while this card's menu is open.
         let menu_open = matches!(
-            self.overlay.as_ref().map(|o| &o.content),
+            self.cur_overlay().map(|o| &o.content),
             Some(crate::state::OverlayContent::SessionGroupActions(i)) if *i == idx
         );
         let show_dots = hovered || menu_open;

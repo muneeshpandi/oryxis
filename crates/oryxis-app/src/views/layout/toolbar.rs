@@ -198,7 +198,7 @@ impl Oryxis {
         // the inline field is never mounted at the same time (duplicate
         // `Id`) if a panel/resize flips `collapsed` while it's open.
         let overlay_open = matches!(
-            self.overlay.as_ref().map(|o| &o.content),
+            self.cur_overlay().map(|o| &o.content),
             Some(crate::state::OverlayContent::ToolbarSearch)
         );
         if collapsed || overlay_open {

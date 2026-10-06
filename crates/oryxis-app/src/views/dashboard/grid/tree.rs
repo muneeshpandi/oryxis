@@ -467,7 +467,7 @@ impl Oryxis {
         depth: usize,
     ) -> (Element<'a, Message>, Color) {
         let conn = &self.connections[idx];
-        let hovered = self.cur_nav().hover.card == Some(idx) || self.card_context_menu == Some(conn.id);
+        let hovered = self.cur_nav().hover.card == Some(idx) || self.cur_card_context_menu() == Some(conn.id);
         let dragging_this = self
             .card_drag
             .as_ref()
@@ -665,7 +665,7 @@ impl Oryxis {
         let panes = count_leaves(&group.layout);
         let subtitle = format!("{} {}", panes, t("session_group_panes"));
         let menu_open = matches!(
-            self.overlay.as_ref().map(|o| &o.content),
+            self.cur_overlay().map(|o| &o.content),
             Some(crate::state::OverlayContent::SessionGroupActions(i)) if *i == idx
         );
         let hovered = self.cur_nav().hover.session_group_card == Some(idx) || menu_open;

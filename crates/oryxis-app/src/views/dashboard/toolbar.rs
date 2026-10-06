@@ -431,7 +431,7 @@ impl Oryxis {
         let toolbar_w = self.toolbar_content_width();
         let (search_collapsed, buttons_overflow) = self.toolbar_tiers();
         let overflow_open = matches!(
-            self.overlay.as_ref().map(|o| &o.content),
+            self.cur_overlay().map(|o| &o.content),
             Some(crate::state::OverlayContent::ToolbarOverflow)
         );
 

@@ -116,7 +116,7 @@ impl Oryxis {
                 crate::keynav::ToolbarItem::Overflow,
                 crate::widgets::bounds_reporter(
                     crate::widgets::toolbar_overflow_icon(matches!(
-                        self.overlay.as_ref().map(|o| &o.content),
+                        self.cur_overlay().map(|o| &o.content),
                         Some(crate::state::OverlayContent::ToolbarOverflow)
                     )),
                     self.toolbar_overflow_btn_bounds.clone(),
