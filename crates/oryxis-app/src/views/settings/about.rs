@@ -28,7 +28,13 @@ impl Oryxis {
                 .boxed(),
             Space::new().width(14).boxed(),
             column![
-                text(version_str).size(16).color(OryxisColors::t().text_primary),
+                // Selectable: the exact build (nightly commit included) is
+                // what a bug report starts with, so it can be dragged over
+                // and copied like any other text.
+                text(version_str)
+                    .size(16)
+                    .selectable(true)
+                    .color(OryxisColors::t().text_primary),
                 Space::new().height(4),
                 text(t("app_tagline")).size(13).color(OryxisColors::t().text_secondary),
             ]
