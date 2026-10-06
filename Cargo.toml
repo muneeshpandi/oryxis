@@ -61,7 +61,7 @@ iced = { git = "https://github.com/wilsonglasser/iced", branch = "oryxis", defau
 # `des` enables 3des-cbc, needed for the per-host legacy-cipher override
 # (the rest of the legacy algorithms ship in russh's default set, just
 # off by default in `Preferred`).
-russh = { version = "0.63.3", features = ["des"] }
+russh = { version = "0.64.1", features = ["des"] }
 
 # Terminal parsing
 # Our fork's master: upstream tracking plus the windows-sys 0.61 bump,
@@ -219,3 +219,15 @@ serialport = { git = "https://github.com/wilsonglasser/serialport-rs" }
 # so this needs no patch of ours; it points straight at them while we
 # validate, and becomes a fork of our own only if it has to stay.
 arboard = { git = "https://github.com/1Password/arboard" }
+
+# russh re-opens a channel's receive window when data ARRIVES and hands it
+# to the channel with a blocking send from the session loop, so one channel
+# nobody reads (a paused download behind a SOCKS forward) parks every other
+# channel and the keepalives of its connection. Our fork is the upstream
+# release plus per-channel flow control (branch `per-channel-flow-control`,
+# merged into `oryxis`): the window re-opens as the consumer drains, the
+# loop never waits on a channel, a backlog is delivered in full when the
+# session ends and is bounded by the window. Upstream declined the change
+# it grew out of (Eugeny/russh#730), so this stays a patch: rebase the
+# branch onto each release tag before bumping the version above.
+russh = { git = "https://github.com/wilsonglasser/russh", branch = "oryxis" }

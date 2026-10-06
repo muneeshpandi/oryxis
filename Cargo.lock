@@ -5893,9 +5893,8 @@ dependencies = [
 
 [[package]]
 name = "pageant"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d8eab09a361a4afe0b1668be978cd97e4f052e927a92b0b608cf902965d49ce"
+version = "0.2.4"
+source = "git+https://github.com/wilsonglasser/russh?branch=oryxis#db26206f187108481d19ace720ad08673f448deb"
 dependencies = [
  "base16ct",
  "byteorder",
@@ -7058,9 +7057,8 @@ dependencies = [
 
 [[package]]
 name = "russh"
-version = "0.63.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "036204edbd199552a5b3832f63c60dcdf395dc44c7f06b4af1c0e8139cc11bce"
+version = "0.64.1"
+source = "git+https://github.com/wilsonglasser/russh?branch=oryxis#db26206f187108481d19ace720ad08673f448deb"
 dependencies = [
  "aes 0.9.3",
  "aws-lc-rs",
@@ -7131,8 +7129,7 @@ dependencies = [
 [[package]]
 name = "russh-cryptovec"
 version = "0.62.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3aec6cb630dbe85d72ffd7bcd95f07e1bd69f9f270ee8adfa1afe443a6331438"
+source = "git+https://github.com/wilsonglasser/russh?branch=oryxis#db26206f187108481d19ace720ad08673f448deb"
 dependencies = [
  "log",
  "nix 0.31.3",
@@ -7163,8 +7160,7 @@ dependencies = [
 [[package]]
 name = "russh-util"
 version = "0.52.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "668424a5dde0bcb45b55ba7de8476b93831b4aa2fa6947e145f3b053e22c60b6"
+source = "git+https://github.com/wilsonglasser/russh?branch=oryxis#db26206f187108481d19ace720ad08673f448deb"
 dependencies = [
  "chrono",
  "tokio",

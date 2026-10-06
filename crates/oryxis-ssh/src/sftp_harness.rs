@@ -328,11 +328,22 @@ impl russh::server::Handler for SshHarness {
         }
         reply.accept().await;
         match host_to_connect {
+            FLOOD_TARGET => {
+                tokio::spawn(async move {
+                    let chunk = vec![0x5a_u8; 32 * 1024];
+                    for _ in 0..(FLOOD_BYTES / chunk.len()) {
+                        if channel.data(&chunk[..]).await.is_err() {
+                            break;
+                        }
+                    }
+                });
+            }
             ECHO_TARGET => {
                 // Reading and writing on separate tasks, with nothing
-                // bounded between them: a channel whose reader waits on
-                // its own writer stops the whole server loop once the
-                // echo runs ahead of the client.
+                // bounded between them: an echo that reads only after its
+                // last write went out stops reading whenever the client
+                // is slow to take the echo, and the two ends then wait on
+                // each other.
                 let (mut rx, tx) = channel.split();
                 let (queue_tx, mut queue_rx) = tokio::sync::mpsc::unbounded_channel();
                 tokio::spawn(async move {
@@ -417,6 +428,9 @@ const UNREACHABLE_TARGET: &str = "unreachable.invalid";
 const REFUSED_TARGET: &str = "refused.invalid";
 /// A target the server will not forward to (`PermitOpen`).
 const FORBIDDEN_TARGET: &str = "forbidden.invalid";
+/// A target that sends [`FLOOD_BYTES`] the moment it is reached.
+const FLOOD_TARGET: &str = "flood.invalid";
+const FLOOD_BYTES: usize = 64 * 1024 * 1024;
 /// A target that sends back whatever it receives.
 const ECHO_TARGET: &str = "echo.invalid";
 /// A target that answers only once the client has finished sending: the
@@ -1369,5 +1383,54 @@ async fn harness_socks_reply_says_why_the_tunnel_was_not_opened() {
     let mut reply = [0u8; 8];
     s.read_exact(&mut reply).await.expect("socks4a reply");
     assert_eq!(reply[..2], [0x00, 0x5B]);
+    let _ = cancel_tx.send(true);
+}
+
+/// A tunnel whose client stopped reading (a paused download, a client
+/// that hangs) holds up nothing but itself: its own channel runs out of
+/// window and the server stops sending on it, while every other tunnel on
+/// the connection goes on. Needs the per-channel flow control of the
+/// russh fork (see the patch entry in the root `Cargo.toml`).
+#[tokio::test]
+async fn harness_socks_stream_nobody_reads_does_not_hold_up_the_others() {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    let (port, shared, cancel_tx) = socks_forward_in_memory().await;
+    let v4 = std::net::Ipv4Addr::LOCALHOST.into();
+    let (reply, mut unread) = socks5_open(v4, port, FLOOD_TARGET).await;
+    assert_eq!(reply, 0x00);
+    // Let the flood fill every buffer between the server and the client
+    // that is not reading.
+    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+
+    for round in 0..3u8 {
+        let echoed = tokio::time::timeout(std::time::Duration::from_secs(5), async {
+            let (reply, mut stream) = socks5_open(v4, port, ECHO_TARGET).await;
+            assert_eq!(reply, 0x00);
+            stream.write_all(&[round; 4]).await.expect("send");
+            let mut back = [0u8; 4];
+            stream.read_exact(&mut back).await.expect("echo");
+            back
+        })
+        .await
+        .expect("another tunnel answers while one is not being read");
+        assert_eq!(echoed, [round; 4]);
+    }
+    assert!(!shared.is_closed(), "the connection is still up");
+
+    // The stalled tunnel was only waiting: once its client reads, the
+    // whole stream arrives.
+    let mut total = 0usize;
+    let mut buf = vec![0u8; 64 * 1024];
+    tokio::time::timeout(std::time::Duration::from_secs(60), async {
+        while total < FLOOD_BYTES {
+            let n = unread.read(&mut buf).await.expect("read the flood");
+            assert!(n > 0, "the flood ended early at {total}");
+            assert!(buf[..n].iter().all(|b| *b == 0x5a));
+            total += n;
+        }
+    })
+    .await
+    .expect("the stalled tunnel resumes");
+    assert_eq!(total, FLOOD_BYTES);
     let _ = cancel_tx.send(true);
 }
