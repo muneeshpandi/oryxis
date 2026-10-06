@@ -795,12 +795,15 @@ pub struct Oryxis {
     /// positions: the tab and the press point in that window. A release
     /// before the answer clears it, and the answer then starts no carry.
     pub(crate) tear_off_pending: Option<(uuid::Uuid, iced::Point)>,
-    /// The last-drawn rectangle of every strip chip, by tab id, in its
-    /// window's coordinates. A tab carried over another window's strip
-    /// takes its slot from them: that window gets no pointer while the
-    /// button is held elsewhere, so no chip there can report a hover.
-    pub(crate) strip_chip_bounds:
-        std::cell::RefCell<std::collections::HashMap<uuid::Uuid, crate::widgets::BoundsCell>>,
+    /// The last-drawn rectangle of every strip chip, by window (`None`
+    /// is the resident one) and tab id, in that window's coordinates. A
+    /// tab carried over another window's strip takes its slot from them
+    /// (that window gets no pointer while the button is held elsewhere,
+    /// so no chip there can report a hover), and a torn-off window
+    /// keeps its own chip under the cursor by them.
+    pub(crate) strip_chip_bounds: std::cell::RefCell<
+        std::collections::HashMap<(Option<iced::window::Id>, uuid::Uuid), crate::widgets::BoundsCell>,
+    >,
     /// Extra windows to close at the end of this update: closed by the
     /// user, or left empty by a move.
     pub(crate) windows_closing: Vec<iced::window::Id>,

@@ -863,8 +863,11 @@ impl Oryxis {
         if prev == target {
             return task;
         }
+        // Its widget operations (a focus, a scroll) are this window's
+        // too: by default the runtime runs them in every window, and
+        // two windows on the same screen share every widget id.
         match target.or_else(crate::app::resident_window_id) {
-            Some(id) => task.map(move |m| Message::InWindow(id, Box::new(m))),
+            Some(id) => task.map(move |m| Message::InWindow(id, Box::new(m))).in_window(id),
             None => task,
         }
     }
@@ -892,7 +895,13 @@ impl Oryxis {
             {
                 return Task::none();
             }
-            return self.update(message);
+            let task = self.update(message);
+            // The resident window's own message: its widget operations
+            // stay in it.
+            return match crate::app::resident_window_id() {
+                Some(resident) if resident == id => task.in_window(id),
+                _ => task,
+            };
         };
         let top_level = current.is_none();
         let task = self.run_in_window(target, |s| s.update(message));
@@ -999,13 +1008,24 @@ impl Oryxis {
         }
     }
 
-    /// The cell a strip chip reports its drawn rectangle into.
+    /// The cell a chip of the current window's strip reports its drawn
+    /// rectangle into.
     pub(crate) fn strip_chip_cell(&self, id: Uuid) -> crate::widgets::BoundsCell {
         self.strip_chip_bounds
             .borrow_mut()
-            .entry(id)
+            .entry((self.cur_window(), id))
             .or_insert_with(crate::widgets::new_bounds_cell)
             .clone()
+    }
+
+    /// Where the chip of tab `id` was last drawn in `window`'s strip
+    /// (`None` is the resident one), once it has been.
+    pub(crate) fn strip_chip_rect(&self, window: Option<window::Id>, id: Uuid) -> Option<iced::Rectangle> {
+        self.strip_chip_bounds
+            .borrow()
+            .get(&(window, id))
+            .map(|cell| cell.get())
+            .filter(|rect| rect.width > 0.0)
     }
 
     /// The slot of `target`'s strip (pinned tabs first, as drawn) the
@@ -1023,13 +1043,11 @@ impl Oryxis {
         // in the top bar.
         let across = !crate::views::tab_bar::tab_bar_pos().is_side()
             || (pinned && self.prefs.pinned_tabs_top_bar);
-        let bounds = self.strip_chip_bounds.borrow();
         let before = order
             .iter()
             .filter(|r| r.strip_id() != tab && self.ref_pinned(r) == pinned)
             .filter(|r| {
-                bounds.get(&r.strip_id()).is_some_and(|cell| {
-                    let rect = cell.get();
+                self.strip_chip_rect(target, r.strip_id()).is_some_and(|rect| {
                     if across {
                         rect.center_x() < cursor.x
                     } else {
@@ -1161,6 +1179,16 @@ impl Oryxis {
                 tasks.push(window::close(id));
             }
         }
+        // Chip rectangles of windows and tabs that are gone.
+        let open: Vec<Option<window::Id>> = self.all_windows().into_iter().map(|(w, _)| w).collect();
+        let tabs = &self.tabs;
+        let sftp_tabs = &self.sftp_tabs;
+        self.strip_chip_bounds.borrow_mut().retain(|(window, id), _| {
+            open.contains(window)
+                && (tabs.iter().any(|t| t._id == *id)
+                    || sftp_tabs.iter().any(|t| t.id == *id)
+                    || crate::state::PanelKind::ALL.iter().any(|k| k.tab_id() == *id))
+        });
         for id in std::mem::take(&mut self.windows_revealing) {
             if self.all_windows().iter().any(|(_, w)| *w == id) {
                 tasks.push(window::set_mode(id, window::Mode::Windowed));

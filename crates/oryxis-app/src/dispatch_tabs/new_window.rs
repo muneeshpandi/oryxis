@@ -28,9 +28,10 @@ use crate::window_ctx::ExtraWindow;
 /// reorder that drifts a few pixels over it must not count.
 const TEAR_OFF_MARGIN: f32 = 24.0;
 
-/// Where a carried window's corner sits relative to the cursor: the
-/// chip of the tab that was dragged out ends up roughly under the
-/// pointer.
+/// Where a carried window's corner sits relative to the cursor when the
+/// tab's chip was never drawn (`torn_off_grab` has nothing to measure),
+/// and the offset handed to a compositor's carry: the chip of the tab
+/// ends up roughly under the pointer.
 const DROP_OFFSET: Point = Point::new(60.0, 18.0);
 
 impl Oryxis {
@@ -526,10 +527,8 @@ impl Oryxis {
             );
         };
         let cursor = self.mouse_position;
-        let at = Point::new(
-            origin.x + cursor.x - DROP_OFFSET.x,
-            origin.y + cursor.y - DROP_OFFSET.y,
-        );
+        let grab = self.torn_off_grab(tab_id);
+        let at = Point::new(origin.x + cursor.x - grab.x, origin.y + cursor.y - grab.y);
         let before: Vec<window::Id> = self.extra_windows.keys().copied().collect();
         let open = self.detach_tab_to_new_window(tab_id, Some(at));
         let carried = self
@@ -546,13 +545,50 @@ impl Oryxis {
             tab: tab_id,
             holder,
             origin,
-            grab: DROP_OFFSET,
+            grab,
             hidden: false,
             docks: docks_without(self, carried),
             native: false,
             hover: None,
         });
         open
+    }
+
+    /// Where, in the window a tab is torn off into, the cursor has to be
+    /// for the tab's chip to sit centred under it, before that window
+    /// has drawn its strip (from then on the carry reads the chip
+    /// itself, see `carry_window_to_cursor`). The new window draws the
+    /// same strip with that tab alone: the chip takes the place of this
+    /// strip's first one, at the width a lone tab gets. Read before the
+    /// tab leaves this strip.
+    fn torn_off_grab(&self, tab_id: Uuid) -> Point {
+        let here = self.cur_window();
+        let Some(chip) = self.strip_chip_rect(here, tab_id) else {
+            return DROP_OFFSET;
+        };
+        let first = self
+            .tab_order
+            .iter()
+            .filter_map(|r| self.strip_chip_rect(here, r.strip_id()))
+            .fold(chip, |first, r| iced::Rectangle {
+                x: first.x.min(r.x),
+                y: first.y.min(r.y),
+                ..first
+            });
+        let pinned = self.ref_of_tab(tab_id).is_some_and(|r| self.ref_pinned(&r));
+        let across = !crate::views::tab_bar::tab_bar_pos().is_side();
+        // A lone tab on a horizontal strip is drawn at its natural width
+        // by the adaptive sizing; a compact pin and the uniform sizing
+        // keep the width it has here.
+        let width = if across
+            && !(pinned && self.prefs.pinned_tab_style == "compact")
+            && self.prefs.tab_width_mode != "uniform"
+        {
+            crate::views::tab_bar::TAB_NATURAL_WIDTH
+        } else {
+            chip.width
+        };
+        Point::new(first.x + width / 2.0, first.y + chip.height / 2.0)
     }
 
     /// The compositor answered whether it carries the torn-off window.
@@ -671,6 +707,7 @@ impl Oryxis {
             cursor,
             slot: self.carry_slot(window, carry.tab, cursor),
         });
+        let drawn_chip = self.strip_chip_rect(Some(carry.window), carry.tab);
         let carry = self.window_carry.as_mut()?;
         carry.hover = hover;
         if hover.is_some() {
@@ -680,10 +717,20 @@ impl Oryxis {
             carry.hidden = true;
             return Some(window::set_mode(carry.window, window::Mode::Hidden));
         }
+        // A torn-off window holds its tab's chip under the cursor: once
+        // it has drawn its strip, by the chip itself. (A window carried
+        // by its only tab keeps the point it was pressed at.)
+        let whole = Some(carry.window) == carry.holder.or_else(crate::app::resident_window_id);
+        if !whole
+            && !carry.hidden
+            && let Some(chip) = drawn_chip
+        {
+            carry.grab = Point::new(chip.center_x(), chip.center_y());
+        }
         let at = Point::new(screen.x - carry.grab.x, screen.y - carry.grab.y);
         // The holder's coordinates move with it when it is the window
         // being carried.
-        if Some(carry.window) == carry.holder.or_else(crate::app::resident_window_id) {
+        if whole {
             carry.origin = at;
         }
         let mut task = window::move_to(carry.window, at);
