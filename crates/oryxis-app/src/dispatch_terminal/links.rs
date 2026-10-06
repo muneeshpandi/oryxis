@@ -237,12 +237,14 @@ impl Oryxis {
         // CLI actually bound there, which `127.0.0.1` alone would miss on
         // a host that resolved it to `::1`.
         let target_host = callback.host.trim_matches(['[', ']']).to_string();
-        // The near end takes the FAMILY the callback was written in. A
+        // The near end answers where the callback will be dialled. A
         // browser handed `http://[::1]:<port>/` dials IPv6 and nothing
-        // else, so an IPv4-only listener would leave the redirect
-        // reaching nothing after the tunnel reported success. A name
-        // (`localhost`) stays on IPv4: every resolver has that address
-        // for it, and a browser that tries `::1` first falls back.
+        // else, so that one is bound on `::1`. Anything else, a name
+        // (`localhost`) included, asks for `127.0.0.1`, which the engine
+        // binds on BOTH loopback families: a browser that tries `::1`
+        // first for the name finds a listener there too, where an
+        // IPv4-only one would cost it a refused connect before the
+        // fallback (about 2 s on Windows).
         let listen_host = if target_host.parse::<std::net::Ipv6Addr>().is_ok() {
             "::1"
         } else {

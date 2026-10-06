@@ -1,4 +1,5 @@
 use super::*;
+use oryxis_core::models::port_forward_rule::LocalBind;
 
 // ---------------------------------------------------------------------------
 // SSH Handle (opaque wrapper for step-by-step connection)
@@ -66,15 +67,10 @@ pub(crate) fn route_lookup<V: Clone>(
 /// Returns the bound listeners (actual forwarding starts after PTY session opens).
 pub(crate) async fn bind_port_forward_listeners(
     forwards: &[PortForward],
-) -> Result<Vec<(PortForward, tokio::net::TcpListener)>, SshError> {
-    use tokio::net::TcpListener;
+) -> Result<Vec<(PortForward, ForwardListener)>, SshError> {
     let mut listeners = Vec::new();
     for fwd in forwards {
-        let listener = TcpListener::bind(("127.0.0.1", fwd.local_port))
-            .await
-            .map_err(|e| SshError::Channel(format!(
-                "Failed to bind local port {}: {}", fwd.local_port, e
-            )))?;
+        let listener = bind_forward_listener("127.0.0.1", fwd.local_port).await?;
         tracing::info!(
             "Port forward: 127.0.0.1:{} -> {}:{}",
             fwd.local_port, fwd.remote_host, fwd.remote_port
@@ -86,7 +82,7 @@ pub(crate) async fn bind_port_forward_listeners(
 
 /// Spawn listener tasks that bridge local TCP connections to remote hosts via SSH.
 pub(crate) fn spawn_port_forward_tasks(
-    listeners: Vec<(PortForward, tokio::net::TcpListener)>,
+    listeners: Vec<(PortForward, ForwardListener)>,
     handle: &SharedHandle,
 ) -> Vec<tokio::task::JoinHandle<()>> {
     let mut tasks = Vec::new();
@@ -398,24 +394,93 @@ impl std::fmt::Debug for ForwardSession {
     }
 }
 
-/// Bind a TCP listener for a forward, honouring the rule's `listen_host`
-/// (e.g. `0.0.0.0` to expose a `-D`/`-L` listener on the LAN).
+/// The listening end of a `-L` / `-D` forward: one socket, or the two
+/// loopback sockets of a [`LocalBind::Loopback`] request.
+pub(crate) struct ForwardListener {
+    primary: tokio::net::TcpListener,
+    /// `[::1]` beside `127.0.0.1`, when the request was "this machine"
+    /// and the family was there to bind.
+    sibling: Option<tokio::net::TcpListener>,
+}
+
+impl ForwardListener {
+    /// The next connection on either socket. Cancel safe, like the
+    /// `TcpListener::accept` it selects over: a connection the losing
+    /// socket had ready stays queued for the next call.
+    pub(crate) async fn accept(
+        &self,
+    ) -> std::io::Result<(tokio::net::TcpStream, std::net::SocketAddr)> {
+        match &self.sibling {
+            Some(sibling) => tokio::select! {
+                res = self.primary.accept() => res,
+                res = sibling.accept() => res,
+            },
+            None => self.primary.accept().await,
+        }
+    }
+
+    /// The bound address. Both sockets of a loopback pair share its port.
+    pub(crate) fn local_addr(&self) -> std::io::Result<std::net::SocketAddr> {
+        self.primary.local_addr()
+    }
+}
+
+/// Bind the listener of a forward, reading `listen_host` through
+/// [`LocalBind`]: "this machine" (`127.0.0.1`, `localhost`, empty) answers
+/// on both loopback families, anything else is bound as written (e.g.
+/// `0.0.0.0` to expose a `-D`/`-L` listener on the LAN).
+///
+/// The IPv4 loopback socket is the one that has to bind; `[::1]` is added
+/// when it can be. A machine with IPv6 off, or another program on that
+/// port, leaves the forward on IPv4 alone, which is what it was before
+/// the pair existed.
 pub(crate) async fn bind_forward_listener(
     listen_host: &str,
     listen_port: u16,
-) -> Result<tokio::net::TcpListener, SshError> {
-    tokio::net::TcpListener::bind((listen_host, listen_port))
-        .await
-        .map_err(|e| SshError::Channel(format!(
-            "Failed to bind {}:{}: {}", listen_host, listen_port, e
-        )))
+) -> Result<ForwardListener, SshError> {
+    use std::net::{Ipv4Addr, Ipv6Addr};
+    use tokio::net::TcpListener;
+
+    let failed = |e: std::io::Error| {
+        SshError::Channel(format!("Failed to bind {}:{}: {}", listen_host, listen_port, e))
+    };
+    let primary = match LocalBind::parse(listen_host) {
+        LocalBind::Loopback => {
+            let primary = TcpListener::bind((Ipv4Addr::LOCALHOST, listen_port))
+                .await
+                .map_err(failed)?;
+            // Port 0 leaves the choice to the OS: the sibling takes the
+            // port it chose, so one number reaches the forward on both.
+            let port = primary.local_addr().map_err(failed)?.port();
+            let sibling = match TcpListener::bind((Ipv6Addr::LOCALHOST, port)).await {
+                Ok(sibling) => Some(sibling),
+                Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => {
+                    tracing::warn!(
+                        "forward on port {port} listens on 127.0.0.1 only: [::1]:{port} is taken ({e})"
+                    );
+                    None
+                }
+                Err(e) => {
+                    tracing::debug!(
+                        "forward on port {port} listens on 127.0.0.1 only: no IPv6 loopback ({e})"
+                    );
+                    None
+                }
+            };
+            return Ok(ForwardListener { primary, sibling });
+        }
+        LocalBind::Address(ip) => TcpListener::bind((ip, listen_port)).await,
+        LocalBind::Name(name) => TcpListener::bind((name.as_str(), listen_port)).await,
+    }
+    .map_err(failed)?;
+    Ok(ForwardListener { primary, sibling: None })
 }
 
 /// Spawn a cancel-aware accept loop for a `-L` forward. Each accepted
 /// connection opens a `direct-tcpip` channel to `target_host:target_port`
 /// and bridges bytes until either side closes or cancellation fires.
 pub(crate) fn spawn_local_forward_task(
-    listener: tokio::net::TcpListener,
+    listener: ForwardListener,
     handle: SharedHandle,
     target_host: String,
     target_port: u16,
@@ -497,7 +562,7 @@ impl AutoClose {
 /// an abandoned login doesn't leave a local port bound.
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn spawn_autoclose_local_forward_task(
-    listener: tokio::net::TcpListener,
+    listener: ForwardListener,
     handle: SharedHandle,
     target_host: String,
     target_port: u16,
@@ -698,7 +763,7 @@ pub(crate) async fn bridge_channel_to_target(
 /// listener speaks SOCKS5; each accepted connection negotiates a CONNECT
 /// target and gets its own `direct-tcpip` channel through the SSH session.
 pub(crate) fn spawn_dynamic_forward_task(
-    listener: tokio::net::TcpListener,
+    listener: ForwardListener,
     handle: SharedHandle,
     listen_port: u16,
     cancel: tokio::sync::watch::Receiver<bool>,
@@ -852,6 +917,104 @@ pub(crate) async fn bridge_socks5(
         _ = cancel.changed() => {}
         r = c2t => { if let Err(e) = r { tracing::debug!("socks5 channel->tcp: {}", e); } }
         r = t2c => { if let Err(e) = r { tracing::debug!("socks5 tcp->channel: {}", e); } }
+    }
+}
+
+#[cfg(test)]
+mod listener_tests {
+    use super::{bind_forward_listener, ForwardListener};
+    use std::net::{Ipv4Addr, Ipv6Addr};
+    use tokio::net::{TcpListener, TcpStream};
+
+    /// A machine with IPv6 switched off has no `[::1]` to pair with, and
+    /// the binder is right to leave the forward on IPv4 there.
+    async fn has_ipv6_loopback() -> bool {
+        TcpListener::bind((Ipv6Addr::LOCALHOST, 0)).await.is_ok()
+    }
+
+    /// Bind "this machine" on an OS-chosen port, with its `[::1]` half.
+    /// The OS picks the port from the IPv4 space alone, so the same
+    /// number can be taken on IPv6 by something unrelated: ask again.
+    async fn bind_pair() -> ForwardListener {
+        for _ in 0..32 {
+            let listener = bind_forward_listener("127.0.0.1", 0).await.expect("bind loopback");
+            if listener.sibling.is_some() {
+                return listener;
+            }
+        }
+        panic!("no port was free on both loopback families");
+    }
+
+    #[tokio::test]
+    async fn this_machine_answers_on_both_loopback_families() {
+        if !has_ipv6_loopback().await {
+            return;
+        }
+        let listener = bind_pair().await;
+        let port = listener.local_addr().expect("local addr").port();
+        // A client that resolved `localhost` to `::1` and one that wrote
+        // `127.0.0.1` both land, and neither waits out a refusal.
+        for _ in 0..2 {
+            let (v6, accepted) =
+                tokio::join!(TcpStream::connect((Ipv6Addr::LOCALHOST, port)), listener.accept());
+            v6.expect("connect over ::1");
+            assert!(accepted.expect("accept").1.is_ipv6());
+            let (v4, accepted) =
+                tokio::join!(TcpStream::connect((Ipv4Addr::LOCALHOST, port)), listener.accept());
+            v4.expect("connect over 127.0.0.1");
+            assert!(accepted.expect("accept").1.is_ipv4());
+        }
+    }
+
+    #[tokio::test]
+    async fn every_spelling_of_this_machine_is_a_pair() {
+        if !has_ipv6_loopback().await {
+            return;
+        }
+        let port = bind_pair().await.local_addr().expect("local addr").port();
+        // The pair above is dropped: its port is free on both families.
+        for host in ["localhost", "", "127.0.0.1"] {
+            let listener = bind_forward_listener(host, port).await.expect("bind");
+            assert!(listener.sibling.is_some(), "{host:?} binds both families");
+        }
+    }
+
+    #[tokio::test]
+    async fn a_taken_ipv6_port_leaves_the_forward_on_ipv4() {
+        if !has_ipv6_loopback().await {
+            return;
+        }
+        for _ in 0..32 {
+            let other = TcpListener::bind((Ipv6Addr::LOCALHOST, 0)).await.expect("bind ::1");
+            let port = other.local_addr().expect("local addr").port();
+            // The same number may be taken on IPv4 too; that is the
+            // forward's own port being busy, not the case under test.
+            let Ok(listener) = bind_forward_listener("127.0.0.1", port).await else {
+                continue;
+            };
+            assert!(listener.sibling.is_none(), "the taken family is skipped");
+            let (v4, accepted) =
+                tokio::join!(TcpStream::connect((Ipv4Addr::LOCALHOST, port)), listener.accept());
+            v4.expect("connect over 127.0.0.1");
+            accepted.expect("accept");
+            return;
+        }
+        panic!("no port was free on IPv4 loopback");
+    }
+
+    #[tokio::test]
+    async fn a_chosen_address_is_bound_alone() {
+        let v4 = bind_forward_listener("0.0.0.0", 0).await.expect("bind 0.0.0.0");
+        assert!(v4.sibling.is_none());
+        assert!(v4.local_addr().expect("local addr").ip().is_unspecified());
+        if !has_ipv6_loopback().await {
+            return;
+        }
+        for host in ["::1", "[::1]"] {
+            let v6 = bind_forward_listener(host, 0).await.expect("bind ::1");
+            assert!(v6.sibling.is_none(), "{host:?} stays IPv6 only");
+            assert!(v6.local_addr().expect("local addr").is_ipv6());
+        }
     }
 }
 

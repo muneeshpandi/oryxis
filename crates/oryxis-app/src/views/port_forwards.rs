@@ -8,7 +8,7 @@ use iced::widget::button::Status as BtnStatus;
 use iced::widget::{button, checkbox, column, container, pick_list, scrollable, text, text_input, MouseArea, Space};
 use iced::{Background, Border, Color, Element, Length, Padding};
 
-use oryxis_core::models::port_forward_rule::{ForwardKind, PortForwardRule};
+use oryxis_core::models::port_forward_rule::{ForwardKind, LocalBind, PortForwardRule};
 
 use crate::app::{SshMessage, NavigationMessage, PortForwardMessage, Message, Oryxis, CARD_WIDTH};
 use crate::i18n::t;
@@ -490,8 +490,7 @@ impl Oryxis {
         // A dynamic SOCKS forward is an unauthenticated proxy. Bound to a
         // non-loopback address it becomes an open proxy into the remote
         // network for anyone who can reach this host. Warn explicitly.
-        let listen = self.port_forward_form.listen_host.trim();
-        let exposed = !matches!(listen, "" | "127.0.0.1" | "localhost" | "::1" | "[::1]");
+        let exposed = !LocalBind::parse(&self.port_forward_form.listen_host).is_loopback();
         if self.port_forward_form.kind == ForwardKind::Dynamic && exposed {
             form = form
                 .push(Space::new().height(10).boxed())

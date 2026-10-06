@@ -1049,8 +1049,13 @@ async fn harness_exec_timeout_bounds_an_unanswered_channel_open() {
 
 /// One SOCKS5 CONNECT by domain name, returning the reply code.
 async fn socks5_connect(port: u16, host: &str) -> u8 {
+    socks5_connect_from(std::net::Ipv4Addr::LOCALHOST.into(), port, host).await
+}
+
+/// The same request, dialled at the loopback address `proxy`.
+async fn socks5_connect_from(proxy: std::net::IpAddr, port: u16, host: &str) -> u8 {
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
-    let mut s = tokio::net::TcpStream::connect(("127.0.0.1", port))
+    let mut s = tokio::net::TcpStream::connect((proxy, port))
         .await
         .expect("connect to socks listener");
     s.write_all(&[0x05, 0x01, 0x00]).await.expect("greeting");
@@ -1072,7 +1077,7 @@ async fn socks5_connect(port: u16, host: &str) -> u8 {
 #[tokio::test]
 async fn harness_socks_request_is_not_held_up_by_an_unanswered_one() {
     let (shared, _fs, _) = connect_handle_in_memory().await;
-    let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
+    let listener = crate::engine::bind_forward_listener("127.0.0.1", 0)
         .await
         .expect("bind socks listener");
     let port = listener.local_addr().expect("listener addr").port();
@@ -1098,5 +1103,51 @@ async fn harness_socks_request_is_not_held_up_by_an_unanswered_one() {
     assert!(!shared.is_closed(), "the connection reads as alive");
 
     stuck.abort();
+    let _ = cancel_tx.send(true);
+}
+
+/// A `-D` forward on "this machine" serves a client that dials `::1`
+/// (issue #246): a browser told `localhost` resolves it to `::1` first,
+/// and with the proxy on IPv4 alone every new connection waited out a
+/// refusal there before trying `127.0.0.1` (about 2 s each on Windows).
+#[tokio::test]
+async fn harness_socks_forward_answers_on_ipv6_loopback() {
+    use std::net::Ipv6Addr;
+    if tokio::net::TcpListener::bind((Ipv6Addr::LOCALHOST, 0)).await.is_err() {
+        // IPv6 is off on this machine: there is no `::1` to answer on.
+        return;
+    }
+    let (shared, _fs, _) = connect_handle_in_memory().await;
+    // The OS picks the port from the IPv4 space alone, so the same number
+    // can be taken on `::1` by something unrelated: ask until both bind.
+    let mut bound = None;
+    for _ in 0..32 {
+        let listener = crate::engine::bind_forward_listener("127.0.0.1", 0)
+            .await
+            .expect("bind socks listener");
+        let port = listener.local_addr().expect("listener addr").port();
+        if tokio::net::TcpStream::connect((Ipv6Addr::LOCALHOST, port)).await.is_ok() {
+            bound = Some((listener, port));
+            break;
+        }
+    }
+    let (listener, port) = bound.expect("a port free on both loopback families");
+    let (cancel_tx, cancel_rx) = tokio::sync::watch::channel(false);
+    let _task = crate::engine::spawn_dynamic_forward_task(
+        listener,
+        Arc::clone(&shared),
+        port,
+        cancel_rx,
+    );
+
+    for proxy in [Ipv6Addr::LOCALHOST.into(), std::net::Ipv4Addr::LOCALHOST.into()] {
+        let reply = tokio::time::timeout(
+            std::time::Duration::from_secs(5),
+            socks5_connect_from(proxy, port, "reachable.invalid"),
+        )
+        .await
+        .expect("the proxy answers on this family");
+        assert_eq!(reply, 0x00, "granted over {proxy}");
+    }
     let _ = cancel_tx.send(true);
 }

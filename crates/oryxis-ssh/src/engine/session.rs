@@ -318,9 +318,9 @@ impl SshSession {
     ///
     /// Binds LOOPBACK only, never `0.0.0.0`: the far end is a service on
     /// the remote's loopback that is deliberately not exposed, and the
-    /// near end is for this machine's browser alone. The family is the
-    /// caller's (a callback written at `[::1]` is dialled over IPv6 and
-    /// an IPv4 listener would not be found), the refusal is not: a dial
+    /// near end is for this machine's browser alone. Which loopback is
+    /// the caller's (`127.0.0.1` answers on both families, `::1` on IPv6
+    /// alone, see `bind_forward_listener`), the refusal is not: a dial
     /// site that passed a routable address would put that service on the
     /// network, so this checks rather than trusts.
     pub async fn open_local_forward(

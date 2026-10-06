@@ -103,7 +103,7 @@ impl SshEngine {
         transport: Arc<super::SshTransport>,
         cols: u32,
         rows: u32,
-        pf_listeners: Vec<(PortForward, tokio::net::TcpListener)>,
+        pf_listeners: Vec<(PortForward, ForwardListener)>,
     ) -> Result<(SshSession, mpsc::UnboundedReceiver<Vec<u8>>), SshError> {
         // Open session channel. Nothing here holds the connection: the
         // other sessions and forwards riding it open their own channels
