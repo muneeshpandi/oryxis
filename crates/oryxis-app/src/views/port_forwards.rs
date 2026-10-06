@@ -29,7 +29,7 @@ pub(crate) fn forward_summary(rule: &PortForwardRule) -> String {
             rule.listen_host, rule.listen_port, rule.target_host, rule.target_port
         ),
         ForwardKind::Dynamic => {
-            format!("SOCKS5 {}:{}", rule.listen_host, rule.listen_port)
+            format!("SOCKS {}:{}", rule.listen_host, rule.listen_port)
         }
     }
 }

@@ -109,33 +109,15 @@ pub(crate) fn spawn_port_forward_tasks(
                 let shared = Arc::clone(&shared);
                 let remote_host = remote_host.clone();
                 tokio::spawn(async move {
-                    let channel = match shared.channel_open_direct_tcpip(
-                        remote_host.clone(),
-                        remote_port as u32,
-                        "127.0.0.1",
-                        local_port as u32,
-                    ).await {
-                        Ok(ch) => ch,
-                        Err(e) => {
-                            tracing::error!(
-                                "direct-tcpip to {}:{} failed: {}",
-                                remote_host, remote_port, e
-                            );
-                            return;
-                        }
-                    };
-
-                    let channel_stream = channel.into_stream();
-                    let (mut ch_reader, mut ch_writer) = tokio::io::split(channel_stream);
-                    let (mut tcp_reader, mut tcp_writer) = tokio::io::split(stream);
-
-                    let c2t = tokio::io::copy(&mut ch_reader, &mut tcp_writer);
-                    let t2c = tokio::io::copy(&mut tcp_reader, &mut ch_writer);
-
-                    tokio::select! {
-                        r = c2t => { if let Err(e) = r { tracing::debug!("port fwd channel->tcp: {}", e); } }
-                        r = t2c => { if let Err(e) = r { tracing::debug!("port fwd tcp->channel: {}", e); } }
-                    }
+                    // These forwards live and die with the connection
+                    // (the transport owns their accept loops), so the
+                    // relay is handed a cancel that never fires: the
+                    // channel closing under it is what ends it.
+                    let (_never, cancel) = tokio::sync::watch::channel(false);
+                    bridge_direct_tcpip(
+                        shared, stream, remote_host, remote_port, local_port, cancel,
+                    )
+                    .await;
                 });
             }
         });
@@ -363,7 +345,7 @@ impl ForwardConn {
                     cancel_rx,
                 );
                 tracing::info!(
-                    "forward(-D) SOCKS5 {}:{} up",
+                    "forward(-D) SOCKS {}:{} up",
                     rule.listen_host, rule.listen_port
                 );
                 Ok(ForwardSession {
@@ -689,7 +671,7 @@ pub(crate) async fn bridge_direct_tcpip(
     target_host: String,
     target_port: u16,
     src_port: u16,
-    mut cancel: tokio::sync::watch::Receiver<bool>,
+    cancel: tokio::sync::watch::Receiver<bool>,
 ) {
     let channel = match shared
         .channel_open_direct_tcpip(
@@ -706,19 +688,78 @@ pub(crate) async fn bridge_direct_tcpip(
             return;
         }
     };
+    relay_channel(channel, stream, cancel, "forward").await;
+}
 
-    let channel_stream = channel.into_stream();
-    let (mut ch_reader, mut ch_writer) = tokio::io::split(channel_stream);
-    let (mut tcp_reader, mut tcp_writer) = tokio::io::split(stream);
+/// Carry bytes between a forwarded channel and its local socket until the
+/// tunnel is over. Every bridge ends here (`-L`, `-R`, `-D`, the
+/// session-attached forwards), so they all end a tunnel the same way.
+///
+/// Each direction finishes on its own, as in OpenSSH and PuTTY. The local
+/// side closing its sending half becomes an EOF on the channel and the
+/// tunnel stays up for what the far side still has to say; the far side's
+/// EOF closes the socket's sending half and the local side may go on
+/// talking. A client that sends its request, half-closes and then reads
+/// the answer is served whole. The tunnel is over when both halves are
+/// done, when the server closes the channel, on any socket or channel
+/// error, or on cancellation, and the channel is closed on the way out
+/// whichever it was.
+pub(crate) async fn relay_channel(
+    channel: russh::Channel<russh::client::Msg>,
+    stream: tokio::net::TcpStream,
+    mut cancel: tokio::sync::watch::Receiver<bool>,
+    what: &'static str,
+) {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use tokio::io::AsyncWriteExt;
 
-    let c2t = tokio::io::copy(&mut ch_reader, &mut tcp_writer);
-    let t2c = tokio::io::copy(&mut tcp_reader, &mut ch_writer);
+    let (mut ch_rx, ch_tx) = channel.split();
+    let (mut tcp_rx, mut tcp_tx) = stream.into_split();
+    // Which halves have finished. One task polls both futures, so the
+    // atomics are for `Send`, not for a race: each side looks at the
+    // other's flag right after setting its own.
+    let local_done = AtomicBool::new(false);
+    let remote_done = AtomicBool::new(false);
+
+    let up = async {
+        let mut writer = ch_tx.make_writer();
+        tokio::io::copy(&mut tcp_rx, &mut writer).await?;
+        // The writer's shutdown is the channel EOF.
+        writer.shutdown().await?;
+        local_done.store(true, Ordering::Relaxed);
+        if !remote_done.load(Ordering::Relaxed) {
+            // The far side has not finished: `down` decides from here.
+            std::future::pending::<()>().await;
+        }
+        Ok::<(), std::io::Error>(())
+    };
+    let down = async {
+        loop {
+            match ch_rx.wait().await {
+                Some(ChannelMsg::Data { data }) => tcp_tx.write_all(&data).await?,
+                Some(ChannelMsg::Eof) => {
+                    tcp_tx.shutdown().await?;
+                    remote_done.store(true, Ordering::Relaxed);
+                    if local_done.load(Ordering::Relaxed) {
+                        return Ok::<(), std::io::Error>(());
+                    }
+                }
+                // Closed by the server, or the connection went away.
+                Some(ChannelMsg::Close) | None => return Ok(()),
+                Some(_) => {}
+            }
+        }
+    };
 
     tokio::select! {
         _ = cancel.changed() => {}
-        r = c2t => { if let Err(e) = r { tracing::debug!("forward channel->tcp: {}", e); } }
-        r = t2c => { if let Err(e) = r { tracing::debug!("forward tcp->channel: {}", e); } }
+        r = up => { if let Err(e) = r { tracing::debug!("{what} tcp->channel: {e}"); } }
+        r = down => { if let Err(e) = r { tracing::debug!("{what} channel->tcp: {e}"); } }
     }
+    // Split halves do not close the channel when dropped (only the
+    // `into_stream` wrapper does), and an open one would stay in the
+    // connection's table, and the server's, for as long as it lives.
+    let _ = ch_tx.close().await;
 }
 
 /// Bridge an inbound `forwarded-tcpip` channel (from a `-R` forward) to a
@@ -729,7 +770,7 @@ pub(crate) async fn bridge_channel_to_target(
     channel: russh::Channel<russh::client::Msg>,
     target_host: String,
     target_port: u16,
-    mut cancel: tokio::sync::watch::Receiver<bool>,
+    cancel: tokio::sync::watch::Receiver<bool>,
 ) {
     let stream = match tokio::net::TcpStream::connect((target_host.as_str(), target_port)).await {
         Ok(s) => s,
@@ -744,24 +785,13 @@ pub(crate) async fn bridge_channel_to_target(
     // Interactive protocols (RDP, VNC) ride these bridges; Nagle only
     // adds latency on top of the SSH channel's own framing.
     let _ = stream.set_nodelay(true);
-
-    let channel_stream = channel.into_stream();
-    let (mut ch_reader, mut ch_writer) = tokio::io::split(channel_stream);
-    let (mut tcp_reader, mut tcp_writer) = tokio::io::split(stream);
-
-    let c2t = tokio::io::copy(&mut ch_reader, &mut tcp_writer);
-    let t2c = tokio::io::copy(&mut tcp_reader, &mut ch_writer);
-
-    tokio::select! {
-        _ = cancel.changed() => {}
-        r = c2t => { if let Err(e) = r { tracing::debug!("remote forward channel->tcp: {}", e); } }
-        r = t2c => { if let Err(e) = r { tracing::debug!("remote forward tcp->channel: {}", e); } }
-    }
+    relay_channel(channel, stream, cancel, "remote forward").await;
 }
 
 /// Spawn a cancel-aware accept loop for a `-D` dynamic forward. The local
-/// listener speaks SOCKS5; each accepted connection negotiates a CONNECT
-/// target and gets its own `direct-tcpip` channel through the SSH session.
+/// listener speaks SOCKS (5, 4 and 4A); each accepted connection negotiates
+/// a CONNECT target and gets its own `direct-tcpip` channel through the SSH
+/// session.
 pub(crate) fn spawn_dynamic_forward_task(
     listener: ForwardListener,
     handle: SharedHandle,
@@ -776,120 +806,251 @@ pub(crate) fn spawn_dynamic_forward_task(
                 res = listener.accept() => match res {
                     Ok(v) => v,
                     Err(e) => {
-                        tracing::error!("socks5 accept error on {}: {}", listen_port, e);
+                        tracing::error!("socks accept error on {}: {}", listen_port, e);
                         break;
                     }
                 },
             };
-            tracing::debug!("socks5 {} accepted from {}", listen_port, addr);
+            tracing::debug!("socks {} accepted from {}", listen_port, addr);
             // Same rationale as the -L accepts: the dynamic forward
             // carries interactive client traffic.
             let _ = stream.set_nodelay(true);
             let shared = Arc::clone(&handle);
             let child_cancel = cancel.clone();
             tokio::spawn(async move {
-                bridge_socks5(shared, stream, listen_port, child_cancel).await;
+                bridge_socks(shared, stream, listen_port, child_cancel).await;
             });
         }
-        tracing::debug!("socks5 accept loop on {} stopped", listen_port);
+        tracing::debug!("socks accept loop on {} stopped", listen_port);
     })
 }
 
-/// Write a SOCKS5 reply with the given reply code and a zeroed
-/// IPv4 bind address (the client ignores it for CONNECT).
-pub(crate) async fn socks5_reply(
-    stream: &mut tokio::net::TcpStream,
-    rep: u8,
-) -> std::io::Result<()> {
-    use tokio::io::AsyncWriteExt;
-    stream
-        .write_all(&[0x05, rep, 0x00, 0x01, 0, 0, 0, 0, 0, 0])
-        .await
+/// The SOCKS dialect a client opened with. The reply has to come back in
+/// the same one.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum SocksVersion {
+    /// SOCKS4, and 4A when the request carries a name.
+    V4,
+    V5,
 }
 
-/// Run the SOCKS5 server handshake (no-auth, CONNECT only) and return the
-/// requested destination. Sends the appropriate failure reply itself for
-/// the cases it rejects.
-pub(crate) async fn socks5_negotiate(
+/// How a SOCKS request ended, in terms both dialects can express.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum SocksOutcome {
+    Granted,
+    /// The server would not or could not open the tunnel, for a reason
+    /// that says nothing about the destination.
+    Failed,
+    /// The server refuses to forward there (`AllowTcpForwarding`,
+    /// `PermitOpen`).
+    NotAllowed,
+    /// The server's own connect to the destination failed.
+    Unreachable,
+    CommandNotSupported,
+    AddressNotSupported,
+}
+
+impl SocksOutcome {
+    /// What a failed `direct-tcpip` open means to the SOCKS client.
+    pub(crate) fn of_open_error(e: &russh::Error) -> Self {
+        match e {
+            russh::Error::ChannelOpenFailure(
+                russh::ChannelOpenFailure::AdministrativelyProhibited,
+            ) => SocksOutcome::NotAllowed,
+            russh::Error::ChannelOpenFailure(russh::ChannelOpenFailure::ConnectFailed) => {
+                SocksOutcome::Unreachable
+            }
+            _ => SocksOutcome::Failed,
+        }
+    }
+
+    /// The SOCKS5 `REP` field (RFC 1928, section 6).
+    fn v5_code(self) -> u8 {
+        match self {
+            SocksOutcome::Granted => 0x00,
+            SocksOutcome::Failed => 0x01,
+            SocksOutcome::NotAllowed => 0x02,
+            SocksOutcome::Unreachable => 0x05,
+            SocksOutcome::CommandNotSupported => 0x07,
+            SocksOutcome::AddressNotSupported => 0x08,
+        }
+    }
+
+    /// The SOCKS4 `CD` field: granted, or the one rejection it has.
+    fn v4_code(self) -> u8 {
+        match self {
+            SocksOutcome::Granted => 0x5A,
+            _ => 0x5B,
+        }
+    }
+}
+
+/// A CONNECT request read off a SOCKS client.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct SocksRequest {
+    pub(crate) version: SocksVersion,
+    pub(crate) host: String,
+    pub(crate) port: u16,
+}
+
+/// Write the reply to a CONNECT in the client's dialect. The bind
+/// address is zeroed in both: the client ignores it for CONNECT.
+pub(crate) async fn socks_reply(
     stream: &mut tokio::net::TcpStream,
-) -> std::io::Result<(String, u16)> {
+    version: SocksVersion,
+    outcome: SocksOutcome,
+) -> std::io::Result<()> {
+    use tokio::io::AsyncWriteExt;
+    match version {
+        SocksVersion::V5 => {
+            stream
+                .write_all(&[0x05, outcome.v5_code(), 0x00, 0x01, 0, 0, 0, 0, 0, 0])
+                .await
+        }
+        SocksVersion::V4 => {
+            stream
+                .write_all(&[0x00, outcome.v4_code(), 0, 0, 0, 0, 0, 0])
+                .await
+        }
+    }
+}
+
+/// Longest NUL-terminated field accepted in a SOCKS4 request (the user
+/// id, the 4A host name). A DNS name tops out at 253 bytes; the cap is
+/// what stops a client from feeding the field forever.
+const SOCKS4_FIELD_MAX: usize = 255;
+
+/// Read one NUL-terminated SOCKS4 field, without its terminator.
+async fn socks4_field(stream: &mut tokio::net::TcpStream) -> std::io::Result<Vec<u8>> {
+    use tokio::io::AsyncReadExt;
+    let mut field = Vec::new();
+    loop {
+        let byte = stream.read_u8().await?;
+        if byte == 0 {
+            return Ok(field);
+        }
+        if field.len() == SOCKS4_FIELD_MAX {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "SOCKS4 field too long",
+            ));
+        }
+        field.push(byte);
+    }
+}
+
+/// Run the SOCKS server handshake and return the requested destination.
+/// SOCKS5 (no authentication), SOCKS4 and SOCKS4A, CONNECT only: the set
+/// OpenSSH and PuTTY serve on a dynamic forward. Sends the failure reply
+/// itself for the requests it rejects; the reply to an accepted one is
+/// the caller's, once the tunnel is open or has failed.
+pub(crate) async fn socks_negotiate(
+    stream: &mut tokio::net::TcpStream,
+) -> std::io::Result<SocksRequest> {
     use std::io::{Error, ErrorKind};
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-    // Greeting: VER, NMETHODS, METHODS[NMETHODS].
-    let mut head = [0u8; 2];
-    stream.read_exact(&mut head).await?;
-    if head[0] != 0x05 {
-        return Err(Error::new(ErrorKind::InvalidData, "not a SOCKS5 client"));
-    }
-    let mut methods = vec![0u8; head[1] as usize];
-    stream.read_exact(&mut methods).await?;
-    // We only support "no authentication required" (0x00).
-    if !methods.contains(&0x00) {
-        stream.write_all(&[0x05, 0xFF]).await?;
-        return Err(Error::other("no acceptable SOCKS5 method"));
-    }
-    stream.write_all(&[0x05, 0x00]).await?;
-
-    // Request: VER CMD RSV ATYP DST.ADDR DST.PORT.
-    let mut req = [0u8; 4];
-    stream.read_exact(&mut req).await?;
-    if req[0] != 0x05 {
-        return Err(Error::new(ErrorKind::InvalidData, "bad SOCKS5 request"));
-    }
-    if req[1] != 0x01 {
-        // Only CONNECT (0x01); reject BIND / UDP ASSOCIATE.
-        socks5_reply(stream, 0x07).await?;
-        return Err(Error::other("SOCKS5 command not supported"));
-    }
-    let host = match req[3] {
-        0x01 => {
-            let mut a = [0u8; 4];
-            stream.read_exact(&mut a).await?;
-            std::net::Ipv4Addr::from(a).to_string()
-        }
-        0x03 => {
-            let mut len = [0u8; 1];
-            stream.read_exact(&mut len).await?;
-            let mut d = vec![0u8; len[0] as usize];
-            stream.read_exact(&mut d).await?;
-            String::from_utf8_lossy(&d).into_owned()
-        }
+    match stream.read_u8().await? {
         0x04 => {
-            let mut a = [0u8; 16];
-            stream.read_exact(&mut a).await?;
-            std::net::Ipv6Addr::from(a).to_string()
+            // VN (read) CD DSTPORT DSTIP USERID NUL [HOST NUL].
+            let mut req = [0u8; 7];
+            stream.read_exact(&mut req).await?;
+            let port = u16::from_be_bytes([req[1], req[2]]);
+            let ip = [req[3], req[4], req[5], req[6]];
+            // The user id names nobody here: the forward is as open as
+            // its listen address, in either dialect.
+            socks4_field(stream).await?;
+            // 4A: an address of 0.0.0.x (x != 0) is not an address but
+            // the announcement that a host name follows the user id.
+            let host = if ip[..3] == [0, 0, 0] && ip[3] != 0 {
+                String::from_utf8_lossy(&socks4_field(stream).await?).into_owned()
+            } else {
+                std::net::Ipv4Addr::from(ip).to_string()
+            };
+            if req[0] != 0x01 {
+                // Only CONNECT (1); BIND is not served.
+                socks_reply(stream, SocksVersion::V4, SocksOutcome::CommandNotSupported).await?;
+                return Err(Error::other("SOCKS4 command not supported"));
+            }
+            Ok(SocksRequest { version: SocksVersion::V4, host, port })
         }
-        _ => {
-            socks5_reply(stream, 0x08).await?;
-            return Err(Error::other("SOCKS5 address type not supported"));
+        0x05 => {
+            // Greeting: VER (read) NMETHODS METHODS[NMETHODS].
+            let nmethods = stream.read_u8().await?;
+            let mut methods = vec![0u8; nmethods as usize];
+            stream.read_exact(&mut methods).await?;
+            // We only support "no authentication required" (0x00).
+            if !methods.contains(&0x00) {
+                stream.write_all(&[0x05, 0xFF]).await?;
+                return Err(Error::other("no acceptable SOCKS5 method"));
+            }
+            stream.write_all(&[0x05, 0x00]).await?;
+
+            // Request: VER CMD RSV ATYP DST.ADDR DST.PORT.
+            let mut req = [0u8; 4];
+            stream.read_exact(&mut req).await?;
+            if req[0] != 0x05 {
+                return Err(Error::new(ErrorKind::InvalidData, "bad SOCKS5 request"));
+            }
+            if req[1] != 0x01 {
+                // Only CONNECT (0x01); reject BIND / UDP ASSOCIATE.
+                socks_reply(stream, SocksVersion::V5, SocksOutcome::CommandNotSupported).await?;
+                return Err(Error::other("SOCKS5 command not supported"));
+            }
+            let host = match req[3] {
+                0x01 => {
+                    let mut a = [0u8; 4];
+                    stream.read_exact(&mut a).await?;
+                    std::net::Ipv4Addr::from(a).to_string()
+                }
+                0x03 => {
+                    let len = stream.read_u8().await?;
+                    let mut d = vec![0u8; len as usize];
+                    stream.read_exact(&mut d).await?;
+                    String::from_utf8_lossy(&d).into_owned()
+                }
+                0x04 => {
+                    let mut a = [0u8; 16];
+                    stream.read_exact(&mut a).await?;
+                    std::net::Ipv6Addr::from(a).to_string()
+                }
+                _ => {
+                    socks_reply(stream, SocksVersion::V5, SocksOutcome::AddressNotSupported)
+                        .await?;
+                    return Err(Error::other("SOCKS5 address type not supported"));
+                }
+            };
+            let port = stream.read_u16().await?;
+            Ok(SocksRequest { version: SocksVersion::V5, host, port })
         }
-    };
-    let mut port = [0u8; 2];
-    stream.read_exact(&mut port).await?;
-    Ok((host, u16::from_be_bytes(port)))
+        _ => Err(Error::new(ErrorKind::InvalidData, "not a SOCKS client")),
+    }
 }
 
-/// Handle one SOCKS5 client: negotiate the target, open a `direct-tcpip`
-/// channel to it, reply, then relay bytes until EOF / error / cancellation.
-pub(crate) async fn bridge_socks5(
+/// Handle one SOCKS client: negotiate the target, open a `direct-tcpip`
+/// channel to it, reply, then relay bytes until the tunnel is over.
+///
+/// The reply waits for the server's answer to the open, so a destination
+/// the server cannot reach, or will not forward to, reaches the client as
+/// that SOCKS error and not as a granted tunnel that then goes quiet.
+pub(crate) async fn bridge_socks(
     shared: SharedHandle,
     mut stream: tokio::net::TcpStream,
     src_port: u16,
-    mut cancel: tokio::sync::watch::Receiver<bool>,
+    cancel: tokio::sync::watch::Receiver<bool>,
 ) {
-    let (dest_host, dest_port) = match socks5_negotiate(&mut stream).await {
-        Ok(d) => d,
+    let request = match socks_negotiate(&mut stream).await {
+        Ok(request) => request,
         Err(e) => {
-            tracing::debug!("socks5 negotiate failed: {}", e);
+            tracing::debug!("socks negotiate failed: {}", e);
             return;
         }
     };
 
     let channel = shared
         .channel_open_direct_tcpip(
-            dest_host.clone(),
-            dest_port as u32,
+            request.host.clone(),
+            request.port as u32,
             "127.0.0.1",
             src_port as u32,
         )
@@ -897,27 +1058,22 @@ pub(crate) async fn bridge_socks5(
     let channel = match channel {
         Ok(c) => c,
         Err(e) => {
-            tracing::error!("socks5 direct-tcpip to {}:{} failed: {}", dest_host, dest_port, e);
-            // 0x05 = connection refused / general failure.
-            let _ = socks5_reply(&mut stream, 0x05).await;
+            tracing::error!(
+                "socks direct-tcpip to {}:{} failed: {}",
+                request.host, request.port, e
+            );
+            let _ = socks_reply(&mut stream, request.version, SocksOutcome::of_open_error(&e))
+                .await;
             return;
         }
     };
-    if socks5_reply(&mut stream, 0x00).await.is_err() {
+    if socks_reply(&mut stream, request.version, SocksOutcome::Granted).await.is_err() {
+        // The client left while the tunnel was opening: hand the
+        // channel back instead of leaving it open on the server.
+        let _ = channel.close().await;
         return;
     }
-
-    let channel_stream = channel.into_stream();
-    let (mut ch_reader, mut ch_writer) = tokio::io::split(channel_stream);
-    let (mut tcp_reader, mut tcp_writer) = tokio::io::split(stream);
-    let c2t = tokio::io::copy(&mut ch_reader, &mut tcp_writer);
-    let t2c = tokio::io::copy(&mut tcp_reader, &mut ch_writer);
-
-    tokio::select! {
-        _ = cancel.changed() => {}
-        r = c2t => { if let Err(e) = r { tracing::debug!("socks5 channel->tcp: {}", e); } }
-        r = t2c => { if let Err(e) = r { tracing::debug!("socks5 tcp->channel: {}", e); } }
-    }
+    relay_channel(channel, stream, cancel, "socks").await;
 }
 
 #[cfg(test)]

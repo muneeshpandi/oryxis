@@ -317,8 +317,70 @@ impl russh::server::Handler for SshHarness {
             self.parked.push(reply);
             return Ok(());
         }
+        let refusal = match host_to_connect {
+            REFUSED_TARGET => Some(russh::ChannelOpenFailure::ConnectFailed),
+            FORBIDDEN_TARGET => Some(russh::ChannelOpenFailure::AdministrativelyProhibited),
+            _ => None,
+        };
+        if let Some(reason) = refusal {
+            reply.reject(reason).await;
+            return Ok(());
+        }
         reply.accept().await;
-        self.channels.lock().await.insert(channel.id(), channel);
+        match host_to_connect {
+            ECHO_TARGET => {
+                // Reading and writing on separate tasks, with nothing
+                // bounded between them: a channel whose reader waits on
+                // its own writer stops the whole server loop once the
+                // echo runs ahead of the client.
+                let (mut rx, tx) = channel.split();
+                let (queue_tx, mut queue_rx) = tokio::sync::mpsc::unbounded_channel();
+                tokio::spawn(async move {
+                    while let Some(msg) = rx.wait().await {
+                        match msg {
+                            russh::ChannelMsg::Data { data } => {
+                                if queue_tx.send(data).is_err() {
+                                    break;
+                                }
+                            }
+                            russh::ChannelMsg::Eof => break,
+                            _ => {}
+                        }
+                    }
+                });
+                tokio::spawn(async move {
+                    while let Some(data) = queue_rx.recv().await {
+                        if tx.data(&data[..]).await.is_err() {
+                            return;
+                        }
+                    }
+                    let _ = tx.eof().await;
+                    let _ = tx.close().await;
+                });
+            }
+            ANSWER_AFTER_EOF_TARGET => {
+                tokio::spawn(async move {
+                    let mut channel = channel;
+                    let mut heard = 0usize;
+                    while let Some(msg) = channel.wait().await {
+                        match msg {
+                            russh::ChannelMsg::Data { data } => heard += data.len(),
+                            russh::ChannelMsg::Eof => {
+                                let answer = format!("heard {heard}");
+                                let _ = channel.data(answer.as_bytes()).await;
+                                let _ = channel.eof().await;
+                                let _ = channel.close().await;
+                                break;
+                            }
+                            _ => {}
+                        }
+                    }
+                });
+            }
+            _ => {
+                self.channels.lock().await.insert(channel.id(), channel);
+            }
+        }
         Ok(())
     }
 
@@ -351,6 +413,15 @@ impl russh::server::Handler for SshHarness {
 
 /// The `direct-tcpip` target the harness server never answers for.
 const UNREACHABLE_TARGET: &str = "unreachable.invalid";
+/// A target the server's own connect fails for.
+const REFUSED_TARGET: &str = "refused.invalid";
+/// A target the server will not forward to (`PermitOpen`).
+const FORBIDDEN_TARGET: &str = "forbidden.invalid";
+/// A target that sends back whatever it receives.
+const ECHO_TARGET: &str = "echo.invalid";
+/// A target that answers only once the client has finished sending: the
+/// request / EOF / response shape of anything that half-closes.
+const ANSWER_AFTER_EOF_TARGET: &str = "answer-after-eof.invalid";
 
 // ---------------------------------------------------------------------------
 // Harness entry point
@@ -1054,6 +1125,16 @@ async fn socks5_connect(port: u16, host: &str) -> u8 {
 
 /// The same request, dialled at the loopback address `proxy`.
 async fn socks5_connect_from(proxy: std::net::IpAddr, port: u16, host: &str) -> u8 {
+    socks5_open(proxy, port, host).await.0
+}
+
+/// A SOCKS5 CONNECT that hands back the stream with the reply code, for
+/// tests that go on to use the tunnel.
+async fn socks5_open(
+    proxy: std::net::IpAddr,
+    port: u16,
+    host: &str,
+) -> (u8, tokio::net::TcpStream) {
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
     let mut s = tokio::net::TcpStream::connect((proxy, port))
         .await
@@ -1067,7 +1148,20 @@ async fn socks5_connect_from(proxy: std::net::IpAddr, port: u16, host: &str) -> 
     s.write_all(&req).await.expect("connect request");
     let mut reply = [0u8; 10];
     s.read_exact(&mut reply).await.expect("connect reply");
-    reply[1]
+    (reply[1], s)
+}
+
+/// A `-D` forward on an OS-chosen loopback port over a fresh in-memory
+/// connection.
+async fn socks_forward_in_memory() -> (u16, SharedHandle, tokio::sync::watch::Sender<bool>) {
+    let (shared, _fs, _) = connect_handle_in_memory().await;
+    let listener = crate::engine::bind_forward_listener("127.0.0.1", 0)
+        .await
+        .expect("bind socks listener");
+    let port = listener.local_addr().expect("listener addr").port();
+    let (cancel_tx, cancel_rx) = tokio::sync::watch::channel(false);
+    crate::engine::spawn_dynamic_forward_task(listener, Arc::clone(&shared), port, cancel_rx);
+    (port, shared, cancel_tx)
 }
 
 /// A SOCKS request whose destination the server is still trying to
@@ -1149,5 +1243,131 @@ async fn harness_socks_forward_answers_on_ipv6_loopback() {
         .expect("the proxy answers on this family");
         assert_eq!(reply, 0x00, "granted over {proxy}");
     }
+    let _ = cancel_tx.send(true);
+}
+
+/// A client that finishes sending and then waits for the answer gets it:
+/// the end of ITS half is passed on as an EOF, and the tunnel stays up
+/// for the other direction.
+#[tokio::test]
+async fn harness_socks_client_that_half_closes_still_gets_the_answer() {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    let (port, _shared, cancel_tx) = socks_forward_in_memory().await;
+    let v4 = std::net::Ipv4Addr::LOCALHOST.into();
+    let (reply, mut stream) = socks5_open(v4, port, ANSWER_AFTER_EOF_TARGET).await;
+    assert_eq!(reply, 0x00);
+    stream.write_all(b"request").await.expect("send request");
+    stream.shutdown().await.expect("half-close");
+    let mut answer = Vec::new();
+    tokio::time::timeout(std::time::Duration::from_secs(5), stream.read_to_end(&mut answer))
+        .await
+        .expect("the answer arrives after the half-close")
+        .expect("read answer");
+    assert_eq!(answer, b"heard 7");
+    let _ = cancel_tx.send(true);
+}
+
+/// The far side finishing first leaves the client's half of the tunnel
+/// working: what it sends after the EOF still arrives.
+#[tokio::test]
+async fn harness_socks_tunnel_outlives_one_finished_half() {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    let (port, _shared, cancel_tx) = socks_forward_in_memory().await;
+    let v4 = std::net::Ipv4Addr::LOCALHOST.into();
+    let (reply, mut stream) = socks5_open(v4, port, ECHO_TARGET).await;
+    assert_eq!(reply, 0x00);
+    // Several writes with the echo read back between them: the tunnel
+    // carries both directions for as long as both are open.
+    for round in 0..3u8 {
+        let sent = [round; 1024];
+        stream.write_all(&sent).await.expect("send");
+        let mut back = [0u8; 1024];
+        tokio::time::timeout(std::time::Duration::from_secs(5), stream.read_exact(&mut back))
+            .await
+            .expect("echo arrives")
+            .expect("read echo");
+        assert_eq!(back, sent);
+    }
+    // The client finishes; the echo target answers the EOF with its own,
+    // and the client reads a clean end of stream.
+    stream.shutdown().await.expect("half-close");
+    let mut rest = Vec::new();
+    tokio::time::timeout(std::time::Duration::from_secs(5), stream.read_to_end(&mut rest))
+        .await
+        .expect("the tunnel ends once both halves are done")
+        .expect("clean end of stream");
+    assert!(rest.is_empty());
+    let _ = cancel_tx.send(true);
+}
+
+/// A SOCKS4 CONNECT (an address) and a SOCKS4A one (a name after the
+/// user id) are served like a SOCKS5 one, each answered in its own
+/// dialect.
+#[tokio::test]
+async fn harness_socks4_and_4a_clients_are_served() {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    let (port, _shared, cancel_tx) = socks_forward_in_memory().await;
+
+    // 4A: DSTIP 0.0.0.1 announces the name after the user id.
+    let mut s = tokio::net::TcpStream::connect(("127.0.0.1", port)).await.expect("connect");
+    let mut req = vec![0x04, 0x01];
+    req.extend_from_slice(&443u16.to_be_bytes());
+    req.extend_from_slice(&[0, 0, 0, 1]);
+    req.extend_from_slice(b"someone\0");
+    req.extend_from_slice(ECHO_TARGET.as_bytes());
+    req.push(0);
+    s.write_all(&req).await.expect("socks4a request");
+    let mut reply = [0u8; 8];
+    s.read_exact(&mut reply).await.expect("socks4a reply");
+    assert_eq!(reply[..2], [0x00, 0x5A], "granted, in the SOCKS4 reply format");
+    s.write_all(b"ping").await.expect("send");
+    let mut back = [0u8; 4];
+    s.read_exact(&mut back).await.expect("echo through the 4A tunnel");
+    assert_eq!(&back, b"ping");
+
+    // Plain 4: a literal address and an empty user id.
+    let mut s = tokio::net::TcpStream::connect(("127.0.0.1", port)).await.expect("connect");
+    let mut req = vec![0x04, 0x01];
+    req.extend_from_slice(&80u16.to_be_bytes());
+    req.extend_from_slice(&[192, 0, 2, 7]);
+    req.push(0);
+    s.write_all(&req).await.expect("socks4 request");
+    let mut reply = [0u8; 8];
+    s.read_exact(&mut reply).await.expect("socks4 reply");
+    assert_eq!(reply[..2], [0x00, 0x5A]);
+
+    // BIND is not served, and says so in the same dialect.
+    let mut s = tokio::net::TcpStream::connect(("127.0.0.1", port)).await.expect("connect");
+    let mut req = vec![0x04, 0x02];
+    req.extend_from_slice(&80u16.to_be_bytes());
+    req.extend_from_slice(&[192, 0, 2, 7]);
+    req.push(0);
+    s.write_all(&req).await.expect("socks4 bind");
+    let mut reply = [0u8; 8];
+    s.read_exact(&mut reply).await.expect("socks4 rejection");
+    assert_eq!(reply[..2], [0x00, 0x5B]);
+    let _ = cancel_tx.send(true);
+}
+
+/// The server's answer to the open reaches the client as the SOCKS
+/// error that says why, in the dialect it asked in.
+#[tokio::test]
+async fn harness_socks_reply_says_why_the_tunnel_was_not_opened() {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    let (port, _shared, cancel_tx) = socks_forward_in_memory().await;
+    let v4 = std::net::Ipv4Addr::LOCALHOST.into();
+    assert_eq!(socks5_connect_from(v4, port, REFUSED_TARGET).await, 0x05);
+    assert_eq!(socks5_connect_from(v4, port, FORBIDDEN_TARGET).await, 0x02);
+
+    let mut s = tokio::net::TcpStream::connect(("127.0.0.1", port)).await.expect("connect");
+    let mut req = vec![0x04, 0x01];
+    req.extend_from_slice(&443u16.to_be_bytes());
+    req.extend_from_slice(&[0, 0, 0, 1, 0]);
+    req.extend_from_slice(REFUSED_TARGET.as_bytes());
+    req.push(0);
+    s.write_all(&req).await.expect("socks4a request");
+    let mut reply = [0u8; 8];
+    s.read_exact(&mut reply).await.expect("socks4a reply");
+    assert_eq!(reply[..2], [0x00, 0x5B]);
     let _ = cancel_tx.send(true);
 }

@@ -38,7 +38,8 @@ coming next, see the [Roadmap](../README.md#roadmap).
   from its card menu with a magic-packet broadcast, before SSH can
   reach it.
 - **Standalone port forwarding.** Local (`-L`), Remote (`-R`) and Dynamic
-  SOCKS5 (`-D`) forwards live as their own entities with per-row on/off
+  SOCKS (`-D`, serving SOCKS5, 4 and 4A clients) forwards live as their
+  own entities with per-row on/off
   toggles, auto-start at boot, and no terminal required. Every forward
   to the same host shares one SSH connection (one transport, one auth),
   a dropped forward climbs back with the same backoff a host does, and
