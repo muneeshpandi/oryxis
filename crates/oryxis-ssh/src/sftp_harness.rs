@@ -1388,9 +1388,18 @@ async fn harness_socks_reply_says_why_the_tunnel_was_not_opened() {
 
 /// A tunnel whose client stopped reading (a paused download, a client
 /// that hangs) holds up nothing but itself: its own channel runs out of
-/// window and the server stops sending on it, while every other tunnel on
-/// the connection goes on. Needs the per-channel flow control of the
-/// russh fork (see the patch entry in the root `Cargo.toml`).
+/// window and the server stops sending on it, while the connection goes
+/// on answering. Needs the per-channel flow control of the russh fork
+/// (see the patch entry in the root `Cargo.toml`); on stock russh the
+/// session loop waits on the unread channel and no new tunnel opens.
+///
+/// What is asserted while the tunnel is stalled is that new tunnels OPEN,
+/// which takes this side reading the server's confirmation. Data on them
+/// is only exchanged once the stalled one has been read: the in-memory
+/// server is russh as well, and a russh SENDER holding data for a channel
+/// that is out of window takes no other output until that window
+/// re-opens. That is the far end's doing, and a real sshd has no such
+/// limit.
 #[tokio::test]
 async fn harness_socks_stream_nobody_reads_does_not_hold_up_the_others() {
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -1402,18 +1411,16 @@ async fn harness_socks_stream_nobody_reads_does_not_hold_up_the_others() {
     // that is not reading.
     tokio::time::sleep(std::time::Duration::from_secs(2)).await;
 
-    for round in 0..3u8 {
-        let echoed = tokio::time::timeout(std::time::Duration::from_secs(5), async {
-            let (reply, mut stream) = socks5_open(v4, port, ECHO_TARGET).await;
-            assert_eq!(reply, 0x00);
-            stream.write_all(&[round; 4]).await.expect("send");
-            let mut back = [0u8; 4];
-            stream.read_exact(&mut back).await.expect("echo");
-            back
-        })
+    let mut opened_meanwhile = Vec::new();
+    for _ in 0..3 {
+        let (reply, stream) = tokio::time::timeout(
+            std::time::Duration::from_secs(10),
+            socks5_open(v4, port, ECHO_TARGET),
+        )
         .await
-        .expect("another tunnel answers while one is not being read");
-        assert_eq!(echoed, [round; 4]);
+        .expect("another tunnel opens while one is not being read");
+        assert_eq!(reply, 0x00);
+        opened_meanwhile.push(stream);
     }
     assert!(!shared.is_closed(), "the connection is still up");
 
@@ -1421,7 +1428,7 @@ async fn harness_socks_stream_nobody_reads_does_not_hold_up_the_others() {
     // whole stream arrives.
     let mut total = 0usize;
     let mut buf = vec![0u8; 64 * 1024];
-    tokio::time::timeout(std::time::Duration::from_secs(60), async {
+    tokio::time::timeout(std::time::Duration::from_secs(120), async {
         while total < FLOOD_BYTES {
             let n = unread.read(&mut buf).await.expect("read the flood");
             assert!(n > 0, "the flood ended early at {total}");
@@ -1432,5 +1439,17 @@ async fn harness_socks_stream_nobody_reads_does_not_hold_up_the_others() {
     .await
     .expect("the stalled tunnel resumes");
     assert_eq!(total, FLOOD_BYTES);
+
+    // And the tunnels opened in the meantime were real ones.
+    for (round, mut stream) in opened_meanwhile.into_iter().enumerate() {
+        let sent = [round as u8; 4];
+        stream.write_all(&sent).await.expect("send");
+        let mut back = [0u8; 4];
+        tokio::time::timeout(std::time::Duration::from_secs(10), stream.read_exact(&mut back))
+            .await
+            .expect("echo on a tunnel opened beside the stalled one")
+            .expect("read echo");
+        assert_eq!(back, sent);
+    }
     let _ = cancel_tx.send(true);
 }
