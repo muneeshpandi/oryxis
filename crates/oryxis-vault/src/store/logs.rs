@@ -338,9 +338,7 @@ impl VaultStore {
     pub fn list_session_logs(&self) -> Result<Vec<SessionLogEntry>, VaultError> {
         let mut stmt = self.db.prepare(
             "SELECT id, connection_id, label, started_at, ended_at,
-                    LENGTH(COALESCE(data, X'')) + COALESCE(
-                        (SELECT SUM(LENGTH(c.data)) FROM session_log_chunks c
-                         WHERE c.log_id = session_logs.id), 0)
+                    COALESCE(LENGTH(data), 0) + bytes
              FROM session_logs ORDER BY started_at DESC",
         )?;
         let logs = stmt
@@ -358,9 +356,7 @@ impl VaultStore {
     ) -> Result<Vec<SessionLogEntry>, VaultError> {
         let mut stmt = self.db.prepare(
             "SELECT id, connection_id, label, started_at, ended_at,
-                    LENGTH(COALESCE(data, X'')) + COALESCE(
-                        (SELECT SUM(LENGTH(c.data)) FROM session_log_chunks c
-                         WHERE c.log_id = session_logs.id), 0)
+                    COALESCE(LENGTH(data), 0) + bytes
              FROM session_logs ORDER BY started_at DESC LIMIT ?1 OFFSET ?2",
         )?;
         let logs = stmt
@@ -376,9 +372,7 @@ impl VaultStore {
     pub fn get_session_log(&self, id: &Uuid) -> Result<Option<SessionLogEntry>, VaultError> {
         let mut stmt = self.db.prepare(
             "SELECT id, connection_id, label, started_at, ended_at,
-                    LENGTH(COALESCE(data, X'')) + COALESCE(
-                        (SELECT SUM(LENGTH(c.data)) FROM session_log_chunks c
-                         WHERE c.log_id = session_logs.id), 0)
+                    COALESCE(LENGTH(data), 0) + bytes
              FROM session_logs WHERE id = ?1",
         )?;
         let mut rows = stmt.query_map(params![id.to_string()], Self::map_session_log_row)?;
@@ -395,13 +389,13 @@ impl VaultStore {
         Ok(n as usize)
     }
 
-    /// Ciphertext bytes every recording occupies together. The figure
-    /// the size cap is measured against, and the same
-    /// `SUM(LENGTH(data))` the per-session size in the Logs listing
-    /// already uses, without the per-row grouping.
+    /// Ciphertext bytes every recording's chunks occupy together. The
+    /// figure the size cap is measured against: the sum of the
+    /// trigger-kept `bytes` column (see `ensure_session_log_bytes`), so
+    /// one row per log is read instead of every chunk.
     pub fn session_logs_total_bytes(&self) -> Result<u64, VaultError> {
         let n: i64 = self.db.query_row(
-            "SELECT COALESCE(SUM(LENGTH(data)), 0) FROM session_log_chunks",
+            "SELECT COALESCE(SUM(bytes), 0) FROM session_logs",
             [],
             |row| row.get(0),
         )?;

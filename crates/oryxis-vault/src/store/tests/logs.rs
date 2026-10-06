@@ -578,3 +578,130 @@ fn scan_bounded_output_caps_inflation_of_compressed_chunks() {
     let full = vault.get_session_data(&log_id).unwrap().unwrap();
     assert_eq!(full.len(), huge.len());
 }
+
+/// What every chunk of `log_id` occupies, measured the slow way: the
+/// figure the trigger-kept `bytes` column must always agree with.
+fn chunk_bytes(vault: &VaultStore, log_id: &Uuid) -> i64 {
+    vault
+        .db
+        .query_row(
+            "SELECT COALESCE(SUM(LENGTH(data)), 0) FROM session_log_chunks WHERE log_id = ?1",
+            params![log_id.to_string()],
+            |row| row.get(0),
+        )
+        .unwrap()
+}
+
+fn bytes_column(vault: &VaultStore, log_id: &Uuid) -> i64 {
+    vault
+        .db
+        .query_row(
+            "SELECT bytes FROM session_logs WHERE id = ?1",
+            params![log_id.to_string()],
+            |row| row.get(0),
+        )
+        .unwrap()
+}
+
+#[test]
+fn session_log_size_follows_every_chunk_write() {
+    let vault = unlocked_vault();
+    let a = Uuid::new_v4();
+    let b = Uuid::new_v4();
+    vault.create_session_log(&a, &Uuid::new_v4(), "host-a").unwrap();
+    vault.create_session_log(&b, &Uuid::new_v4(), "host-b").unwrap();
+    assert_eq!(bytes_column(&vault, &a), 0);
+
+    vault.append_session_data(&a, b"plain output\n", Some(0), false).unwrap();
+    vault.append_session_data(&a, &[b'z'; 4096], Some(5), true).unwrap();
+    vault.append_session_resize(&a, 9, 120, 40).unwrap();
+    vault.append_session_command(&a, Some(10), "ls -la").unwrap();
+    vault.append_session_data(&b, b"other host\n", None, false).unwrap();
+    assert!(chunk_bytes(&vault, &a) > 0);
+    assert_eq!(bytes_column(&vault, &a), chunk_bytes(&vault, &a));
+    assert_eq!(bytes_column(&vault, &b), chunk_bytes(&vault, &b));
+
+    // Every reader reports the column, and the total is their sum.
+    let listed = vault.list_session_logs_page(0, 50).unwrap();
+    let size_of = |id: &Uuid| listed.iter().find(|e| e.id == *id).unwrap().data_size as i64;
+    assert_eq!(size_of(&a), chunk_bytes(&vault, &a));
+    assert_eq!(vault.get_session_log(&b).unwrap().unwrap().data_size as i64, chunk_bytes(&vault, &b));
+    assert_eq!(
+        vault.session_logs_total_bytes().unwrap() as i64,
+        chunk_bytes(&vault, &a) + chunk_bytes(&vault, &b)
+    );
+
+    // A rewritten chunk (key rotation's shape) moves the size with it.
+    vault
+        .db
+        .execute(
+            "UPDATE session_log_chunks SET data = X'0102' WHERE log_id = ?1 AND kind = 'r'",
+            params![a.to_string()],
+        )
+        .unwrap();
+    assert_eq!(bytes_column(&vault, &a), chunk_bytes(&vault, &a));
+
+    vault.delete_session_log(&a).unwrap();
+    assert_eq!(vault.session_logs_total_bytes().unwrap() as i64, chunk_bytes(&vault, &b));
+    vault.clear_session_logs().unwrap();
+    assert_eq!(vault.session_logs_total_bytes().unwrap(), 0);
+}
+
+#[test]
+fn session_log_size_survives_both_prunes() {
+    let vault = unlocked_vault();
+    let old = Uuid::new_v4();
+    let live = Uuid::new_v4();
+    vault.create_session_log(&old, &Uuid::new_v4(), "old").unwrap();
+    vault.append_session_data(&old, &[b'o'; 2048], None, false).unwrap();
+    vault.end_session_log(&old).unwrap();
+    vault
+        .db
+        .execute(
+            "UPDATE session_logs SET started_at = '2020-01-01T00:00:00+00:00' WHERE id = ?1",
+            params![old.to_string()],
+        )
+        .unwrap();
+    vault.create_session_log(&live, &Uuid::new_v4(), "live").unwrap();
+    vault.append_session_data(&live, &[b'l'; 1024], None, false).unwrap();
+
+    vault.prune_logs_older_than(chrono::Utc::now() - chrono::Duration::days(1)).unwrap();
+    assert_eq!(vault.session_logs_total_bytes().unwrap() as i64, chunk_bytes(&vault, &live));
+
+    // The size cap counts the same column: a cap below the live log
+    // has nothing finished left to drop and reports so.
+    let total = vault.session_logs_total_bytes().unwrap();
+    assert_eq!(vault.prune_session_logs_to_fit(total).unwrap(), 0);
+    assert_eq!(bytes_column(&vault, &live), chunk_bytes(&vault, &live));
+}
+
+#[test]
+fn session_log_size_is_backfilled_on_a_vault_that_predates_it() {
+    let mut vault = unlocked_vault();
+    let log_id = Uuid::new_v4();
+    vault.create_session_log(&log_id, &Uuid::new_v4(), "host-a").unwrap();
+    // Back to the shape of a vault written before the column existed:
+    // no triggers, no column, chunks already on disk.
+    vault
+        .db
+        .execute_batch(
+            "DROP TRIGGER session_log_bytes_insert;
+             DROP TRIGGER session_log_bytes_delete;
+             DROP TRIGGER session_log_bytes_update;
+             ALTER TABLE session_logs DROP COLUMN bytes;",
+        )
+        .unwrap();
+    vault.append_session_data(&log_id, b"recorded by an older build\n", None, false).unwrap();
+    vault.append_session_data(&log_id, &[b'q'; 3000], None, true).unwrap();
+    let before = chunk_bytes(&vault, &log_id);
+    assert!(before > 0);
+
+    vault.create_tables().unwrap();
+    assert_eq!(bytes_column(&vault, &log_id), before);
+    // And the triggers are back for what comes next.
+    vault.append_session_data(&log_id, b"recorded after\n", None, false).unwrap();
+    assert_eq!(bytes_column(&vault, &log_id), chunk_bytes(&vault, &log_id));
+    // Opening again never re-runs the backfill over a counted column.
+    vault.create_tables().unwrap();
+    assert_eq!(bytes_column(&vault, &log_id), chunk_bytes(&vault, &log_id));
+}

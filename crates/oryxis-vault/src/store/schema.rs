@@ -437,6 +437,7 @@ impl VaultStore {
         // the plaintext before sealing (ciphertext doesn't compress).
         // Pre-existing rows are raw by the DEFAULT.
         let _ = self.db.execute_batch("ALTER TABLE session_log_chunks ADD COLUMN comp INTEGER NOT NULL DEFAULT 0;");
+        self.ensure_session_log_bytes()?;
         // Encrypted command text (content-key sealed). Rows written
         // before this column existed keep their plaintext in `command`
         // until the one-shot migration on first unlocked use replaces
@@ -537,5 +538,74 @@ impl VaultStore {
         );
 
         Ok(())
+    }
+
+    /// The recorded size of every session log as a column, `bytes`, kept
+    /// current by triggers on `session_log_chunks`.
+    ///
+    /// The size used to be a `SUM(LENGTH(data))` over the log's chunks in
+    /// every listing, which reads the whole chunk index of the page: 91 ms
+    /// for a page against 300 MB of recordings, paid on the UI thread by
+    /// every disconnect (the listing refreshes there), so ten sessions
+    /// dropping together froze the window for about a second. The capacity
+    /// check and the size-cap prune ran the same scan over every chunk.
+    ///
+    /// Triggers rather than bookkeeping in `append_session_data`: they live
+    /// in the file, so any binary appending a chunk (an older build after a
+    /// downgrade, a second process) keeps the counter honest, and nothing
+    /// can write around them. The column is added, backfilled and the
+    /// triggers created in ONE immediate transaction, so no chunk can land
+    /// between the backfill and the trigger that would have counted it, and
+    /// a crash before COMMIT leaves no column behind to skip the backfill
+    /// on the next open. Counts chunks only; a legacy inline
+    /// `session_logs.data` is sized from its own row by the readers.
+    fn ensure_session_log_bytes(&self) -> Result<(), VaultError> {
+        self.db.execute_batch("BEGIN IMMEDIATE")?;
+        let result = (|| -> Result<(), VaultError> {
+            let added = self
+                .db
+                .execute_batch("ALTER TABLE session_logs ADD COLUMN bytes INTEGER NOT NULL DEFAULT 0;")
+                .is_ok();
+            if added {
+                self.db.execute_batch(
+                    "UPDATE session_logs SET bytes = COALESCE(
+                        (SELECT SUM(LENGTH(c.data)) FROM session_log_chunks c
+                         WHERE c.log_id = session_logs.id), 0);",
+                )?;
+            }
+            self.db.execute_batch(
+                "CREATE TRIGGER IF NOT EXISTS session_log_bytes_insert
+                     AFTER INSERT ON session_log_chunks
+                 BEGIN
+                     UPDATE session_logs SET bytes = bytes + LENGTH(NEW.data)
+                     WHERE id = NEW.log_id;
+                 END;
+                 CREATE TRIGGER IF NOT EXISTS session_log_bytes_delete
+                     AFTER DELETE ON session_log_chunks
+                 BEGIN
+                     UPDATE session_logs SET bytes = bytes - LENGTH(OLD.data)
+                     WHERE id = OLD.log_id;
+                 END;
+                 CREATE TRIGGER IF NOT EXISTS session_log_bytes_update
+                     AFTER UPDATE OF data, log_id ON session_log_chunks
+                 BEGIN
+                     UPDATE session_logs SET bytes = bytes - LENGTH(OLD.data)
+                     WHERE id = OLD.log_id;
+                     UPDATE session_logs SET bytes = bytes + LENGTH(NEW.data)
+                     WHERE id = NEW.log_id;
+                 END;",
+            )?;
+            Ok(())
+        })();
+        match result {
+            Ok(()) => {
+                self.db.execute_batch("COMMIT")?;
+                Ok(())
+            }
+            Err(e) => {
+                let _ = self.db.execute_batch("ROLLBACK");
+                Err(e)
+            }
+        }
     }
 }
