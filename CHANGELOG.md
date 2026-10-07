@@ -50,13 +50,13 @@ Several windows in one process, each a whole one, and security keys that sign na
 - A host set to Security Key syncs or imports only to devices on 0.20.0 or later. Linux needs the FIDO udev rules for a non-root user.
 
 ### Fixed
-- A host that leaves its username to its group shows, finds and masks that user everywhere it is named: card, tree, tab, search, URL, Privacy Mode (#242, reported by @anojoyman).
+- A host that leaves its username to its group shows, finds and masks that user wherever it is named: card, tree, tab, search, URL, Privacy Mode (#242, reported by @anojoyman).
 - A Telnet host logs in with the username it inherits from its group (#242).
 - A vault whose stored password check happened to begin with the derived-key tag byte (one salt in 256) failed to unlock.
 - The connection progress card, jump-host, proxy and forward lines are localized (#239, by @Rulio723).
 - Inputs keep focus and scroll position when the view around them reshapes: the inherited-username hint, an overlay, a late log line (#241, reported by @anojoyman).
 - A long host name on the connect card wraps instead of running over its controls.
-- A command proxy that logs in first (an expired SSO session, a browser URL) no longer fails the dial; its output shows on the connect card (#223, reported by @guptakanishka90).
+- A command proxy that logs in first (an expired SSO session, a browser URL) no longer fails the dial; its output shows on the card (#223, reported by @guptakanishka90).
 - A host-key or command-proxy prompt no longer times the connection out while you read it; closing the connect card, tab or pane stops the dial and its proxy.
 - "Duplicate in New Window" works for a local terminal and a cloud exec session, not only saved hosts.
 
