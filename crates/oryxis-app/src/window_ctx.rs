@@ -704,8 +704,11 @@ impl Oryxis {
         self.window_ctx = None;
         crate::app::set_resident_window(id);
         // The geometry that is remembered is the resident's: start it
-        // from where this window is now.
-        self.window_windowed_size = self.window_size;
+        // from where this window is now, unless that is a maximized or
+        // fullscreen rectangle (the monitor's, never a windowed size).
+        if !self.window_maximized && !self.window_fullscreen {
+            self.window_windowed_size = self.window_size;
+        }
         self.window_windowed_pos = None;
         self.window_windowed_pos_prev = None;
         self.is_window_hidden = false;

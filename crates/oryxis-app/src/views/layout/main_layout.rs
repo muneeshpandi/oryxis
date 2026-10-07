@@ -937,7 +937,10 @@ impl Oryxis {
             .width(Length::Fill)
             .height(Length::Fill);
 
-        if self.fullscreen_hint_visible {
+        // The hint is app-wide state; only the window that IS immersive
+        // draws it, or the other window shifts its content for a banner
+        // about a fullscreen it is not in.
+        if self.fullscreen_hint_visible && self.cur_immersive() {
             let hint = container(
                 text(crate::i18n::t("fullscreen_exit_hint"))
                     .size(12)
@@ -999,7 +1002,7 @@ impl Oryxis {
                     ..Default::default()
                 }
             });
-            let top_offset = if self.fullscreen_hint_visible {
+            let top_offset = if self.fullscreen_hint_visible && self.cur_immersive() {
                 12.0 + HINT_BANNER_HEIGHT + 8.0
             } else {
                 12.0

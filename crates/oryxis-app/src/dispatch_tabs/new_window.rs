@@ -887,14 +887,29 @@ impl Oryxis {
             TabsMessage::WindowFullscreenToggle => {
                 self.window_fullscreen = !self.window_fullscreen;
                 self.fullscreen_immersive = self.window_fullscreen;
-                window::set_mode(
+                let mode_task = window::set_mode(
                     id,
                     if self.window_fullscreen {
                         window::Mode::Fullscreen
                     } else {
                         window::Mode::Windowed
                     },
-                )
+                );
+                // Same "press F11 to exit" hint as the resident window,
+                // drawn only by the window that is immersive.
+                if self.window_fullscreen {
+                    self.fullscreen_hint_visible = true;
+                    let hide_task = Task::perform(
+                        async {
+                            tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+                        },
+                        |_| Message::Tabs(TabsMessage::FullscreenHintHide),
+                    );
+                    Task::batch([mode_task, hide_task])
+                } else {
+                    self.fullscreen_hint_visible = false;
+                    mode_task
+                }
             }
             TabsMessage::WindowClose => self.request_close_this_window(),
             // An extra window is never the app's close; a confirmation
@@ -910,11 +925,14 @@ impl Oryxis {
             // The remembered geometry, the on-screen rescue and the
             // macOS fullscreen reconciliation: none of it is kept for
             // an extra window.
+            TabsMessage::FullscreenHintHide => {
+                self.fullscreen_hint_visible = false;
+                Task::none()
+            }
             TabsMessage::WindowMoved(_)
             | TabsMessage::WindowEnsureOnScreen
             | TabsMessage::WindowExpandVertical
-            | TabsMessage::WindowFullscreenSettled(_)
-            | TabsMessage::FullscreenHintHide => Task::none(),
+            | TabsMessage::WindowFullscreenSettled(_) => Task::none(),
             other => return Err(other),
         };
         Ok(task)
