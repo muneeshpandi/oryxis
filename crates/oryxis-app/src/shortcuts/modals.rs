@@ -317,8 +317,15 @@ impl Oryxis {
         // modal. `close_modal` is a compiler-checked exhaustive match, so a
         // new modal can't be added without deciding its cleanup; adding it
         // to `ESC_ORDER` then makes Esc dismiss it.
+        //
+        // A modal is drawn in ONE window (`floats_here`), so only an Esc
+        // typed into that window may answer it: the same key in another
+        // window belongs to what that window shows (vim, less, a search
+        // field). Without the gate, a host-key prompt waiting in window A
+        // was refused by an Esc meant for window B's shell, and the byte
+        // never reached B's PTY.
         for &m in crate::state::Modal::ESC_ORDER {
-            if self.is_modal_open(m) {
+            if self.floats_here() && self.is_modal_open(m) {
                 // The chain editor's Esc is two-stage: in "add a hop" mode
                 // the first Esc pops back to the chain list, only a second
                 // closes the whole editor.

@@ -72,8 +72,12 @@ impl Oryxis {
                 family,
             ));
         }
+        // The modals are drawn in one window (`floats_here`): a window
+        // that does not show the open modal has no rows for it, and
+        // claiming the surface there would swallow Tab and the arrows in
+        // that window's terminal for as long as the modal stays up.
         for &m in Modal::ESC_ORDER {
-            if self.is_modal_open(m) {
+            if self.floats_here() && self.is_modal_open(m) {
                 let family = match m {
                     // Command palette input carries no on_submit (unlike
                     // NewTabPicker), so the router's Enter path activates
