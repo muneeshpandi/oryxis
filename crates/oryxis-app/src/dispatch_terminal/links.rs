@@ -311,7 +311,9 @@ impl Oryxis {
                 }
             },
         );
-        Task::stream(stream)
+        // About `pane_id`: runs in the window that shows the pane's tab
+        // when it arrives (`Message::ForPane`).
+        Task::stream(stream).map(move |m| Message::ForPane(pane_id, Box::new(m)))
     }
 
     /// The tunnel attempt settled: open the browser, or explain why not.

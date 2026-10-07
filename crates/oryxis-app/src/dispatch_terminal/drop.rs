@@ -403,7 +403,9 @@ impl Oryxis {
                 .await;
             },
         );
-        Task::stream(stream)
+        // About `pane_id`: runs in the window that shows the pane's tab
+        // when it arrives (`Message::ForPane`).
+        Task::stream(stream).map(move |m| Message::ForPane(pane_id, Box::new(m)))
     }
 
     /// Apply the user's overwrite answer to a paused drop upload and
@@ -542,7 +544,9 @@ impl Oryxis {
                 .await;
             },
         );
-        Task::stream(stream)
+        // About `pane_id`: runs in the window that shows the pane's tab
+        // when it arrives (`Message::ForPane`).
+        Task::stream(stream).map(move |m| Message::ForPane(pane_id, Box::new(m)))
     }
 
     /// Apply a streamed drop-upload event to the pane's card; terminal
