@@ -477,8 +477,12 @@ pub(crate) fn spawn_local_forward_task(
                 res = listener.accept() => match res {
                     Ok(v) => v,
                     Err(e) => {
-                        tracing::error!("forward accept error on {}: {}", listen_port, e);
-                        break;
+                        // Transient (EMFILE under a burst of connections,
+                        // a reset mid-accept): the listener stays, the
+                        // rule stays on. Only cancel ends the loop.
+                        tracing::warn!("forward accept error on {}: {}", listen_port, e);
+                        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+                        continue;
                     }
                 },
             };
@@ -631,8 +635,12 @@ pub(crate) fn spawn_autoclose_local_forward_task(
                 res = listener.accept() => match res {
                     Ok(v) => v,
                     Err(e) => {
-                        tracing::error!("forward accept error on {}: {}", listen_port, e);
-                        break;
+                        // Transient (EMFILE under a burst of connections,
+                        // a reset mid-accept): the listener stays, the
+                        // rule stays on. Only cancel ends the loop.
+                        tracing::warn!("forward accept error on {}: {}", listen_port, e);
+                        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+                        continue;
                     }
                 },
             };
@@ -779,6 +787,12 @@ pub(crate) async fn bridge_channel_to_target(
                 "remote forward target {}:{} unreachable: {}",
                 target_host, target_port, e
             );
+            // The open was already confirmed (the handler accepts before
+            // the hand-off), so the honest answer now is a close: a bare
+            // `Channel` does not close on drop, and a dropped one left the
+            // remote client hanging on a confirmed, silent channel and the
+            // server's channel table one entry longer per attempt.
+            let _ = channel.close().await;
             return;
         }
     };
@@ -806,8 +820,12 @@ pub(crate) fn spawn_dynamic_forward_task(
                 res = listener.accept() => match res {
                     Ok(v) => v,
                     Err(e) => {
-                        tracing::error!("socks accept error on {}: {}", listen_port, e);
-                        break;
+                        // Transient (EMFILE under a burst of connections,
+                        // a reset mid-accept): the listener stays, the
+                        // rule stays on. Only cancel ends the loop.
+                        tracing::warn!("socks accept error on {}: {}", listen_port, e);
+                        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+                        continue;
                     }
                 },
             };

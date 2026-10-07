@@ -232,8 +232,11 @@ impl client::Handler for ClientHandler {
                 // Confirm before the handoff: the drain task reads the
                 // channel as soon as it arrives.
                 reply.accept().await;
-                if sink.send(channel).is_err() {
-                    tracing::warn!("forwarded-tcpip drain gone, dropping channel");
+                if let Err(tokio::sync::mpsc::error::SendError(channel)) = sink.send(channel) {
+                    // Confirmed and nobody to carry it: close it, or the
+                    // remote client waits on a silent channel.
+                    tracing::warn!("forwarded-tcpip drain gone, closing channel");
+                    let _ = channel.close().await;
                 }
             }
             None => {
