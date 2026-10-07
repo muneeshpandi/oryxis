@@ -60,7 +60,7 @@ Several windows in one process, each a whole one, and security keys that sign na
 - A command proxy that logs in first (an expired SSO session, a browser URL) no longer fails the dial; its output shows on the card (#223, reported by @guptakanishka90).
 - A host-key or command-proxy prompt no longer times the connection out while you read it; closing the connect card, tab or pane stops the dial and its proxy.
 - "Duplicate in New Window" works for a local terminal and a cloud exec session, not only saved hosts.
-- A remote forward (`-R`) whose local target is down closes the channel, so the remote client is refused instead of hanging; an accept error no longer drops a `-L` / `-D` listener.
+- A remote forward (`-R`) whose local target is down refuses the remote client instead of leaving it hanging; an accept error no longer drops a `-L` / `-D` listener.
 - A sync relay connection that dies during sleep no longer parks the inbox until TCP keepalive notices; the long-poll carries its own timeout.
 
 ## [0.19.0] - 2026-09-27
