@@ -15,6 +15,18 @@ pub(crate) fn effective_username(connection: &Connection) -> &str {
         .unwrap_or(oryxis_core::models::inheritance::DEFAULT_USERNAME)
 }
 
+/// The hold a token's prompt takes on the dial's clock, shared between
+/// the sign call that waits and the token thread that knows when the
+/// person is being waited on.
+pub(crate) type TokenHold = Arc<std::sync::Mutex<Option<super::dial_clock::Hold>>>;
+
+/// The sign call returned: the person is no longer being waited on.
+pub(super) fn release_token_hold(held: &TokenHold) {
+    if let Ok(mut slot) = held.lock() {
+        slot.take();
+    }
+}
+
 /// A security-key failure as the engine reports it. A dead SSH transport
 /// is a connection failure; everything else (no token, a declined touch,
 /// a wrong PIN, an unattended dial) is a credential problem the person
@@ -812,7 +824,11 @@ impl SshEngine {
         certificate: Option<&str>,
         strict_cert: bool,
     ) -> Result<StepVerdict, SshError> {
-        let interaction = self.security_key_interaction()?;
+        // The dial's clock (when the auth stage runs on one) stops while
+        // the token waits on the person; the hold is dropped the moment a
+        // sign call returns, whatever it returned.
+        let held: TokenHold = Arc::new(std::sync::Mutex::new(None));
+        let interaction = self.security_key_interaction(&held)?;
         let public_key = credential.public_key().clone();
         let mut signer =
             crate::sk::SkSigner::new(credential, oryxis_fido2::platform_authenticator())
@@ -840,8 +856,9 @@ impl SshEngine {
                     }
                     let res = handle
                         .authenticate_certificate_with(username, *cert, None, &mut signer)
-                        .await
-                        .map_err(security_key_error)?;
+                        .await;
+                    release_token_hold(&held);
+                    let res = res.map_err(security_key_error)?;
                     match StepVerdict::from(res) {
                         v @ (StepVerdict::Accepted | StepVerdict::Partial(_)) => return Ok(v),
                         StepVerdict::Rejected if strict_cert => return Ok(StepVerdict::Rejected),
@@ -855,33 +872,64 @@ impl SshEngine {
 
         let res = handle
             .authenticate_publickey_with(username, public_key, None, &mut signer)
-            .await
-            .map_err(security_key_error)?;
+            .await;
+        release_token_hold(&held);
+        let res = res.map_err(security_key_error)?;
         Ok(res.into())
     }
 
     /// What a token request needs from the person driving this dial, or
     /// the refusal when nobody is. The PIN rides the keyboard-interactive
     /// bridge, answered from the token's blocking thread.
-    pub(crate) fn security_key_interaction(&self) -> Result<oryxis_fido2::Interaction, SshError> {
+    ///
+    /// Built INSIDE the dial future, so the dial's clock is captured here
+    /// (the token's thread has no task-locals): a touch or verification
+    /// notice parks a hold in `held` until the sign call returns, and the
+    /// PIN wait holds for its own duration. Outside a clock (an unattended
+    /// path never gets here; a test may) nothing is held.
+    pub(crate) fn security_key_interaction(
+        &self,
+        held: &TokenHold,
+    ) -> Result<oryxis_fido2::Interaction, SshError> {
         let prompts = self
             .security_key_prompts
             .clone()
             .ok_or_else(|| security_key_error(crate::sk::SkError::Unattended))?;
+        let clock = super::dial_clock::DialClock::current();
 
-        let events = prompts.notices.clone().map(|tx| {
-            std::sync::Arc::new(move |event: oryxis_fido2::TokenEvent| {
-                let _ = tx.send(match event {
-                    oryxis_fido2::TokenEvent::TouchNeeded => crate::sk::SecurityKeyNotice::Touch,
-                    oryxis_fido2::TokenEvent::VerificationNeeded => {
-                        crate::sk::SecurityKeyNotice::Verify
-                    }
-                });
-            }) as std::sync::Arc<dyn Fn(oryxis_fido2::TokenEvent) + Send + Sync>
-        });
+        let events = {
+            let clock = clock.clone();
+            let held = Arc::clone(held);
+            let tx = prompts.notices.clone();
+            Some(std::sync::Arc::new(move |event: oryxis_fido2::TokenEvent| {
+                // The person is being waited on from here until the sign
+                // call returns: the clock stops.
+                if let Some(clock) = &clock
+                    && let Ok(mut slot) = held.lock()
+                    && slot.is_none()
+                {
+                    *slot = Some(clock.hold(super::dial_clock::HoldKind::Human));
+                }
+                if let Some(tx) = &tx {
+                    let _ = tx.send(match event {
+                        oryxis_fido2::TokenEvent::TouchNeeded => {
+                            crate::sk::SecurityKeyNotice::Touch
+                        }
+                        oryxis_fido2::TokenEvent::VerificationNeeded => {
+                            crate::sk::SecurityKeyNotice::Verify
+                        }
+                    });
+                }
+            }) as std::sync::Arc<dyn Fn(oryxis_fido2::TokenEvent) + Send + Sync>)
+        };
 
         let pin = self.kbi_ask_tx.clone().map(|tx| {
+            let clock = clock.clone();
             std::sync::Arc::new(move |prompt: oryxis_fido2::PinPrompt| {
+                // Typing a PIN is the person's time, not the network's.
+                let _hold = clock
+                    .as_ref()
+                    .map(|c| c.hold(super::dial_clock::HoldKind::Human));
                 let instructions = match (prompt.retry, prompt.retries) {
                     (true, Some(n)) => prompts.pin_retry.replace("{n}", &n.to_string()),
                     (true, None) => prompts.pin_retry.replace("{n}", "?"),

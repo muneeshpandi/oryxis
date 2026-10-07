@@ -185,28 +185,45 @@ impl SshEngine {
         // 120s mirrors sshd's LoginGraceTime, i.e. the server would drop
         // a slower typist anyway, and the TOTP autofill answers the
         // common case without any human wait at all.
-        //
-        // An attended security-key dial parks on a human too: the touch,
-        // and the PIN when the token asks for one. The token layer bounds
-        // every wait of its own (the machine round-trips, the touch at
-        // `TOUCH_TIMEOUT`), so the blanket would only cut it SHORT: the
-        // SFTP tab's default was 30 s for touch plus PIN, and even the
-        // 120 s terminal default fired before the token's own timeout
-        // could name what the user had not done. Unattended dials keep
-        // the blanket (they have no prompts, so the token is refused at
-        // once anyway).
         let may_prompt = self.auto_interactive_fallback && self.kbi_ask_tx.is_some();
         if matches!(
             connection.auth_method,
             AuthMethod::Interactive | AuthMethod::PasswordPrompt
         ) || (connection.auth_method == AuthMethod::Auto && may_prompt)
-            || self.waits_for_token(key_material)
         {
             return self
                 .authenticate_handle(handle, connection, password, key_material)
                 .await;
         }
         let auth_timeout = self.auth_timeout;
+        // An attended security-key dial parks on a human too: the touch,
+        // and the PIN when the token asks for one. The blanket cut those
+        // short (the SFTP tab's 30 s covered touch plus PIN, and even the
+        // 120 s terminal default fired before the token's own
+        // `TOUCH_TIMEOUT` could name what the user had not done), while
+        // dropping it altogether left the wire legs of this stage with no
+        // bound at all (a server that stops answering after the banner).
+        // So the stage runs on a `DialClock`, like the connect stage: the
+        // budget counts NETWORK time, and stops while the token is waiting
+        // on the person (`security_key_interaction` takes the holds).
+        // Unattended dials keep the plain blanket: they install no
+        // prompts, so the token is refused at once anyway.
+        if self.waits_for_token(key_material) {
+            let clock = super::dial_clock::DialClock::new();
+            return match clock
+                .run(
+                    auth_timeout,
+                    self.authenticate_handle(handle, connection, password, key_material),
+                )
+                .await
+            {
+                Ok(res) => res,
+                Err(_) => Err(SshError::ConnectionFailed(format!(
+                    "auth timed out after {}s",
+                    auth_timeout.as_secs()
+                ))),
+            };
+        }
         tokio::time::timeout(
             auth_timeout,
             self.authenticate_handle(handle, connection, password, key_material),
@@ -222,9 +239,10 @@ impl SshEngine {
 
     /// Whether this dial may park on a security key: prompts are installed
     /// (someone is at the keyboard to touch it) AND the key material is a
-    /// security-key credential. A passphrase-protected handle (an error
-    /// from the parser) or a software key answers `false` and stays
-    /// under the blanket auth timeout.
+    /// security-key credential. Such a dial runs its auth stage on a
+    /// `DialClock` that stops for the token's prompts. A passphrase-protected
+    /// handle (an error from the parser) or a software key answers `false`
+    /// and stays under the plain blanket auth timeout.
     pub(crate) fn waits_for_token(&self, key_material: Option<KeyMaterial<'_>>) -> bool {
         self.security_key_prompts.is_some()
             && key_material.is_some_and(|km| {
@@ -857,6 +875,34 @@ mod token_timeout_tests {
         let sk = sk_private_key(FIXTURE_PUBLIC, USER_PRESENCE, &FIXTURE_HANDLE);
         let unattended = SshEngine::new();
         assert!(!unattended.waits_for_token(Some(KeyMaterial::plain(&sk))));
+    }
+
+    /// The auth stage of a token dial runs on a clock that stops while
+    /// the token waits on the person: a touch notice takes the hold, a
+    /// second notice does not double it, and the sign call returning
+    /// releases it.
+    #[tokio::test]
+    async fn a_token_prompt_stops_the_auth_clock_until_the_sign_call_returns() {
+        use super::super::auth::{release_token_hold, TokenHold};
+        use super::super::dial_clock::DialClock;
+        let clock = DialClock::new();
+        let engine = SshEngine::new().with_security_key_prompts(prompts());
+        let held: TokenHold = Default::default();
+        let interaction = clock
+            .scope(async { engine.security_key_interaction(&held).unwrap() })
+            .await;
+        assert!(!clock.is_held(), "nothing is held before the token asks");
+        let events = interaction.events.as_ref().expect("the hold rides the events");
+        events(oryxis_fido2::TokenEvent::TouchNeeded);
+        assert!(clock.is_held(), "a touch notice stops the clock");
+        events(oryxis_fido2::TokenEvent::VerificationNeeded);
+        release_token_hold(&held);
+        assert!(!clock.is_held(), "the sign call returning releases the one hold");
+
+        // Outside a dial clock the same notice holds nothing.
+        let unclocked = engine.security_key_interaction(&held).unwrap();
+        (unclocked.events.as_ref().unwrap())(oryxis_fido2::TokenEvent::TouchNeeded);
+        assert!(!clock.is_held());
     }
 
     #[test]

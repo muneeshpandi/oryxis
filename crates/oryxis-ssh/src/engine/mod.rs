@@ -791,7 +791,7 @@ mod tests {
     /// why; only a dial that passed its prompts may reach the token.
     #[test]
     fn a_security_key_needs_an_attended_dial() {
-        let err = SshEngine::new().security_key_interaction().unwrap_err();
+        let err = SshEngine::new().security_key_interaction(&Default::default()).unwrap_err();
         assert!(
             matches!(&err, SshError::Key(message) if message.contains("unattended")),
             "got {err:?}"
@@ -806,9 +806,11 @@ mod tests {
                 pin_retry: "{n}".into(),
                 notices: None,
             });
-        let interaction = attended.security_key_interaction().unwrap();
+        let interaction = attended.security_key_interaction(&Default::default()).unwrap();
         assert!(interaction.pin.is_some(), "the PIN rides the kbi bridge");
-        assert!(interaction.events.is_none());
+        // Always installed: beside the notices it is what stops the dial's
+        // clock while the token waits on the person.
+        assert!(interaction.events.is_some());
 
         // A bastion dialled on the way is the same person's dial: its hop
         // engine keeps the permission, or a security-key bastion would be
@@ -876,7 +878,7 @@ mod tests {
         let credential = crate::sk::SkCredential::from_openssh_private(&text).unwrap();
         let seen = Arc::new(Mutex::new(None));
         let mut signer = crate::sk::SkSigner::new(credential.clone(), Arc::new(AsksForPin(seen.clone())))
-            .with_interaction(engine.security_key_interaction().unwrap());
+            .with_interaction(engine.security_key_interaction(&Default::default()).unwrap());
         let identity = russh::keys::agent::AgentIdentity::from(credential.public_key().clone());
         signer.auth_sign(&identity, None, b"x".to_vec()).await.unwrap();
         answered.await.unwrap();

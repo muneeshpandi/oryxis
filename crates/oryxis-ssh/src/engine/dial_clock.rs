@@ -118,6 +118,12 @@ impl DialClock {
         DIAL_CLOCK.scope(self.clone(), fut).await
     }
 
+    /// Whether a hold is alive (the clock is stopped).
+    #[cfg(test)]
+    pub(crate) fn is_held(&self) -> bool {
+        self.lock().holds > 0
+    }
+
     fn lock(&self) -> std::sync::MutexGuard<'_, State> {
         self.inner.state.lock().unwrap_or_else(|e| e.into_inner())
     }
