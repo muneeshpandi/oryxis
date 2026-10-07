@@ -479,6 +479,24 @@ impl Oryxis {
             .is_some_and(|t| self.cur_tab_order().contains(&TabRef::Sftp(t.id)))
     }
 
+    /// The window that shows the tab holding `pane`, the resident one by
+    /// its id; `None` when no tab holds the pane any more.
+    pub(crate) fn window_of_pane(&self, pane: Uuid) -> Option<window::Id> {
+        let tab = self.pane_tab_index(pane).map(|i| self.tabs[i]._id)?;
+        self.window_of_tab(tab).or_else(crate::app::resident_window_id)
+    }
+
+    /// `Message::ForPane` arriving with no window: run it in the window
+    /// that shows the pane's tab (the resident included, so its widget
+    /// operations stay there), or as the plain message when the pane is
+    /// gone.
+    pub(crate) fn update_for_pane(&mut self, pane: Uuid, message: Message) -> Task<Message> {
+        match self.window_of_pane(pane) {
+            Some(target) => self.update_in_window(target, message),
+            None => self.update(message),
+        }
+    }
+
     /// The window that shows the tab with strip id `id` (terminal or
     /// SFTP): `None` is the resident one.
     pub(crate) fn window_of_tab(&self, id: Uuid) -> Option<window::Id> {
@@ -874,6 +892,14 @@ impl Oryxis {
 
     /// A message that came from window `id`.
     pub(crate) fn update_in_window(&mut self, id: window::Id, message: Message) -> Task<Message> {
+        // A message about a pane runs where the pane's tab is NOW, not
+        // where its stream was started. Resolved before any swap: once a
+        // window's values are in the fields, another window cannot be
+        // entered.
+        if let Message::ForPane(pane, inner) = message {
+            let target = self.window_of_pane(pane).unwrap_or(id);
+            return self.update_in_window(target, *inner);
+        }
         let current = self.window_ctx.as_ref().map(|c| c.id);
         let target = if current == Some(id) || self.extra_windows.contains_key(&id) {
             Some(id)

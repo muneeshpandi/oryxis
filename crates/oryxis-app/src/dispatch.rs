@@ -51,6 +51,7 @@ impl Oryxis {
         // tab and geometry swapped in (see `window_ctx`).
         let message = match message {
             Message::InWindow(id, inner) => return self.update_in_window(id, *inner),
+            Message::ForPane(pane, inner) => return self.update_for_pane(pane, *inner),
             other => other,
         };
         // Sync the cursor position from the event listener's atomics.
@@ -465,6 +466,7 @@ impl Oryxis {
             // Reached only by a handler that re-dispatches a wrapped
             // message; `update` unwraps the ones iced delivers.
             Message::InWindow(id, inner) => self.update_in_window(id, *inner),
+            Message::ForPane(pane, inner) => self.update_for_pane(pane, *inner),
             Message::KnownHost(m) => self.handle_known_hosts(m),
             Message::RemoteDesktop(m) => self.handle_remote_desktop(m),
             Message::SessionGroup(m) => self.handle_session_group(m),

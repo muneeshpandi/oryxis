@@ -363,7 +363,10 @@ impl Oryxis {
             },
         );
 
-        Task::stream(stream)
+        // Every event is about `pane_id`: the progress overlay and the
+        // "Save to folder" ask land in the window that shows the pane's
+        // tab when they arrive, not the one the transfer began in.
+        Task::stream(stream).map(move |m| Message::ForPane(pane_id, Box::new(m)))
     }
 
     /// Scan the ZMODEM staging folder once per process

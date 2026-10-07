@@ -966,7 +966,9 @@ impl Oryxis {
                     }
                 });
 
-                let (dial, dial_handle) = Task::stream(stream).map(move |msg| match msg {
+                // Every message of this dial is about `pane_id`: it runs in
+                // the window that shows the pane's tab when it arrives.
+                let (dial, dial_handle) = Task::stream(stream).map(move |msg| Message::ForPane(pane_id, Box::new(match msg {
                         SshStreamMsg::Progress(step, log) => {
                             Message::Ssh(SshMessage::SshProgress(pane_id, step, log))
                         }
@@ -1005,7 +1007,7 @@ impl Oryxis {
                         SshStreamMsg::Disconnected => {
                             Message::Ssh(SshMessage::SshDisconnected(pane_id))
                         }
-                    }).abortable();
+                    }))).abortable();
                 // The card owns the handle so closing it stops the dial
                 // (`abort_progress_dial`); only while it still tracks
                 // THIS pane's dial.
@@ -1403,7 +1405,7 @@ impl Oryxis {
                 }
             }
         });
-        Task::stream(stream).map(move |m| match m {
+        Task::stream(stream).map(move |m| Message::ForPane(pane_id, Box::new(match m {
             PaneConnMsg::Connected(s) => Message::Ssh(SshMessage::SshConnected(
                 pane_id,
                 crate::state::TerminalTransport::Ssh(s),
@@ -1428,7 +1430,7 @@ impl Oryxis {
             | PaneConnMsg::Banner(_)
             | PaneConnMsg::ProxyOutput(_)
             | PaneConnMsg::SecurityKey(_) => Message::NoOp,
-        })
+        })))
     }
 
     pub(crate) fn spawn_ssh_for_pane_conn(
@@ -1733,7 +1735,9 @@ impl Oryxis {
             }
         });
 
-        let (dial, dial_handle) = Task::stream(stream).map(move |m| match m {
+        // Every message of this dial is about `pane_id`: it runs in the
+        // window that shows the pane's tab when it arrives, prompts included.
+        let (dial, dial_handle) = Task::stream(stream).map(move |m| Message::ForPane(pane_id, Box::new(match m {
             PaneConnMsg::HostKey(q) => Message::Ssh(SshMessage::SshHostKeyVerify(q)),
             PaneConnMsg::ProxyCommand(q) => Message::Ssh(SshMessage::SshProxyCommandVerify(
                 Box::new(q),
@@ -1753,7 +1757,7 @@ impl Oryxis {
             PaneConnMsg::Data(d) => Message::Terminal(TerminalMessage::PtyOutput(pane_id, d)),
             PaneConnMsg::Disconnected => Message::Ssh(SshMessage::SshDisconnected(pane_id)),
             PaneConnMsg::Error(e) => Message::Ssh(SshMessage::PaneConnectError(pane_id, e)),
-        })
+        })))
         .abortable();
         // The pane owns the handle so closing it (or its tab, or the
         // manual lock) stops a dial still in flight (`Pane::abort_dial`).

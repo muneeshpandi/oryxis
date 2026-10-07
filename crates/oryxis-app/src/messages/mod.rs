@@ -196,6 +196,16 @@ pub enum Message {
     /// wrapped in this, and `update` runs the inner message with that
     /// window's strip, active tab and geometry in place.
     InWindow(iced::window::Id, Box<Message>),
+    /// A message about one pane (its dial stream, its ZMODEM transfer):
+    /// runs in the window that shows the pane's tab NOW. The stream was
+    /// started in one window and every message it yields arrives as that
+    /// window's (`InWindow`), but the tab may have moved since; without
+    /// this a host-key or PIN prompt raised on a reconnect floated in the
+    /// window the dial started in, and in the resident once that window
+    /// closed. Resolved by `update_in_window` / `update_for_pane` BEFORE
+    /// any window is swapped in; a pane that is gone runs where it was
+    /// delivered.
+    ForPane(Uuid, Box<Message>),
     // Archive operations (extract / compress / virtual zip browse).
     // Async completions ride the `SftpFor` owner envelope like the
     // transfer queue does.
