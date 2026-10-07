@@ -132,9 +132,10 @@ mod tests {
         // additions a v6 peer cannot deserialize (certificate auth,
         // sk- key algorithms). v8 gates an EntityType variant, which
         // sits in the envelope and so breaks the whole message rather
-        // than one record. This pin catches any accidental version
-        // bump or rollback.
-        assert_eq!(PROTOCOL_VERSION, 8);
+        // than one record. v9 gates `AuthMethod::SecurityKey` (0.20.0),
+        // a payload variant again. This pin catches any accidental
+        // version bump or rollback.
+        assert_eq!(PROTOCOL_VERSION, 9);
     }
 
     #[test]
@@ -973,14 +974,14 @@ mod tests {
     }
 
     #[test]
-    fn snapshot_v2_blob_still_merges_and_v5_is_rejected() {
+    fn snapshot_v2_blob_still_merges_and_v6_is_rejected() {
         use crate::engine::{build_full_snapshot, merge_snapshot};
 
-        // The v3 and v4 bumps (protocol v7 / v8) are schema gates with
-        // unchanged crypto: the reader must still merge a v2 blob
-        // (upgrade path for existing SFTP snapshots) and reject anything
-        // newer than itself. Build a real snapshot, then rewrite the
-        // header version.
+        // The v3, v4 and v5 bumps (protocol v7 / v8 / v9) are schema
+        // gates with unchanged crypto: the reader must still merge a v2
+        // blob (upgrade path for existing SFTP snapshots) and reject
+        // anything newer than itself. Build a real snapshot, then
+        // rewrite the header version.
         let va = Arc::new(Mutex::new(test_vault()));
         {
             let v = va.lock().unwrap();
@@ -988,18 +989,18 @@ mod tests {
             v.save_connection(&c, None).unwrap();
         }
         let mut blob = build_full_snapshot(&va, &SNAP_SECRET).unwrap();
-        assert_eq!(&blob[6..8], &4u16.to_le_bytes(), "writer must stamp v4");
+        assert_eq!(&blob[6..8], &5u16.to_le_bytes(), "writer must stamp v5");
 
         blob[6..8].copy_from_slice(&2u16.to_le_bytes());
         let vb = Arc::new(Mutex::new(test_vault()));
         let n = merge_snapshot(&vb, &blob, &SNAP_SECRET)
-            .expect("a v2 snapshot must still merge on a v8 reader");
+            .expect("a v2 snapshot must still merge on a v9 reader");
         assert!(n > 0, "the v2 blob's records must be carried");
 
-        blob[6..8].copy_from_slice(&5u16.to_le_bytes());
+        blob[6..8].copy_from_slice(&6u16.to_le_bytes());
         let vc = Arc::new(Mutex::new(test_vault()));
         let err = merge_snapshot(&vc, &blob, &SNAP_SECRET)
-            .expect_err("a future v5 snapshot must be rejected");
+            .expect_err("a future v6 snapshot must be rejected");
         let msg = err.to_string();
         assert!(
             msg.contains("version") && msg.contains("unsupported"),

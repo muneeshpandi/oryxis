@@ -79,7 +79,15 @@ use uuid::Uuid;
 /// bump turns that into the same loud handshake reject as every prior
 /// break, and `SNAPSHOT_VERSION` moves 3 -> 4 in lockstep for the same
 /// reason (the snapshot carries `SyncRecord`s).
-pub const PROTOCOL_VERSION: u32 = 8;
+///
+/// v9 is v7's audit again: `AuthMethod` gained `SecurityKey` (0.20.0).
+/// A v8 peer receiving such a `Connection` fails that record on every
+/// cycle with no error either user can see, and a v8 build reading a
+/// snapshot that holds one fails the ENTIRE merge (the record list is
+/// one `from_slice`), so nothing syncs through WebDAV / SFTP any more.
+/// The bump makes both the loud version reject; `SNAPSHOT_VERSION`
+/// moves 4 -> 5 in lockstep, reads still accept v2 and up.
+pub const PROTOCOL_VERSION: u32 = 9;
 
 /// Entity types that can be synced.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, SchemaWrite, SchemaRead)]
@@ -989,7 +997,7 @@ mod tests {
         );
         assert_eq!(
             (EntityType::ALL.len(), PROTOCOL_VERSION),
-            (11, 8),
+            (11, 9),
             "adding an EntityType variant is a wire break: bump PROTOCOL_VERSION \
              (and SNAPSHOT_VERSION in lockstep) and update this pin"
         );

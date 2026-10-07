@@ -154,10 +154,14 @@ impl RelayClient {
             "{}/relay/{my_id}/inbox?wait_ms={wait_ms}",
             self.base_url
         );
+        // The server answers within `wait_ms`; a connection that died
+        // without a FIN (a laptop asleep and back, NAT state gone) would
+        // otherwise park this poll until TCP keepalive notices, hours.
         let resp = self
             .http
             .get(&url)
             .bearer_auth(&self.token)
+            .timeout(std::time::Duration::from_millis(u64::from(wait_ms)) + std::time::Duration::from_secs(30))
             .send()
             .await
             .map_err(|e| SyncError::Transport(format!("relay GET: {e}")))?;

@@ -48,8 +48,13 @@ use crate::protocol::{DeltaRef, SyncRecord};
 /// whole record list fails to deserialize rather than one entry. Crypto
 /// is again unchanged, so reads still accept v2 and v3 and writes stamp
 /// v4.
+///
+/// v5 (0.20.0): `AuthMethod::SecurityKey`, a payload variant a v4 reader
+/// cannot deserialize; since the record list is decoded whole, one such
+/// host failed the entire merge on an older build. Reads accept v2 and
+/// up, writes stamp v5.
 const SNAPSHOT_MAGIC: &[u8; 6] = b"ORXSNP";
-const SNAPSHOT_VERSION: u16 = 4;
+const SNAPSHOT_VERSION: u16 = 5;
 /// Oldest snapshot version this build still reads (same AEAD layout).
 const SNAPSHOT_MIN_READ_VERSION: u16 = 2;
 const HEADER_LEN: usize = SNAPSHOT_MAGIC.len() + 2;

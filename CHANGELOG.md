@@ -46,8 +46,9 @@ Several windows in one process, each a whole one, and security keys that sign na
 - With "Report mouse to remote" off for the host the wheel sends nothing to it, arrow keys included (#240, reported by @DualTachyon).
 - A command proxy line runs as `exec <line>`, the way OpenSSH runs it, and stopping a dial ends the proxy together with anything it started.
 - Session log sizes come from a kept column, so the Logs list and every disconnect no longer scan the whole recording history.
-- The sync wire codec moves from bincode to wincode, byte for byte the same format; 0.19 and 0.20 devices sync with each other.
-- A host set to Security Key syncs or imports only to devices on 0.20.0 or later. Linux needs the FIDO udev rules for a non-root user.
+- Sync protocol 9: a 0.20.0 device pairs and syncs only with 0.20.0 devices (the Security Key method is new on the wire), so upgrade every synced device.
+- The sync wire codec moves from bincode to wincode, byte for byte the same format.
+- A `.oryxis` export holding a Security Key host imports only on 0.20.0 or later. Linux needs the FIDO udev rules for a non-root user.
 
 ### Fixed
 - A host that leaves its username to its group shows, finds and masks that user wherever it is named: card, tree, tab, search, Privacy Mode (#242, reported by @anojoyman).
