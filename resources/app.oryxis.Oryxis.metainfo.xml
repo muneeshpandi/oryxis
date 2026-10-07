@@ -69,6 +69,21 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.20.0" date="2026-10-07">
+      <description>
+        <p>
+          Several windows in one process, each a whole one: its own tabs,
+          Home and vault screens, and a tab dragged out docks on another
+          window's strip. Security keys sign natively on Windows, Linux
+          and macOS, with a hardware-only Security Key method. Dynamic
+          forwards speak SOCKS4 and 4A, a tunnel nobody reads throttles
+          only its own channel, loopback forwards listen on IPv6 too,
+          HTTPS follows the operating system's trust store, and the macOS
+          window wears its native frame.
+        </p>
+      </description>
+      <url>https://github.com/wilsonglasser/oryxis/releases/tag/v0.20.0</url>
+    </release>
     <release version="0.19.0" date="2026-09-27">
       <description>
         <p>

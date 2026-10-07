@@ -4,27 +4,61 @@ All notable changes to Oryxis are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 project uses [SemVer](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.20.0] - 2026-10-07
+
+Several windows in one process, each a whole one, and security keys that sign natively. Dynamic forwards speak SOCKS4 and 4A, a stalled tunnel no longer stalls its connection, HTTPS follows the operating system's trust store, and the macOS window wears its native frame.
 
 ### Added
-- Security keys sign natively, no ssh-agent: Ed25519-SK and ECDSA-SK on Windows, Linux and macOS, with PIN, and a hardware-only Security Key method (#236, #237, by @Rulio723).
+- Several windows, each a whole one: its own tabs, its own Home and vault screens, its own search and folder. "New Window" (Ctrl+Shift+N) opens one.
+- A tab moves to another window with its session intact: drag it out of the window, or "Move to New Window" / "Move to Window" on its menu.
+- A tab dragged out is carried by the mouse as a window of its own, and docks on another window's tab strip at the slot under the cursor.
+- Dragging the only tab of a window carries that window.
+- On Wayland the compositor carries the torn-off window when it offers `xdg-toplevel-drag`; without it nothing is carried.
+- Drag a host card (or a selection) out of the window to connect it in a new one, or use "Connect in New Window" on the card menu.
+- Security keys sign natively, no ssh-agent: Ed25519-SK and ECDSA-SK on Windows (Windows Hello), Linux (`hidraw`) and macOS, with touch and PIN prompts (#236, #237, by @Rulio723).
+- A "Security Key" auth method offers the token and nothing else: no agent sweep, no other key, no password fallback.
+- Import an `id_ed25519_sk` / `id_ecdsa_sk` file into the Keychain, or let a host pick it from `~/.ssh`; the built-in ssh-agent never serves a security-key row.
+- Background connections (MCP, boot forwards, monitor, sync, auto-reconnect, connect-at-launch) never raise a touch prompt; a security-key host waits for a click.
+- A dynamic forward serves SOCKS4 and SOCKS4A beside SOCKS5, and a refused or unreachable destination comes back as the SOCKS error with its reason (#246, reported by @Mazwak).
+- Ctrl+Shift+D (Cmd+Shift+D on macOS) duplicates the active tab.
+- macOS: the window wears the native frame with the traffic lights; the green button is native fullscreen, F11 and Ctrl+Cmd+F the immersive one (#238, reported by @BilityLeu).
+- The version line in Settings > About is selectable.
+- The headless harness lists, focuses and moves windows, and drags (`press` / `move` / `release`).
 - The MCP plugin 0.1.6 reads hosts set to Security Key, and refuses them: a touch needs a person at the keyboard.
 - The MCP plugin 0.1.7 lists `effective_username` beside `username`: the login `ssh_execute` uses when a host leaves the user to its group or identity.
 - The MCP plugin 0.1.8 dials with russh 0.63.3.
 - The MCP plugin 0.1.9 unlocks the vault with the same password check as the app.
-- Several windows, each a whole one: its own tabs, its own Home and vault screens, its own search and folder. "New Window" (Ctrl+Shift+N) opens one; a tab moves to another window with its session intact by dragging it out or from its menu ("Move to New Window", "Move to Window").
-- A tab dragged out of its window is carried by the mouse as a window of its own, and dropped on another window's tab strip it docks there (Windows and X11).
-- Drag a host card (or a selection) out of the window to connect it in a new one, or use "Connect in New Window" on the card menu.
+- The MCP plugin 0.1.10 carries the per-channel flow control and opens channels on one host concurrently.
 
 ### Changed
-- Every window is the same app: a new window no longer starts a second process with its own settings, sync and update check. Any window can be closed, and closing one closes its tabs (it asks first when a session is live; pinned tabs move to another window).
+- Every window is the same app: a new window no longer starts a second process with its own settings, sync and update check.
+- Closing a window closes its tabs, asking first when a session is live; pinned tabs move to another window instead.
+- With several windows open, each window's title names what it shows.
+- The splits moved to Alt+Shift+= (the `+` key) and Alt+Shift+- (Cmd+D / Cmd+Shift+O on macOS); Ctrl+Shift+O still splits stacked. A chord you bound yourself keeps its action.
+- A forward on `127.0.0.1` or `localhost` listens on `[::1]` too, so a client told `localhost` no longer waits on a refused IPv6 connect first (#246).
+- Each direction of a tunnel ends on its own: a client that sends its request and half-closes still gets the answer.
+- A tunnel nobody reads throttles only its own channel; the other forwards, tabs and SFTP on the same connection keep flowing.
+- Channels on one connection open concurrently: a slow destination behind a forward no longer holds up new tabs or SFTP on that connection.
+- HTTPS (update check, plugins, fonts, mirror, sync signaling and relay, WebDAV, the relay installer) verifies certificates against the operating system's trust store.
+- A company CA installed on the machine is therefore honoured; a machine with no CA bundle reports it instead of connecting. Telnet over TLS keeps the built-in roots.
+- A host offering an SSH host certificate is checked by the key it certifies, as a plain dial would be.
+- The wheel in a full-screen app follows xterm's alternate scroll (cursor keys, `?1007`, tilt as Left / Right).
+- With "Report mouse to remote" off for the host the wheel sends nothing to it, arrow keys included (#240, reported by @DualTachyon).
 - A command proxy line runs as `exec <line>`, the way OpenSSH runs it, and stopping a dial ends the proxy together with anything it started.
+- Session log sizes come from a kept column, so the Logs list and every disconnect no longer scan the whole recording history.
+- The sync wire codec moves from bincode to wincode, byte for byte the same format; 0.19 and 0.20 devices sync with each other.
+- A host set to Security Key syncs or imports only to devices on 0.20.0 or later. Linux needs the FIDO udev rules for a non-root user.
 
 ### Fixed
-- A host that leaves its username to its group shows, finds and masks that user everywhere it is named (card, hosts tree, tab, search, copied URL, Privacy Mode), and a Telnet host logs in with it (#242, reported by @anojoyman).
+- A host that leaves its username to its group shows, finds and masks that user everywhere it is named: card, tree, tab, search, URL, Privacy Mode (#242, by @anojoyman).
+- A Telnet host logs in with the username it inherits from its group (#242).
+- A vault whose stored password check happened to begin with the derived-key tag byte (one salt in 256) failed to unlock.
+- The connection progress card, jump-host, proxy and forward lines are localized (#239, by @Rulio723).
+- Inputs keep focus and scroll position when the view around them reshapes: the inherited-username hint, an overlay, a late log line (#241, reported by @anojoyman).
+- A long host name on the connect card wraps instead of running over its controls.
+- A command proxy that logs in first (an expired SSO session, a browser URL) no longer fails the dial; its output shows on the connect card (#223, by @guptakanishka90).
+- A host-key or command-proxy prompt no longer times the connection out while you read it; closing the connect card, tab or pane stops the dial and its proxy.
 - "Duplicate in New Window" works for a local terminal and a cloud exec session, not only saved hosts.
-- A command proxy that logs in first (an expired SSO session, a browser URL) no longer fails the dial; its output shows on the connect card (#223, reported by @guptakanishka90).
-- A host-key or command-proxy prompt no longer times the connection out while you read it; closing the connect card stops the dial and its proxy.
 
 ## [0.19.0] - 2026-09-27
 

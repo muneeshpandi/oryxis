@@ -5275,7 +5275,7 @@ dependencies = [
 
 [[package]]
 name = "oryxis-app"
-version = "0.19.0"
+version = "0.20.0"
 dependencies = [
  "aes-gcm",
  "async-trait",
@@ -5594,7 +5594,7 @@ dependencies = [
 
 [[package]]
 name = "oryxis-mcp"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "chrono",
  "oryxis-core",
