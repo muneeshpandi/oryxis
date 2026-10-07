@@ -23,8 +23,8 @@
   <img src="resources/screen_1.gif" width="720" alt="Oryxis em ação: conectando, executando snippets, navegando por SFTP">
 </p>
 
-> Este documento é uma tradução do README em inglês posterior à v0.15.0
-> (sincronizado em 2026-08-24). A documentação detalhada
+> Este documento é uma tradução do README em inglês posterior à v0.20.0
+> (sincronizado em 2026-10-07). A documentação detalhada
 > ([tour de funcionalidades](docs/FEATURES.md),
 > [arquitetura](docs/ARCHITECTURE.md)) permanece em inglês.
 
@@ -42,7 +42,7 @@ binário nativo.
 | Licença | AGPL-3.0, open source | Proprietária | MIT | MIT |
 | Armazenamento de credenciais | Cofre local criptografado | Conta na nuvem do fornecedor | Nenhum | Arquivos de config locais |
 | Sincronização entre dispositivos | P2P com criptografia de ponta a ponta, relay auto-hospedado opcional | Nuvem do fornecedor (assinatura) | Nenhuma | Via Tabby Web |
-| SFTP com interface gráfica | Painel duplo, embutido | Plano pago | Só CLI | Painel básico |
+| SFTP | GUI de painel duplo **e** um console interativo | Plano pago | Só CLI | Painel básico |
 | Preço | Grátis | Plano grátis + assinatura | Grátis | Grátis |
 
 ## Instalação
@@ -80,9 +80,24 @@ binários de Windows são assinados com Authenticode.
   cofre oferecidas nos prompts de `sudo` (nunca enviadas sozinhas).
 - **O pipeline SSH completo**: autenticação automática, jump hosts em
   cadeia, proxies SOCKS / HTTP / de comando, encaminhamento de agente,
-  port forwarding independente `-L`/`-R`/`-D`, scripts de login
-  expect/send para bastions de menu (JumpServer e companhia) e
-  importação do `~/.ssh/config` em um clique.
+  port forwarding independente `-L`/`-R`/`-D` e scripts de login
+  expect/send para bastions de menu (JumpServer e companhia).
+- **Chaves de segurança, nativas**: uma YubiKey ou qualquer token FIDO2
+  assina logins `sk-ssh-ed25519` / `sk-ecdsa-sha2-nistp256` a partir do
+  próprio app no Windows, Linux e macOS (Windows Hello incluído), com o
+  toque e o PIN pedidos na sua tela, um método Chave de Segurança só por
+  hardware e nenhum agente externo no meio.
+- **Traga seus hosts junto**: uma importação lê o que você já tem:
+  `~/.ssh/config`, PuTTY, KiTTY, WinSCP, mRemoteNG, MobaXterm,
+  SecureCRT, Xshell, FinalShell, Termius ou qualquer CSV. Escolha o
+  arquivo (ou a pasta de sessões) e o formato é detectado para você.
+- **Offline quando você mandar**: um interruptor, oferecido na primeira
+  execução e nas Configurações, e o Oryxis não faz nenhuma requisição
+  por conta própria: sem checagem de atualização, sem download de fontes
+  ou plugins. O que você mesmo configurou continua funcionando. Para uma
+  máquina que nunca teve rede, um bundle offline sai ao lado de cada
+  release com os plugins e os pacotes de fontes já dentro e o
+  interruptor já ligado.
 - **Mais que SSH**: consoles Telnet e serial para os equipamentos que
   nunca aprenderam SSH, linhas TCP puras para servidores de console,
   transferências ZMODEM, shells locais e RDP/VNC em um clique através
@@ -94,20 +109,36 @@ binários de Windows são assinados com Authenticode.
   do `mosh-server` original, então não há nada a instalar na sua
   máquina.
 - **Um terminal de verdade**: emulador baseado no alacritty, painéis
-  divididos, grupos de sessão, temas por host, Nerd Fonts embutidas
-  mais um pacote de fontes baixáveis (JetBrains Mono, Fira Code,
-  MesloLGS e outras), abas inteligentes que sinalizam comandos
-  demorados e histórico de comandos por host.
+  divididos, grupos de sessão, temas por host, fundo translúcido ou
+  imagem de fundo opcionais, Nerd Fonts embutidas mais um pacote de
+  fontes baixáveis (JetBrains Mono, Fira Code, MesloLGS e outras), abas
+  inteligentes que sinalizam comandos demorados, histórico de comandos
+  por host e um ajuste por host da largura ambígua do leste asiático
+  para as TUIs CJK alinharem.
+- **Quantas janelas quiser**: um processo, qualquer número de janelas,
+  cada uma com suas abas, sua tela de hosts e sua busca. Arraste uma aba
+  para fora da borda para destacá-la, solte-a na barra de abas de outra
+  janela para encaixá-la, ou conecte um host direto numa janela nova.
 - **Arquivos em todo lugar**: SFTP de painel duplo com arrastar e
   soltar, edição no lugar e cópia servidor a servidor; toda aba SSH
   ainda traz uma barra lateral de arquivos que segue o diretório do
-  shell.
+  shell. Prefere digitar? Um console SFTP interativo fala os comandos
+  do `sftp(1)` (`get`, `put`, `mget`, `lcd`, globs, completação com
+  Tab, progresso em linha), abrindo como um painel da sessão em que
+  você já está (empilhado, ao lado ou ampliado, à sua escolha) com um
+  único interruptor entre terminal, console e arquivos.
 - **Gravação de sessões**: criptografada em repouso; exporta para
   asciinema `.cast` (com tema embutido) ou transcrição em texto puro,
   gravando apenas a saída por decisão de projeto.
+- **A caixa de ferramentas do sysadmin**: um painel opcional de
+  ferramentas de rede (desligado por padrão, abre como aba própria):
+  registros DNS, ping, traceroute, teste de porta TCP, cadeia de
+  redirecionamentos HTTP e inspeção de certificado, WHOIS e as listas
+  públicas de bloqueio de spam.
 - **Contas de nuvem**: descoberta e conexão em AWS, Google Cloud,
-  Azure e Kubernetes (EC2, SSM, ECS Exec, GKE, AKS, `kubectl`),
-  distribuídas como plugins assinados baixados sob demanda.
+  Azure, Alibaba Cloud, Tencent Cloud e Kubernetes (EC2, SSM, ECS Exec,
+  GKE, AKS, ACK, TKE, `kubectl`), distribuídas como plugins assinados
+  baixados sob demanda.
 - **IA onde você trabalha**: assistente por aba (com a sua própria
   chave: Anthropic, OpenAI, Gemini ou compatível) com camadas de
   segurança para execução automática, além de um
@@ -134,6 +165,10 @@ Usa tmux? **[Logs e histórico de comandos no tmux](docs/TMUX.md)** (em
 inglês) explica o que funciona de fábrica e o que você mesmo instala.
 Quer o navegador de arquivos seguindo o shell com exatidão?
 **[Seguindo o diretório do shell](docs/CWD.md)** (em inglês) tem o snippet.
+Quer levar uma cópia do seu cofre para fora desta máquina, para uma
+pasta na nuvem ou qualquer outro lugar? **[Backups e onde
+guardá-los](docs/BACKUP.md)** (em inglês) cobre sincronização,
+exportação e as ferramentas que levam um arquivo o resto do caminho.
 
 ## Primeiros passos
 
@@ -141,8 +176,8 @@ Quer o navegador de arquivos seguindo o shell com exatidão?
    (dá para ativar depois nas Configurações, junto com o desbloqueio
    biométrico).
 2. **Adicione hosts**: clique em `+ HOST`, ou só digite `user@host`
-   (Ctrl+K) para conectar sem salvar. O `~/.ssh/config` importa em um
-   clique.
+   (Ctrl+K) para conectar sem salvar. Vem de outro cliente SSH? A
+   importação traz as sessões salvas dele em um passo.
 3. **Conecte**: clique no card do host. Painéis divididos, barra de
    arquivos, SFTP e snippets ficam a uma tecla de distância.
 4. **Extras opcionais**: chat de IA (Configurações > IA), servidor MCP
@@ -169,14 +204,14 @@ vulnerabilidades por canal privado.
 
 O Oryxis lança pequeno e com frequência (aproximadamente semanal), e
 as funcionalidades entram assim que ficam prontas. A última versão
-estável é a **v0.15.0**; o histórico completo está no
+estável é a **v0.20.0**; o histórico completo está no
 [CHANGELOG.md](CHANGELOG.md) e o roadmap interativo na
 [discussão de roadmap](https://github.com/wilsonglasser/oryxis/discussions/67).
-Entre as frentes em andamento: FIDO2 nativo (falar direto com a chave
-de segurança por USB / NFC), múltiplos cofres e suporte a nuvens
-chinesas (Alibaba Cloud / Tencent Cloud). O cliente mosh nativo, a
-chave de disco (`~/.ssh`) por host e a reabertura da última aba
-fechada foram entregues nesta versão.
+Entregues desde a 0.15.0: painéis divididos e o console SFTP, o modo
+offline com seu bundle, Alibaba Cloud e Tencent Cloud, o painel de
+ferramentas de rede, o deploy do relay em um clique, chaves de
+segurança nativas e várias janelas num só processo. Entre as frentes
+em andamento: múltiplos cofres e o kit de operações com IA.
 
 ## Contribuindo
 

@@ -107,6 +107,11 @@ matching installer. Windows binaries are Authenticode-signed (see
   HTTP / command proxies, agent forwarding, standalone `-L`/`-R`/`-D` port
   forwarding, expect-style login scripts for menu-driven bastions
   (JumpServer and friends).
+- **Security keys, natively.** A YubiKey or any FIDO2 token signs
+  `sk-ssh-ed25519` / `sk-ecdsa-sha2-nistp256` logins from the app
+  itself on Windows, Linux and macOS (Windows Hello included), with the
+  touch and PIN asked on your screen, a hardware-only Security Key
+  method, and no external agent in between.
 - **Bring your hosts along.** One import reads what you already have:
   `~/.ssh/config`, PuTTY, KiTTY, WinSCP, mRemoteNG, MobaXterm,
   SecureCRT, Xshell, FinalShell, Termius or any CSV. Pick the file
@@ -133,6 +138,10 @@ matching installer. Windows binaries are Authenticode-signed (see
   MesloLGS and more), smart tabs that flag long-running commands,
   per-host command history, and a per-host East Asian ambiguous-width
   setting so CJK TUIs line up.
+- **As many windows as you like.** One process, any number of windows,
+  each with its own tabs, hosts screen and search. Drag a tab past the
+  edge to tear it off, drop it on another window's tab bar to dock it,
+  or connect a host straight into a new window.
 - **Files everywhere.** Dual-pane SFTP with drag-and-drop, edit-in-place
   and server-to-server copy; every SSH tab also carries a Files sidebar
   that follows your shell's working directory. Prefer typing? An
