@@ -482,6 +482,17 @@ type WireConfig = wincode::config::Configuration<
 
 const WIRE: WireConfig = wincode::config::Configuration::new();
 
+/// The same layout for a frame read BEFORE the peer is authenticated:
+/// the preallocation cap is the pre-auth frame cap, so a 64 KB `Hello`
+/// whose inner length claims 16 MiB is refused at the length, not after
+/// a 16 MiB allocation.
+type PreauthWireConfig = wincode::config::Configuration<
+    true,
+    { crate::transport::MAX_PREAUTH_MESSAGE_BYTES },
+>;
+
+const WIRE_PREAUTH: PreauthWireConfig = wincode::config::Configuration::new();
+
 /// A `DateTime<Utc>` on the wire as serde gave it to bincode: chrono's
 /// RFC 3339 string (`Z`, fraction only as long as it needs), as a
 /// length-prefixed string.
@@ -534,6 +545,12 @@ pub fn encode_message(msg: &SyncMessage) -> Result<Vec<u8>, wincode::WriteError>
 
 pub fn decode_message(data: &[u8]) -> Result<SyncMessage, wincode::ReadError> {
     wincode::config::deserialize(data, WIRE)
+}
+
+/// `decode_message` for a frame from a peer that has not authenticated
+/// yet: same bytes, preallocation capped at the pre-auth frame size.
+pub fn decode_message_preauth(data: &[u8]) -> Result<SyncMessage, wincode::ReadError> {
+    wincode::config::deserialize(data, WIRE_PREAUTH)
 }
 
 #[cfg(test)]

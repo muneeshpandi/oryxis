@@ -121,7 +121,15 @@ pub async fn recv_message_capped(
         .await
         .map_err(|e| SyncError::Transport(format!("Read body: {}", e)))?;
 
-    decode_message(&buf).map_err(|e| SyncError::Protocol(format!("Decode: {}", e)))
+    // A frame read under the pre-auth cap is decoded under it too: the
+    // decoder's preallocation follows the sender's length fields, and a
+    // peer nobody has authenticated gets no 16 MiB of them.
+    let decoded = if cap <= MAX_PREAUTH_MESSAGE_BYTES {
+        crate::protocol::decode_message_preauth(&buf)
+    } else {
+        decode_message(&buf)
+    };
+    decoded.map_err(|e| SyncError::Protocol(format!("Decode: {}", e)))
 }
 
 /// How long the responder side of a relay session waits on its inbox
