@@ -447,7 +447,7 @@ fn gemini_contents(messages: &[ChatMsg]) -> Vec<serde_json::Value> {
 ///   it rather than failing).
 /// - **Every later model** takes `thinkingLevel`. `thinkingBudget` is
 ///   deprecated there: Gemini 3 still maps it onto a level, and Google's
-///   notice of 2026-10-06 says the models after it answer
+///   deprecation notice of October 2026 says the models after it answer
 ///   `400 INVALID_ARGUMENT`. `"low"` is the floor every text model of the
 ///   family accepts. `"minimal"` would sit one notch lower on the models
 ///   that list it (3.5 / 3.6 Flash, Flash-Lite, 3 Flash, where it is the
@@ -1039,8 +1039,10 @@ mod tests {
         assert!(gemini_thinking_config("gemini-2.5-flash", true).is_none());
     }
 
-    /// The parameters Google deprecated for the family (2026-10-06 notice):
-    /// the sampling knobs never, and never both thinking fields at once.
+    /// The parameters Google deprecated for the family (October 2026
+    /// notice): the sampling knobs never, and never both thinking fields
+    /// at once. Read as KEYS, not as a substring of the wire: the system
+    /// prompt and the tool description are free to say "temperature".
     #[test]
     fn gemini_request_body_never_carries_sampling_or_both_thinking_keys() {
         let msgs = tool_exchange_msgs();
@@ -1051,8 +1053,18 @@ mod tests {
         ] {
             let body = gemini_request_body(&gemini_config(model, reasoning), &msgs);
             let wire = serde_json::to_string(&body).unwrap();
+            let keys = |v: &serde_json::Value| -> Vec<String> {
+                v.as_object()
+                    .map(|o| o.keys().cloned().collect())
+                    .unwrap_or_default()
+            };
+            let mut seen = keys(&body);
+            seen.extend(keys(&body["generationConfig"]));
             for key in ["temperature", "topP", "topK", "candidateCount", "top_p", "top_k"] {
-                assert!(!wire.contains(key), "{model} reasoning={reasoning}: {key} in {wire}");
+                assert!(
+                    !seen.iter().any(|k| k == key),
+                    "{model} reasoning={reasoning}: {key} in {wire}"
+                );
             }
             let thinking = &body["generationConfig"]["thinkingConfig"];
             let both = thinking.get("thinkingBudget").is_some()
