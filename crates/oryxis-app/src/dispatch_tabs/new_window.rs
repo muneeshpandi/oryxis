@@ -48,8 +48,14 @@ impl Oryxis {
             .cloned()
             .unwrap_or_default();
         // The size of the window the gesture came from, so a terminal
-        // keeps its grid; never its maximized or fullscreen state.
-        settings.size = self.window_size;
+        // keeps its grid; never its maximized or fullscreen state, and
+        // from a maximized or fullscreen source its WINDOWED size (the
+        // rectangle on screen is the monitor's).
+        settings.size = if self.cur_maximized() || self.cur_fullscreen() {
+            self.window_windowed_size
+        } else {
+            self.window_size
+        };
         settings.maximized = false;
         settings.fullscreen = false;
         settings.position = match at {
@@ -290,7 +296,9 @@ impl Oryxis {
             link: None,
             action: Some(crate::state::ErrorDialogAction {
                 label: crate::i18n::t("close_one_window_confirm").to_string(),
-                message: Box::new(Message::Tabs(TabsMessage::ConfirmCloseWindow)),
+                message: Box::new(Message::Tabs(TabsMessage::ConfirmCloseWindow {
+                    whole_app: false,
+                })),
                 danger: true,
             }),
         });
@@ -362,7 +370,19 @@ impl Oryxis {
             return Task::none();
         };
         match self.promote_window(next) {
-            Some(old) => window::close(old),
+            // The promoted window is now the one whose geometry is
+            // remembered, and nothing has told us where it sits (an
+            // extra window's moves are not tracked): ask, and let the
+            // answer land as a Moved event through the resident's own
+            // guards, or the next launch would open this window's size
+            // at the closed window's place.
+            Some(old) => Task::batch([
+                window::close(old),
+                window::position(next).map(|pos| match pos {
+                    Some(pos) => Message::Tabs(TabsMessage::WindowMoved(pos)),
+                    None => Message::NoOp,
+                }),
+            ]),
             None => Task::none(),
         }
     }
@@ -794,19 +814,44 @@ impl Oryxis {
         };
         let task = match message {
             TabsMessage::WindowResized(size) => {
-                self.window_size = size;
+                // Same 8 px grid as the resident window, for the same
+                // reason: a drag-resize must not reflow every pixel.
+                let snapped = Self::snapped_window_size(size);
+                if (snapped.width - self.window_size.width).abs() <= 0.5
+                    && (snapped.height - self.window_size.height).abs() <= 0.5
+                {
+                    return Ok(Task::none());
+                }
+                self.window_size = snapped;
+                self.dismiss_width_anchored_popovers();
                 // The OS may have maximized or restored it (a snap, a
                 // double click on the bar): ask, so the frame draws the
-                // right glyph and resize edges.
-                window::is_maximized(id).map(move |maximized| {
-                    Message::Tabs(TabsMessage::WindowStateSynced {
-                        maximized,
-                        fullscreen: None,
-                        size,
-                    })
+                // right glyph and resize edges. Under the native macOS
+                // frame the green button is a door into fullscreen that
+                // sends no message of ours, and this window's gutter and
+                // chrome read `cur_fullscreen()`, so the mode is asked
+                // for too. The settled re-read 900 ms later is the
+                // resident's; an extra window takes the next resize.
+                window::is_maximized(id).then(move |maximized| {
+                    let synced = move |fullscreen| {
+                        Message::Tabs(TabsMessage::WindowStateSynced {
+                            maximized,
+                            fullscreen,
+                            size: snapped,
+                        })
+                    };
+                    if crate::views::chrome::NATIVE_FRAME {
+                        window::mode(id)
+                            .map(move |mode| synced(Some(mode == window::Mode::Fullscreen)))
+                    } else {
+                        Task::done(synced(None))
+                    }
                 })
             }
-            TabsMessage::WindowStateSynced { maximized, .. } => {
+            TabsMessage::WindowStateSynced { maximized, fullscreen, .. } => {
+                if let Some(fullscreen) = fullscreen {
+                    self.reconcile_window_fullscreen(fullscreen);
+                }
                 self.window_maximized = maximized;
                 Task::none()
             }
@@ -816,9 +861,7 @@ impl Oryxis {
                     self.input_window = Some(id);
                 }
                 if !focused {
-                    // Same reason as the resident window: a release outside
-                    // never arrives, so losing focus ends the drag.
-                    self.tab_drag = None;
+                    self.on_window_blur();
                 }
                 Task::none()
             }
@@ -854,7 +897,16 @@ impl Oryxis {
                 )
             }
             TabsMessage::WindowClose => self.request_close_this_window(),
-            TabsMessage::ConfirmCloseWindow => self.close_this_window_now(),
+            // An extra window is never the app's close; a confirmation
+            // that asked for the app's close was raised by a window that
+            // was the last one at the time and is not any more.
+            TabsMessage::ConfirmCloseWindow { whole_app } => {
+                if whole_app {
+                    self.handle_window_close()
+                } else {
+                    self.close_this_window_now()
+                }
+            }
             // The remembered geometry, the on-screen rescue and the
             // macOS fullscreen reconciliation: none of it is kept for
             // an extra window.

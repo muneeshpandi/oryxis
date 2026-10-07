@@ -1305,9 +1305,10 @@ impl Oryxis {
         }
         if was_focused_surface {
             if next.is_none() {
-                // No SFTP tab left in this window. The main window goes
-                // home; an extra window shows one of its terminal tabs
-                // (and closes by itself when it has none).
+                // No SFTP tab left in this window. The resident window
+                // goes home; an extra window shows one of its terminal
+                // tabs, or its hosts screen when it has none (only a
+                // MOVE that empties a window closes it).
                 if self.window_ctx.is_none() {
                     return Task::done(Message::Navigation(NavigationMessage::ChangeView(crate::state::View::Dashboard)));
                 }

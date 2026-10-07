@@ -292,7 +292,11 @@ pub enum TabsMessage {
     /// again. A distinct message (not a re-fired `WindowClose`) so the
     /// guard can never mistake the confirmation for a new close
     /// request, nor a later real request for a confirmed one.
-    ConfirmCloseWindow,
+    /// `whole_app` is what the dialog ASKED: the app's close (the last
+    /// window) or one window of several. The windows can change while
+    /// the dialog is up; a confirmation that no longer matches the
+    /// count is asked again, never acted on under the other meaning.
+    ConfirmCloseWindow { whole_app: bool },
     /// Open one more window, on the hosts screen. Triggered by
     /// Ctrl+Shift+N and the burger menu's "New Window" entry.
     SpawnNewWindow,

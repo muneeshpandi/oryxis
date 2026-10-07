@@ -79,7 +79,7 @@ impl Oryxis {
                 | TabsMessage::WindowStateSynced { .. }
                 | TabsMessage::WindowFullscreenSettled(..)
                 | TabsMessage::WindowClose
-                | TabsMessage::ConfirmCloseWindow
+                | TabsMessage::ConfirmCloseWindow { .. }
                 | TabsMessage::WindowFullscreenToggle
                 | TabsMessage::FullscreenHintHide
                 | TabsMessage::SpawnNewWindow

@@ -95,7 +95,7 @@ impl Oryxis {
             // scroll anchor) and the "n/total" counter come from the
             // document-ordered list.
             let ordered = self.settings_ordered_matches(&self.settings_search);
-            self.keynav
+            self.kn()
                 .settings_active_label
                 .set(ordered.get(self.settings_active_match).map(|(_, l)| *l));
             // Record the section list for the keyboard router (SubNav

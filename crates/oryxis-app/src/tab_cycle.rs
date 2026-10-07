@@ -178,8 +178,11 @@ impl Oryxis {
     pub(crate) fn reconcile_tab_mru(&mut self) {
         // `retain` needs `&mut self.tab_mru` while the predicate needs
         // `&self`; take the vec out so the two borrows don't overlap.
+        // The MRU is per window, like the strip it orders: a ref that
+        // another window shows (a cycle run started here and committed
+        // by a Ctrl release delivered there) is dropped with the dead.
         let mut mru = std::mem::take(&mut self.tab_mru);
-        mru.retain(|r| self.tab_ref_alive(r));
+        mru.retain(|r| self.tab_ref_alive(r) && self.tab_order.contains(r));
         self.tab_mru = mru;
 
         // A cycle run owns the MRU order until Ctrl is released. Normally the

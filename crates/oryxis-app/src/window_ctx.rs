@@ -425,7 +425,7 @@ impl Oryxis {
         }
         self.tabs
             .get(idx)
-            .is_some_and(|t| self.tab_order.contains(&TabRef::Terminal(t._id)))
+            .is_some_and(|t| self.cur_tab_order().contains(&TabRef::Terminal(t._id)))
     }
 
     /// The live SFTP state of the current window: the buffer, except

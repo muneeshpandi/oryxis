@@ -47,7 +47,7 @@ impl Oryxis {
         // rows behind.
         use crate::state::SidebarSide;
         let (sidebar_left, sidebar_right) = self
-            .active_tab
+            .cur_active_tab()
             .and_then(|idx| self.tabs.get(idx))
             .map(|tab| {
                 (

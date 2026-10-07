@@ -1898,9 +1898,16 @@ impl Oryxis {
         "Oryxis".into()
     }
 
-    /// The daemon's per-window forms of `title` / `theme` / `view`.
-    pub fn title_for(&self, _window: iced::window::Id) -> String {
-        self.title()
+    /// The daemon's per-window forms of `title` / `theme` / `view`. With
+    /// several windows the title names what each shows (its tab, or
+    /// Hosts), so the taskbar and Alt+Tab can tell them apart; a single
+    /// window keeps the plain name.
+    pub fn title_for(&self, window: iced::window::Id) -> String {
+        if self.extra_windows.is_empty() {
+            return self.title();
+        }
+        let target = (Some(window) != resident_window_id()).then_some(window);
+        format!("{} - {}", self.window_label(target), self.title())
     }
 
     pub fn theme_for(&self, _window: iced::window::Id) -> Theme {

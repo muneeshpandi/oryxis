@@ -167,7 +167,7 @@ impl Oryxis {
         // a deliberate Tab/arrow walk plus Enter, the same intent bar as a
         // click, and it carries no paste/delete verbs.
         let remote_active = self
-            .active_tab
+            .cur_active_tab()
             .and_then(|i| self.tabs.get(i))
             .map(|t| t.active().session.is_some())
             .unwrap_or(false);
@@ -396,7 +396,7 @@ impl Oryxis {
         // (issue #147): quick-connect and local panes have no install
         // memory, so their rows show the plain category marker.
         let install_host = self
-            .active_tab
+            .cur_active_tab()
             .and_then(|i| self.tabs.get(i))
             .and_then(|t| match t.active().origin {
                 crate::state::PaneOrigin::Host(id) => Some(id),

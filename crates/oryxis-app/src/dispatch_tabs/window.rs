@@ -225,27 +225,12 @@ impl Oryxis {
         // by ~8x during a sustained drag, which keeps iced's
         // subscription channel from filling up and dropping events
         // (the `TrySendError { kind: Full }` warnings).
-        const SNAP: f32 = 8.0;
-        let snapped = iced::Size {
-            width: (size.width / SNAP).round() * SNAP,
-            height: (size.height / SNAP).round() * SNAP,
-        };
+        let snapped = Self::snapped_window_size(size);
         if (snapped.width - self.cur_window_size().width).abs() > 0.5
             || (snapped.height - self.cur_window_size().height).abs() > 0.5
         {
             self.window_size = snapped;
-            // The floating toolbar search / overflow popovers are
-            // anchored to a width that just changed, and the inline
-            // field may now fit again. Dismiss them so they re-pop
-            // at the right place (and the inline field re-mounts
-            // without colliding on its widget Id).
-            if matches!(
-                self.overlay.as_ref().map(|o| &o.content),
-                Some(crate::state::OverlayContent::ToolbarSearch)
-                    | Some(crate::state::OverlayContent::ToolbarOverflow)
-            ) {
-                self.overlay = None;
-            }
+            self.dismiss_width_anchored_popovers();
             // Reconcile the optimistic `window_maximized` with the OS
             // truth. Win+Up/Down, aero snap, the taskbar's Restore and
             // dragging the custom title bar down (a restore inside the
@@ -312,6 +297,29 @@ impl Oryxis {
         Task::none()
     }
 
+    /// A window size on the 8 px grid `handle_window_resized` reflows on.
+    pub(super) fn snapped_window_size(size: iced::Size) -> iced::Size {
+        const SNAP: f32 = 8.0;
+        iced::Size {
+            width: (size.width / SNAP).round() * SNAP,
+            height: (size.height / SNAP).round() * SNAP,
+        }
+    }
+
+    /// The floating toolbar search / overflow popovers are anchored to a
+    /// width that just changed, and the inline field may now fit again.
+    /// Dismiss them so they re-pop at the right place (and the inline
+    /// field re-mounts without colliding on its widget Id).
+    pub(super) fn dismiss_width_anchored_popovers(&mut self) {
+        if matches!(
+            self.overlay.as_ref().map(|o| &o.content),
+            Some(crate::state::OverlayContent::ToolbarSearch)
+                | Some(crate::state::OverlayContent::ToolbarOverflow)
+        ) {
+            self.overlay = None;
+        }
+    }
+
     pub(super) fn handle_window_ensure_on_screen(&mut self) -> Task<Message> {
         // Runs once shortly after boot when a saved position was
         // restored. If that position is on a monitor that no
@@ -368,6 +376,31 @@ impl Oryxis {
         })
     }
 
+    /// What losing focus ends, in whichever window lost it. A mouse
+    /// release OUTSIDE the window never reaches us, so a drag that leaves
+    /// the window would keep its ghost chip floating forever (field
+    /// report: a stuck tab ghost parked over the title bar). Losing focus
+    /// is the reliable signal that the gesture ended elsewhere: cancel
+    /// any in-flight drag state. The live-slide reorder already applied,
+    /// so cancelling loses nothing but the ghost. Shared by the resident
+    /// window and the extra ones: a card dragged out of an extra window
+    /// and released outside used to stay armed there, and the next move
+    /// inside could still tear it off into a new window.
+    pub(super) fn on_window_blur(&mut self) {
+        self.tab_drag = None;
+        self.card_drag = None;
+        self.sftp.drag = None;
+        self.sftp_chrome.col_drag = None;
+        // A drawer-resize release outside the window never reaches us
+        // either; the width already applied live, only the drag state
+        // (and its pending persist) is dropped.
+        self.panel_resize_drag = None;
+        // An Alt released outside the window never reaches us; a wedged
+        // side would silently turn Option keystrokes into Meta (or vice
+        // versa) after refocus.
+        self.alt_sides = crate::key_encode::OptionSides::default();
+    }
+
     pub(super) fn handle_window_focus_changed(&mut self, focused: bool) -> Task<Message> {
         self.window_focused = focused;
         if focused {
@@ -375,25 +408,7 @@ impl Oryxis {
             self.input_window = None;
         }
         if !focused {
-            // A mouse release OUTSIDE the window never reaches us, so a
-            // drag that leaves the window would keep its ghost chip
-            // floating forever (field report: a stuck tab ghost parked
-            // over the title bar). Losing focus is the reliable signal
-            // that the gesture ended elsewhere: cancel any in-flight
-            // drag state. The live-slide reorder already applied, so
-            // cancelling loses nothing but the ghost.
-            self.tab_drag = None;
-            self.card_drag = None;
-            self.sftp.drag = None;
-            self.sftp_chrome.col_drag = None;
-            // A drawer-resize release outside the window never reaches
-            // us either; the width already applied live, only the drag
-            // state (and its pending persist) is dropped.
-            self.panel_resize_drag = None;
-            // An Alt released outside the window never reaches us; a
-            // wedged side would silently turn Option keystrokes into
-            // Meta (or vice versa) after refocus.
-            self.alt_sides = crate::key_encode::OptionSides::default();
+            self.on_window_blur();
         }
         if focused {
             // Refocusing the window means the active tab is being
@@ -558,7 +573,9 @@ impl Oryxis {
                     link: None,
                     action: Some(crate::state::ErrorDialogAction {
                         label: crate::i18n::t("close_window_confirm").to_string(),
-                        message: Box::new(Message::Tabs(TabsMessage::ConfirmCloseWindow)),
+                        message: Box::new(Message::Tabs(TabsMessage::ConfirmCloseWindow {
+                            whole_app: true,
+                        })),
                         danger: true,
                     }),
                 });
@@ -634,7 +651,7 @@ impl Oryxis {
     /// Adopt the OS's word on fullscreen (macOS, where it has doors of
     /// its own). A change is persisted like the toggle's, so a window
     /// left in native fullscreen by the green button reopens that way.
-    fn reconcile_window_fullscreen(&mut self, fullscreen: bool) {
+    pub(super) fn reconcile_window_fullscreen(&mut self, fullscreen: bool) {
         if self.cur_fullscreen() == fullscreen {
             return;
         }
@@ -820,8 +837,16 @@ impl Oryxis {
                 });
             }
             TabsMessage::WindowClose => return self.handle_window_close(),
-            TabsMessage::ConfirmCloseWindow => {
-                if self.window_count() > 1 {
+            TabsMessage::ConfirmCloseWindow { whole_app } => {
+                // The dialog was raised for one of two closes; if the
+                // windows changed under it (the other window closed, or
+                // one opened), the confirmed answer belongs to a question
+                // that is no longer the one on the table. Ask again.
+                let last = self.window_count() == 1;
+                if whole_app != last {
+                    return self.handle_window_close();
+                }
+                if !last {
                     return self.close_this_window_now();
                 }
                 return self.close_window_now();
