@@ -58,8 +58,15 @@ impl Oryxis {
         exited: Option<tokio::sync::oneshot::Receiver<Option<oryxis_terminal::ChildExit>>>,
         rx: tokio::sync::mpsc::UnboundedReceiver<Vec<u8>>,
     ) -> Task<Message> {
+        // Both streams are about `pane_id`: they run in the window that
+        // shows the pane's tab when they arrive (`Message::ForPane`).
         let output = Task::stream(tokio_stream::wrappers::UnboundedReceiverStream::new(rx))
-            .map(move |bytes| Message::Terminal(TerminalMessage::PtyOutput(pane_id, bytes)));
+            .map(move |bytes| {
+                Message::ForPane(
+                    pane_id,
+                    Box::new(Message::Terminal(TerminalMessage::PtyOutput(pane_id, bytes))),
+                )
+            });
         let Some(exited) = exited else {
             tracing::debug!(
                 target: "oryxis::pane_end",
@@ -75,7 +82,12 @@ impl Oryxis {
                 // pane like an exit with nothing to report.
                 async move { exited.await.ok().flatten() },
                 move |exit| {
-                    Message::Terminal(TerminalMessage::LocalPaneEnded(pane_id, generation, exit))
+                    Message::ForPane(
+                        pane_id,
+                        Box::new(Message::Terminal(TerminalMessage::LocalPaneEnded(
+                            pane_id, generation, exit,
+                        ))),
+                    )
                 },
             ),
         ])

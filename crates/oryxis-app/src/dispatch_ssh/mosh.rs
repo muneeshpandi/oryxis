@@ -214,7 +214,9 @@ impl Oryxis {
             },
         );
 
-        iced::Task::stream(stream)
+        // About `pane_id`: runs in the window that shows the pane's tab
+        // when it arrives (`Message::ForPane`).
+        iced::Task::stream(stream).map(move |m| Message::ForPane(pane_id, Box::new(m)))
     }
 
     /// The address a pane's SSH session reached.

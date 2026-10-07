@@ -306,7 +306,10 @@ impl Oryxis {
                     // goes silently dead (issue #38 follow-up).
                     Task::stream(stream)
                         .map(move |bytes| Message::Terminal(TerminalMessage::PtyOutput(pane_id, bytes)))
-                        .chain(Task::done(Message::Cloud(CloudMessage::PluginSessionEnded(pane_id)))),
+                        .chain(Task::done(Message::Cloud(CloudMessage::PluginSessionEnded(pane_id))))
+                        // About `pane_id`: runs in the window that shows the
+                        // pane's tab when it arrives (`Message::ForPane`).
+                        .map(move |m| Message::ForPane(pane_id, Box::new(m))),
                 ])
             }
             Err(e) => {

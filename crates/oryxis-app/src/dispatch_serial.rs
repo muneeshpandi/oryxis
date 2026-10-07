@@ -128,7 +128,12 @@ impl Oryxis {
             },
         );
 
-        Task::batch(vec![self.tab_scroll_to_active(), Task::stream(stream)])
+        // The stream is about `pane_id`: it runs in the window that shows
+        // the pane's tab when it arrives (`Message::ForPane`).
+        Task::batch(vec![
+            self.tab_scroll_to_active(),
+            Task::stream(stream).map(move |m| Message::ForPane(pane_id, Box::new(m))),
+        ])
     }
 
     /// Open a serial line into an existing split pane (or an in-place
@@ -185,6 +190,6 @@ impl Oryxis {
             },
         );
 
-        Task::stream(stream)
+        Task::stream(stream).map(move |m| Message::ForPane(pane_id, Box::new(m)))
     }
 }
