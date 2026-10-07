@@ -18,11 +18,15 @@ coming next, see the [Roadmap](../README.md#roadmap).
 - **Security keys, natively.** A YubiKey or any FIDO2 token signs in
   with no `ssh-agent` in between: import the `id_ed25519_sk` or
   `id_ecdsa_sk` file `ssh-keygen` produced (or point the host at it in
-  `~/.ssh`) and Oryxis asks the token itself, touch prompt and PIN
-  included. The **Security Key** auth method offers that token and
-  nothing else. Windows signs through Windows Hello, so no administrator
-  rights are needed (and NFC or Bluetooth tokens work through the same
-  dialog); Linux talks to USB tokens over `hidraw`, macOS through IOKit.
+  `~/.ssh`) and Oryxis asks the token itself: a touch prompt in a
+  terminal tab, the PIN when the token asks for one (SFTP tabs and the
+  SFTP backup take the touch only). The **Security Key** auth method
+  offers that token and nothing else. Windows signs through Windows
+  Hello, so no administrator rights are needed (and NFC or Bluetooth
+  tokens work through the same dialog); Linux talks to USB tokens over
+  `hidraw`, which needs the FIDO udev rules for a non-root user (systemd
+  244 and later tag tokens for the seated user, older systems need
+  libfido2's `70-u2f.rules`); macOS through IOKit.
   Background
   connections (the MCP server, boot-time forwards, the monitor) never
   raise a touch prompt nobody asked for.
@@ -900,7 +904,7 @@ the app's own actions sit on `Ctrl+Shift`.
 | `Ctrl+Shift+F` | Toggle Files mode on an SSH tab |
 | `Ctrl+Shift+S` | Open the active tab's SFTP console, or switch between it and the shell |
 | `Ctrl+Shift+Z` | Maximize / restore the focused pane |
-| `Alt+Shift++` / `Alt+Shift+-` | Split the tab side by side / stacked (`Cmd+D` / `Cmd+Shift+O` on macOS) |
+| `Alt+Shift+=` (the `+` key) / `Alt+Shift+-` | Split the tab side by side / stacked (`Cmd+D` / `Cmd+Shift+O` on macOS) |
 | `Ctrl+Alt+P` | Move the focused pane into a tab of its own |
 | `Ctrl+Shift+H` | Focus the terminal sidebar |
 | `Ctrl+Shift+P` | Command palette |

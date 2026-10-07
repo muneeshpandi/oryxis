@@ -305,7 +305,15 @@ impl Verification {
         match info.option("clientPin") {
             Some(true) => {}
             Some(false) => return Err(Error::PinNotSet),
-            None => return Err(Error::UserVerificationBlocked),
+            // No `clientPin` option at all: the token has no PIN
+            // capability, so nothing is blocked, it simply cannot do
+            // what this credential asks for.
+            None => {
+                return Err(Error::UnsupportedByToken(
+                    "it has neither a PIN nor built-in verification, and this key requires \
+                     user verification",
+                ));
+            }
         }
         let protocol = Protocol::negotiate(&info.pin_protocols).ok_or_else(|| {
             Error::Malformed("the security key speaks no PIN protocol this build knows".into())

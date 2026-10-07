@@ -107,7 +107,9 @@ impl LocalBind {
     pub fn is_loopback(&self) -> bool {
         match self {
             LocalBind::Loopback => true,
-            LocalBind::Address(ip) => ip.is_loopback(),
+            // `::ffff:127.0.0.1` is the loopback too, spelled as a mapped
+            // IPv6 address; `is_loopback` alone reads it as a foreign v6.
+            LocalBind::Address(ip) => ip.to_canonical().is_loopback(),
             LocalBind::Name(_) => false,
         }
     }
@@ -205,7 +207,7 @@ mod tests {
 
     #[test]
     fn only_loopback_stays_on_this_machine() {
-        for host in ["", "localhost", "127.0.0.1", "127.0.0.2", "::1", "[::1]"] {
+        for host in ["", "localhost", "127.0.0.1", "127.0.0.2", "::1", "[::1]", "::ffff:127.0.0.1"] {
             assert!(LocalBind::parse(host).is_loopback(), "{host:?}");
         }
         for host in ["0.0.0.0", "::", "192.168.1.10", "gateway.lan"] {

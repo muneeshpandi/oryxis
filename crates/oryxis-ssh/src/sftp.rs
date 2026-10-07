@@ -2041,11 +2041,12 @@ impl SftpClient {
     }
 
     /// Open a low-level `RawSftpSession` on its own fresh channel, used
-    /// only for streaming. The high-level `SftpSession` issues one
-    /// read/write request per poll (no pipelining); the raw session
-    /// exposes offset-addressable `read`/`write` with `&self`, so a single
-    /// file handle can carry a sliding window of concurrent requests (the
-    /// OpenSSH/WinSCP model). All metadata ops stay on the high-level
+    /// only for streaming. The high-level `File` reads ahead (up to 16
+    /// requests in flight since russh-sftp 3) and splits a write into
+    /// 32 KiB packets, with no say over either; the raw session exposes
+    /// offset-addressable `read`/`write` with `&self`, so a single file
+    /// handle can carry a sliding window of concurrent requests of OUR
+    /// size (the OpenSSH/WinSCP model). All metadata ops stay on the high-level
     /// session, this is additive. The raw `Limits` default leaves
     /// read/write length uncapped, so the 255 KiB per-request chunk is
     /// safe without negotiating the `limits@openssh.com` extension.
@@ -2575,10 +2576,11 @@ async fn finish_part(part: &std::path::Path, target: &std::path::Path) -> Result
 
 /// Copy bytes from `reader` to `writer` in bounded 255 KiB chunks (the
 /// SFTP per-request ceiling, matching `MAX_READ_LENGTH` /
-/// `MAX_WRITE_LENGTH` in russh-sftp). `russh_sftp::File` issues exactly
-/// one read/write request per poll and awaits it before the next (no
-/// pipelining), so the chunk size IS the throughput knob and memory
-/// stays flat regardless of file size.
+/// `MAX_WRITE_LENGTH` in russh-sftp). The chunk bounds what is in memory
+/// at once regardless of file size; on the wire `russh_sftp::File` reads
+/// ahead (16 requests in flight) and caps each write packet at 32 KiB,
+/// so a 255 KiB write goes out as eight packets. The large-file paths
+/// use the raw session and their own window instead of this.
 ///
 /// Awaits `writer.shutdown()` at the end so the close round-trip and any
 /// late error surface here rather than in `File`'s background `Drop`.

@@ -139,7 +139,10 @@ impl HidrawDevice {
         if fd < 0 {
             let error = std::io::Error::last_os_error();
             return Err(match error.raw_os_error() {
-                Some(libc::EACCES) | Some(libc::EPERM) => Error::DeviceNotFound(format!(
+                // The key IS there; what failed is talking to it, and the
+                // text names the fix. `DeviceNotFound` would read as
+                // "no security key found: a security key is plugged in".
+                Some(libc::EACCES) | Some(libc::EPERM) => Error::Transport(format!(
                     "a security key is plugged in but {} is not accessible to this user; \
                      install the FIDO udev rules (systemd 244+ tags tokens for the \
                      seated user, older systems need libfido2's 70-u2f.rules)",
