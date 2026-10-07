@@ -185,11 +185,22 @@ impl SshEngine {
         // 120s mirrors sshd's LoginGraceTime, i.e. the server would drop
         // a slower typist anyway, and the TOTP autofill answers the
         // common case without any human wait at all.
+        //
+        // An attended security-key dial parks on a human too: the touch,
+        // and the PIN when the token asks for one. The token layer bounds
+        // every wait of its own (the machine round-trips, the touch at
+        // `TOUCH_TIMEOUT`), so the blanket would only cut it SHORT: the
+        // SFTP tab's default was 30 s for touch plus PIN, and even the
+        // 120 s terminal default fired before the token's own timeout
+        // could name what the user had not done. Unattended dials keep
+        // the blanket (they have no prompts, so the token is refused at
+        // once anyway).
         let may_prompt = self.auto_interactive_fallback && self.kbi_ask_tx.is_some();
         if matches!(
             connection.auth_method,
             AuthMethod::Interactive | AuthMethod::PasswordPrompt
         ) || (connection.auth_method == AuthMethod::Auto && may_prompt)
+            || self.waits_for_token(key_material)
         {
             return self
                 .authenticate_handle(handle, connection, password, key_material)
@@ -207,6 +218,18 @@ impl SshEngine {
                 auth_timeout.as_secs()
             ))
         })?
+    }
+
+    /// Whether this dial may park on a security key: prompts are installed
+    /// (someone is at the keyboard to touch it) AND the key material is a
+    /// security-key credential. A passphrase-protected handle (an error
+    /// from the parser) or a software key answers `false` and stays
+    /// under the blanket auth timeout.
+    pub(crate) fn waits_for_token(&self, key_material: Option<KeyMaterial<'_>>) -> bool {
+        self.security_key_prompts.is_some()
+            && key_material.is_some_and(|km| {
+                matches!(self.security_key_credential(km), Ok(Some(_)))
+            })
     }
 
     /// Step 3: Open PTY session on an authenticated handle. The session
@@ -792,4 +815,55 @@ impl SshEngine {
             .map_err(|e| SshError::JumpHost(format!("SSH handshake to target: {}", e)))
     }
 
+}
+
+#[cfg(test)]
+mod token_timeout_tests {
+    use super::super::{KeyMaterial, SshEngine};
+    use crate::sk::credential::fixture::{sk_private_key, FIXTURE_HANDLE, FIXTURE_PUBLIC, USER_PRESENCE};
+    use crate::sk::SecurityKeyPrompts;
+
+    fn prompts() -> SecurityKeyPrompts {
+        SecurityKeyPrompts {
+            pin_title: "PIN".into(),
+            pin_label: "PIN".into(),
+            pin_retry: "{n}".into(),
+            notices: None,
+        }
+    }
+
+    fn software_key() -> String {
+        russh::keys::ssh_key::PrivateKey::random(
+            &mut rand010::rng(),
+            russh::keys::ssh_key::Algorithm::Ed25519,
+        )
+        .unwrap()
+        .to_openssh(russh::keys::ssh_key::LineEnding::LF)
+        .unwrap()
+        .to_string()
+    }
+
+    /// The blanket auth timeout stands down only for a dial that can park
+    /// on a token: prompts installed AND a security-key credential.
+    #[test]
+    fn an_attended_security_key_dial_is_not_under_the_auth_timeout() {
+        let sk = sk_private_key(FIXTURE_PUBLIC, USER_PRESENCE, &FIXTURE_HANDLE);
+        let attended = SshEngine::new().with_security_key_prompts(prompts());
+        assert!(attended.waits_for_token(Some(KeyMaterial::plain(&sk))));
+    }
+
+    #[test]
+    fn an_unattended_dial_keeps_the_auth_timeout() {
+        let sk = sk_private_key(FIXTURE_PUBLIC, USER_PRESENCE, &FIXTURE_HANDLE);
+        let unattended = SshEngine::new();
+        assert!(!unattended.waits_for_token(Some(KeyMaterial::plain(&sk))));
+    }
+
+    #[test]
+    fn a_software_key_or_no_key_keeps_the_auth_timeout() {
+        let attended = SshEngine::new().with_security_key_prompts(prompts());
+        let software = software_key();
+        assert!(!attended.waits_for_token(Some(KeyMaterial::plain(&software))));
+        assert!(!attended.waits_for_token(None));
+    }
 }

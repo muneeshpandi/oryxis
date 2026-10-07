@@ -784,7 +784,7 @@ impl SshEngine {
 
     /// The security-key credential in this material, when it is one.
     /// `Ok(None)` is an ordinary private key, for the software path.
-    fn security_key_credential(
+    pub(super) fn security_key_credential(
         &self,
         material: KeyMaterial<'_>,
     ) -> Result<Option<crate::sk::SkCredential>, SshError> {
