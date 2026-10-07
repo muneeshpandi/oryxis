@@ -37,9 +37,11 @@ pub struct AiConfig {
     pub api_url: Option<String>,
     pub system_prompt: Option<String>, // additional system instructions
     /// Let reasoning models think before answering. `false` (the default)
-    /// asks the providers that support it to skip thinking; see
-    /// [`disable_thinking_field`] for which ones can be told and why the
-    /// rest are left alone.
+    /// asks the providers that support it to skip thinking, or to think
+    /// at the floor where the model has no off switch (Gemini 3). See
+    /// `disable_thinking_field` for the OpenAI-compatible providers and
+    /// `gemini_thinking_config` for Gemini, and why the rest are left
+    /// alone.
     pub reasoning: bool,
 }
 
@@ -85,7 +87,7 @@ pub const PROVIDERS: &[ProviderInfo] = &[
         id: "gemini",
         display: "Google Gemini",
         default_url: "",
-        default_model: "gemini-2.5-flash",
+        default_model: "gemini-3.8-flash",
         kind: ProviderKind::Gemini,
     },
     ProviderInfo {

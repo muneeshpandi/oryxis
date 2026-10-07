@@ -436,12 +436,48 @@ fn gemini_contents(messages: &[ChatMsg]) -> Vec<serde_json::Value> {
         .collect()
 }
 
-pub(super) async fn stream_gemini(
-    config: &AiConfig,
-    messages: &[ChatMsg],
-    tx: &mpsc::UnboundedSender<StreamChunk>,
-) -> Result<(), String> {
-    let client = stream_http_client()?;
+/// The `thinkingConfig` a Gemini request carries when reasoning is OFF,
+/// or `None` when thinking is left at the model's default.
+///
+/// Two generations, two fields, and a request that names both is a 400
+/// (`thinkingLevel` and `thinkingBudget` cannot share a request):
+///
+/// - **Gemini 2.5** does not accept `thinkingLevel`; `thinkingBudget: 0` is
+///   its documented off switch (2.5 Pro cannot stop thinking and ignores
+///   it rather than failing).
+/// - **Every later model** takes `thinkingLevel`. `thinkingBudget` is
+///   deprecated there: Gemini 3 still maps it onto a level, and Google's
+///   notice of 2026-10-06 says the models after it answer
+///   `400 INVALID_ARGUMENT`. `"low"` is the floor every text model of the
+///   family accepts. `"minimal"` would sit one notch lower on the models
+///   that list it (3.5 / 3.6 Flash, Flash-Lite, 3 Flash, where it is the
+///   default) but is a 400 on 3.7 / 3.8 Flash and 3.1 Pro, and a
+///   per-family table drifts with every release into exactly the error
+///   the user cannot debug; Google also notes that `minimal` "does not
+///   guarantee that thinking is off", so there is no off switch to reach
+///   on 3.x at all. Reasoning OFF on these models means "think at the
+///   floor", not "do not think".
+///
+/// The sampling knobs (`temperature`, `topP`, `topK`, `candidateCount`)
+/// are never sent: deprecated and ignored since Gemini 3.6, a 400 on the
+/// models after it, and Google's guidance for the family is the default
+/// temperature anyway. `gemini_request_body_never_carries_sampling_or_both_thinking_keys`
+/// pins it.
+fn gemini_thinking_config(model: &str, reasoning: bool) -> Option<serde_json::Value> {
+    if reasoning {
+        return None;
+    }
+    Some(if model.starts_with("gemini-2.5") {
+        serde_json::json!({ "thinkingBudget": 0 })
+    } else {
+        serde_json::json!({ "thinkingLevel": "low" })
+    })
+}
+
+/// The whole `generateContent` request body: contents, system instruction,
+/// the one tool, and the thinking switch. Pure, so a test can read what
+/// goes on the wire.
+fn gemini_request_body(config: &AiConfig, messages: &[ChatMsg]) -> serde_json::Value {
     let gemini_contents = gemini_contents(messages);
     let system_prompt = config
         .system_prompt
@@ -469,17 +505,24 @@ pub(super) async fn stream_gemini(
             }]
         }]
     });
-    // Gemini 2.5+ thinks by default and bills the thoughts. `thinkingBudget:
-    // 0` is its documented off switch; the models that cannot disable
-    // thinking ignore it rather than failing, so this is safe across the
-    // family. Note this does NOT stop thought signatures from coming back
-    // on function calls, which are a correctness requirement, not a cost
-    // one, and are replayed regardless (see `gemini_contents`).
-    if !config.reasoning {
-        body["generationConfig"] = serde_json::json!({
-            "thinkingConfig": { "thinkingBudget": 0 }
-        });
+    // Gemini thinks by default and bills the thoughts; see
+    // `gemini_thinking_config` for the two switches. Neither stops thought
+    // signatures from coming back on function calls, which are a
+    // correctness requirement, not a cost one, and are replayed regardless
+    // (see `gemini_contents`).
+    if let Some(thinking) = gemini_thinking_config(&config.model, config.reasoning) {
+        body["generationConfig"] = serde_json::json!({ "thinkingConfig": thinking });
     }
+    body
+}
+
+pub(super) async fn stream_gemini(
+    config: &AiConfig,
+    messages: &[ChatMsg],
+    tx: &mpsc::UnboundedSender<StreamChunk>,
+) -> Result<(), String> {
+    let client = stream_http_client()?;
+    let body = gemini_request_body(config, messages);
 
     // The streaming endpoint mirrors generateContent but ends in
     // streamGenerateContent and accepts `alt=sse` for text/event-stream
@@ -963,5 +1006,63 @@ mod tests {
         assert!(!anth.contains("reasoning"), "anthropic payload: {anth}");
         let gem = serde_json::to_string(&gemini_contents(&[a])).unwrap();
         assert!(!gem.contains("reasoning"), "gemini payload: {gem}");
+    }
+
+    fn gemini_config(model: &str, reasoning: bool) -> AiConfig {
+        AiConfig {
+            provider: "gemini".into(),
+            model: model.into(),
+            api_key: "k".into(),
+            api_url: None,
+            system_prompt: None,
+            reasoning,
+        }
+    }
+
+    /// Gemini 2.5 rejects `thinkingLevel`; everything after it deprecates
+    /// `thinkingBudget`; a request naming both is a 400. One field per
+    /// generation, picked by the model id.
+    #[test]
+    fn gemini_thinking_switch_follows_the_model_generation() {
+        let budget = gemini_thinking_config("gemini-2.5-flash", false).unwrap();
+        assert_eq!(budget["thinkingBudget"], 0);
+        assert!(budget.get("thinkingLevel").is_none());
+        let pro = gemini_thinking_config("gemini-2.5-pro", false).unwrap();
+        assert_eq!(pro["thinkingBudget"], 0);
+        for model in ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-3.1-pro-preview"] {
+            let level = gemini_thinking_config(model, false).unwrap();
+            assert_eq!(level["thinkingLevel"], "low", "{model}");
+            assert!(level.get("thinkingBudget").is_none(), "{model}");
+        }
+        // Reasoning on: the model's own default, nothing sent.
+        assert!(gemini_thinking_config("gemini-3.8-flash", true).is_none());
+        assert!(gemini_thinking_config("gemini-2.5-flash", true).is_none());
+    }
+
+    /// The parameters Google deprecated for the family (2026-10-06 notice):
+    /// the sampling knobs never, and never both thinking fields at once.
+    #[test]
+    fn gemini_request_body_never_carries_sampling_or_both_thinking_keys() {
+        let msgs = tool_exchange_msgs();
+        for (model, reasoning) in [
+            ("gemini-2.5-flash", false),
+            ("gemini-3.8-flash", false),
+            ("gemini-3.8-flash", true),
+        ] {
+            let body = gemini_request_body(&gemini_config(model, reasoning), &msgs);
+            let wire = serde_json::to_string(&body).unwrap();
+            for key in ["temperature", "topP", "topK", "candidateCount", "top_p", "top_k"] {
+                assert!(!wire.contains(key), "{model} reasoning={reasoning}: {key} in {wire}");
+            }
+            let thinking = &body["generationConfig"]["thinkingConfig"];
+            let both = thinking.get("thinkingBudget").is_some()
+                && thinking.get("thinkingLevel").is_some();
+            assert!(!both, "{model}: both thinking fields in {wire}");
+            if reasoning {
+                assert!(body.get("generationConfig").is_none(), "{wire}");
+            }
+            assert_eq!(body["contents"].as_array().unwrap().len(), 3);
+            assert_eq!(body["tools"][0]["functionDeclarations"][0]["name"], "execute_command");
+        }
     }
 }
