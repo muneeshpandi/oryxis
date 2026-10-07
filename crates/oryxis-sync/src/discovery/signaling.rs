@@ -43,7 +43,7 @@ pub struct SignalingClient {
 }
 
 impl SignalingClient {
-    pub fn new(base_url: &str, token: &str) -> Self {
+    pub fn new(base_url: &str, token: &str) -> Result<Self, SyncError> {
         // Same guarantee `RelayClient::new` makes, and for the same
         // reason: reqwest carries no bundled crypto backend, so it takes
         // the process-level provider and panics with "No provider set"
@@ -53,11 +53,13 @@ impl SignalingClient {
         // written for. Idempotent: `install_default` only errors when a
         // provider is already set.
         let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
-        Self {
+        Ok(Self {
             base_url: base_url.trim_end_matches('/').into(),
             token: token.into(),
-            http: reqwest::Client::new(),
-        }
+            // Fallible for the reason `relay::http_client` gives: no CA
+            // bundle on the machine is an error to report, not a panic.
+            http: crate::relay::http_client()?,
+        })
     }
 
     /// Register this device's current IP:port on the signaling server.

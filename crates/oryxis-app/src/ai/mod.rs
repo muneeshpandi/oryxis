@@ -175,23 +175,35 @@ pub fn provider_from_display(display: &str) -> Option<&'static ProviderInfo> {
 /// fails fast instead of hanging the chat, and a read (inactivity) timeout so
 /// a mid-stream stall doesn't spin `chat_loading` forever, without the
 /// total-request timeout that would cut off a long but still-active stream.
-fn stream_http_client() -> reqwest::Client {
+fn stream_http_client() -> Result<reqwest::Client, String> {
     reqwest::Client::builder()
         .connect_timeout(std::time::Duration::from_secs(10))
         .read_timeout(std::time::Duration::from_secs(120))
         .build()
-        .unwrap_or_else(|_| reqwest::Client::new())
+        .map_err(http_client_error)
+}
+
+/// A client that will not build is a machine with no CA bundle (the OS
+/// trust store is read when the client is built), which used to fall
+/// back to `reqwest::Client::new()` and panic on the same failure. The
+/// chat shows this text in its error bubble, with the fix in it.
+fn http_client_error(e: reqwest::Error) -> String {
+    format!(
+        "HTTPS client could not be built: {e}. Certificates are verified against \
+         the operating system's trust store; install the ca-certificates package \
+         or point SSL_CERT_FILE at a CA bundle"
+    )
 }
 
 /// HTTP client for the non-streaming auto-exec judge. A short total timeout is
 /// fine here (one small completion) and desirable: the judge fails safe to
 /// BLOCK, so a hung request must not stall the whole tool pipeline.
-fn judge_http_client() -> reqwest::Client {
+fn judge_http_client() -> Result<reqwest::Client, String> {
     reqwest::Client::builder()
         .connect_timeout(std::time::Duration::from_secs(10))
         .timeout(std::time::Duration::from_secs(60))
         .build()
-        .unwrap_or_else(|_| reqwest::Client::new())
+        .map_err(http_client_error)
 }
 
 /// The OpenAI Chat Completions API rejects `max_tokens` on its reasoning
@@ -408,7 +420,7 @@ pub async fn judge_auto_exec(config: AiConfig, command: String) -> bool {
 }
 
 async fn judge_auto_exec_inner(config: &AiConfig, command: &str) -> Result<bool, String> {
-    let client = judge_http_client();
+    let client = judge_http_client()?;
     let info = provider_info(&config.provider);
     let user_msg = format!("Command about to auto-run:\n`{command}`\n\nALLOW or BLOCK?");
 

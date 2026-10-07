@@ -41,12 +41,32 @@ pub struct RelayClient {
     http: reqwest::Client,
 }
 
+/// The HTTPS client every relay and signaling call goes through.
+///
+/// Certificates are verified against the operating system's trust store
+/// (reqwest's `rustls` feature routes through the platform verifier), and
+/// the verifier loads that store when the client is BUILT: on a machine
+/// with no CA bundle at all (a minimal container, a distribution without
+/// `ca-certificates`, a `SSL_CERT_FILE` pointing nowhere) the build fails.
+/// `reqwest::Client::new()` turns that failure into a panic, which would
+/// take the engine's task, or the pairing, down with it; here it is an
+/// error the caller reports, with the fix in its text.
+pub(crate) fn http_client() -> Result<reqwest::Client, SyncError> {
+    reqwest::Client::builder().build().map_err(|e| {
+        SyncError::Transport(format!(
+            "HTTPS client could not be built: {e}. Certificates are verified \
+             against the operating system's trust store; install the \
+             ca-certificates package or point SSL_CERT_FILE at a CA bundle"
+        ))
+    })
+}
+
 impl RelayClient {
     /// Build a new client pointed at a deployed relay (Cloudflare
     /// Worker or `oryxis-relay` binary). `sender_id` is this device's
     /// UUID, sent in `X-Sender-Id` so the peer can demux multi-source
     /// inboxes and reply to the right address.
-    pub fn new(base_url: &str, token: &str, sender_id: Uuid) -> Self {
+    pub fn new(base_url: &str, token: &str, sender_id: Uuid) -> Result<Self, SyncError> {
         // reqwest is built without a bundled crypto backend (the feature
         // that bundles one is what used to drag `ring` in next to the
         // aws-lc-rs russh already links), so it takes the process-level
@@ -56,12 +76,12 @@ impl RelayClient {
         // instead of relying on call order. Idempotent: `install_default`
         // only errors when a provider is already set.
         let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
-        Self {
+        Ok(Self {
             base_url: base_url.trim_end_matches('/').to_string(),
             token: token.to_string(),
             sender_id,
-            http: reqwest::Client::new(),
-        }
+            http: http_client()?,
+        })
     }
 
     /// Enqueue `msg` for `recipient`. Returns once the relay has
@@ -191,7 +211,8 @@ mod tests {
             "https://example.invalid",
             "tok",
             Uuid::new_v4(),
-        );
+        )
+        .unwrap();
         // Build a `Snippet` payload large enough to push the encoded
         // frame past MAX_FRAME_BYTES. The Snippet model has free-form
         // `command` so we stuff it.

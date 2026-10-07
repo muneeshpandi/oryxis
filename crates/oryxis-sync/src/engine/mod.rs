@@ -459,7 +459,15 @@ impl SyncEngine {
             let mut shutdown_rx = shutdown_tx.subscribe();
             let heartbeat_tx = self.event_tx.clone();
             tokio::spawn(async move {
-                let client = discovery::signaling::SignalingClient::new(&signaling_url, &token);
+                let client = match discovery::signaling::SignalingClient::new(&signaling_url, &token) {
+                    Ok(client) => client,
+                    Err(e) => {
+                        let reason = e.to_string();
+                        tracing::warn!("signaling: {reason}");
+                        let _ = heartbeat_tx.send(SyncEvent::SignalingFailed { reason });
+                        return;
+                    }
+                };
                 let mut ticker =
                     tokio::time::interval(std::time::Duration::from_secs(60));
                 let mut last_public_ip: Option<String> = None;
@@ -637,7 +645,15 @@ impl SyncEngine {
             // until its transport errors out.
             let session_shutdown_tx = shutdown_tx.clone();
             tokio::spawn(async move {
-                let client = crate::relay::RelayClient::new(&relay_url, &token, my_id);
+                let client = match crate::relay::RelayClient::new(&relay_url, &token, my_id) {
+                    Ok(client) => client,
+                    Err(e) => {
+                        let reason = e.to_string();
+                        tracing::warn!("relay: {reason}");
+                        let _ = event_tx.send(SyncEvent::SignalingFailed { reason });
+                        return;
+                    }
+                };
                 // device_id -> mpsc to its in-flight session. New
                 // senders trigger a fresh server-side session.
                 let sessions: Arc<std::sync::Mutex<BoundedSessionMap>> =
@@ -974,8 +990,13 @@ impl SyncHandle {
             return Err(SyncError::PairingFailed(reason));
         };
         let token = self.config.signaling_token.clone().unwrap_or_default();
-        let client = discovery::signaling::SignalingClient::new(&signaling_url, &token);
-        let lookup = match client.lookup(&device_id).await {
+        let lookup = match discovery::signaling::SignalingClient::new(&signaling_url, &token)
+            .map_err(|e| e.to_string())
+        {
+            Ok(client) => client.lookup(&device_id).await.map_err(|e| e.to_string()),
+            Err(e) => Err(e),
+        };
+        let lookup = match lookup {
             Ok(l) => l,
             Err(e) => {
                 let reason = format!("Signaling lookup failed: {e}");
@@ -1145,7 +1166,8 @@ impl SyncHandle {
             &signaling_url,
             &token,
             self.identity.device_id,
-        );
+        )
+        .map_err(|e| SyncError::PairingFailed(e.to_string()))?;
         let mut transport = transport::SessionTransport::RelayClient {
             client,
             peer_id: host_device_id,

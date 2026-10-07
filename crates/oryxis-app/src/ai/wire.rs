@@ -52,7 +52,7 @@ pub(super) async fn stream_anthropic(
     messages: &[ChatMsg],
     tx: &mpsc::UnboundedSender<StreamChunk>,
 ) -> Result<(), String> {
-    let client = stream_http_client();
+    let client = stream_http_client()?;
     let system_prompt = config
         .system_prompt
         .as_deref()
@@ -251,7 +251,7 @@ pub(super) async fn stream_openai_at(
     messages: &[ChatMsg],
     tx: &mpsc::UnboundedSender<StreamChunk>,
 ) -> Result<(), String> {
-    let client = stream_http_client();
+    let client = stream_http_client()?;
     let system_prompt = config
         .system_prompt
         .as_deref()
@@ -441,7 +441,7 @@ pub(super) async fn stream_gemini(
     messages: &[ChatMsg],
     tx: &mpsc::UnboundedSender<StreamChunk>,
 ) -> Result<(), String> {
-    let client = stream_http_client();
+    let client = stream_http_client()?;
     let gemini_contents = gemini_contents(messages);
     let system_prompt = config
         .system_prompt

@@ -396,7 +396,7 @@ async fn sync_with_peer_via_relay(
         relay_url,
         relay_token,
         identity.device_id,
-    );
+    )?;
     let mut transport = transport::SessionTransport::RelayClient {
         client,
         peer_id: *peer_id,
