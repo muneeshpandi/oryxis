@@ -50,7 +50,7 @@ Several windows in one process, each a whole one, and security keys that sign na
 - A host set to Security Key syncs or imports only to devices on 0.20.0 or later. Linux needs the FIDO udev rules for a non-root user.
 
 ### Fixed
-- A host that leaves its username to its group shows, finds and masks that user wherever it is named: card, tree, tab, search, URL, Privacy Mode (#242, reported by @anojoyman).
+- A host that leaves its username to its group shows, finds and masks that user wherever it is named: card, tree, tab, search, Privacy Mode (#242, reported by @anojoyman).
 - A Telnet host logs in with the username it inherits from its group (#242).
 - A vault whose stored password check happened to begin with the derived-key tag byte (one salt in 256) failed to unlock.
 - The connection progress card, jump-host, proxy and forward lines are localized (#239, by @Rulio723).
