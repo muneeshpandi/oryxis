@@ -189,6 +189,7 @@ impl Oryxis {
                     .on_open(Message::Navigation(NavigationMessage::PickOpenChanged(true)))
                     .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                     .padding(10)
+                    .text_size(13)
                     .style(crate::widgets::rounded_pick_list_style)
                     .boxed(),
                 ),
@@ -218,6 +219,7 @@ impl Oryxis {
                             .on_open(Message::Navigation(NavigationMessage::PickOpenChanged(true)))
                             .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                             .padding(10)
+                            .text_size(13)
                             .style(crate::widgets::rounded_pick_list_style)
                             .boxed(),
                         ),
@@ -244,6 +246,7 @@ impl Oryxis {
                             .on_open(Message::Navigation(NavigationMessage::PickOpenChanged(true)))
                             .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                             .padding(10)
+                            .text_size(13)
                             .style(crate::widgets::rounded_pick_list_style)
                             .boxed(),
                         ),

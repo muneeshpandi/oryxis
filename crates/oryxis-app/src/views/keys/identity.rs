@@ -130,7 +130,7 @@ impl Oryxis {
                     .id(iced::widget::Id::new("identity-pick-key"))
                     .on_open(Message::Navigation(NavigationMessage::PickOpenChanged(true)))
                     .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
-                    .padding(10).style(crate::widgets::rounded_pick_list_style)
+                    .padding(10).text_size(13).style(crate::widgets::rounded_pick_list_style)
                     .boxed(),
                 ),
             ]).align_y(iced::Alignment::Center),

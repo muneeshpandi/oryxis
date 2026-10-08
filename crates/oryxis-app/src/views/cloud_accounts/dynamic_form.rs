@@ -82,6 +82,7 @@ impl Oryxis {
         .on_open(Message::Navigation(NavigationMessage::PickOpenChanged(true)))
         .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
         .padding(10)
+        .text_size(13)
         .style(crate::widgets::rounded_pick_list_style);
 
         // Key picker, list available keys + a "(none)" sentinel.
@@ -103,6 +104,7 @@ impl Oryxis {
         .on_open(Message::Navigation(NavigationMessage::PickOpenChanged(true)))
         .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
         .padding(10)
+        .text_size(13)
         .style(crate::widgets::rounded_pick_list_style);
 
         // Identity picker, same shape as keys.
@@ -124,6 +126,7 @@ impl Oryxis {
         .on_open(Message::Navigation(NavigationMessage::PickOpenChanged(true)))
         .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
         .padding(10)
+        .text_size(13)
         .style(crate::widgets::rounded_pick_list_style);
 
         // Icon + color preview: same widget shape the host editor
@@ -277,6 +280,7 @@ impl Oryxis {
             .on_open(Message::Navigation(NavigationMessage::PickOpenChanged(true)))
             .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
             .padding(10)
+            .text_size(13)
             .style(crate::widgets::rounded_pick_list_style);
             // The value field's placeholder + hint adapt to the kind: a
             // label string for `Labels`, a single resource name otherwise.

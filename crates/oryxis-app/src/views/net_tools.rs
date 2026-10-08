@@ -139,6 +139,7 @@ impl Oryxis {
         let picker = pick_list(Some(current), NetTool::ALL, |tool: &NetTool| tool.to_string())
             .on_select(|tool| Message::NetTools(NetToolsMessage::Select(tool)))
             .padding(10)
+            .text_size(13)
             .width(260)
             .boxed();
         self.settings_nav_slot(
