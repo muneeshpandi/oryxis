@@ -69,6 +69,16 @@
   <content_rating type="oars-1.1"/>
 
   <releases>
+    <release version="0.20.1" date="2026-10-08">
+      <description>
+        <p>
+          The app starts again on Intel integrated GPUs whose Vulkan driver
+          predates the 1.3.215 spec revision, and the AI chat asks Gemini 3
+          models to think at the lowest level when Reasoning is off.
+        </p>
+      </description>
+      <url>https://github.com/wilsonglasser/oryxis/releases/tag/v0.20.1</url>
+    </release>
     <release version="0.20.0" date="2026-10-07">
       <description>
         <p>

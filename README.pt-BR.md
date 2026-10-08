@@ -23,8 +23,8 @@
   <img src="resources/screen_1.gif" width="720" alt="Oryxis em ação: conectando, executando snippets, navegando por SFTP">
 </p>
 
-> Este documento é uma tradução do README em inglês posterior à v0.20.0
-> (sincronizado em 2026-10-07). A documentação detalhada
+> Este documento é uma tradução do README em inglês posterior à v0.20.1
+> (sincronizado em 2026-10-08). A documentação detalhada
 > ([tour de funcionalidades](docs/FEATURES.md),
 > [arquitetura](docs/ARCHITECTURE.md)) permanece em inglês.
 
@@ -204,7 +204,7 @@ vulnerabilidades por canal privado.
 
 O Oryxis lança pequeno e com frequência (aproximadamente semanal), e
 as funcionalidades entram assim que ficam prontas. A última versão
-estável é a **v0.20.0**; o histórico completo está no
+estável é a **v0.20.1**; o histórico completo está no
 [CHANGELOG.md](CHANGELOG.md) e o roadmap interativo na
 [discussão de roadmap](https://github.com/wilsonglasser/oryxis/discussions/67).
 Entregues desde a 0.15.0: painéis divididos e o console SFTP, o modo

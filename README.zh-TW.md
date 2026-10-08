@@ -23,7 +23,7 @@
   <img src="resources/screen_1.gif" width="720" alt="Oryxis 實際操作：連線主機、執行程式碼片段、瀏覽 SFTP">
 </p>
 
-> 本文件譯自 v0.20.0 之後的英文 README（2026-10-07 同步），採用台灣慣用詞彙。
+> 本文件譯自 v0.20.1 之後的英文 README（2026-10-08 同步），採用台灣慣用詞彙。
 > 詳細文件（[功能總覽](docs/FEATURES.md)、[架構說明](docs/ARCHITECTURE.md)）為英文。
 
 ## Oryxis 是什麼？
@@ -176,7 +176,7 @@ macOS（Apple Silicon `.dmg`）和 Windows（系統層級與使用者層級安�
 ## 開發藍圖
 
 Oryxis 以大約每週一次的節奏持續發布，功能就緒即上線。最新穩定版為
-**v0.20.0**；完整歷史見 [CHANGELOG.md](CHANGELOG.md)，互動式藍圖見
+**v0.20.1**；完整歷史見 [CHANGELOG.md](CHANGELOG.md)，互動式藍圖見
 [藍圖討論](https://github.com/wilsonglasser/oryxis/discussions/67)。
 自 0.15.0 以來已推出：分割窗格與 SFTP 主控台、離線模式及其離線套件、
 阿里雲與騰訊雲、網路工具面板、一鍵部署中繼、原生安全金鑰，以及單一

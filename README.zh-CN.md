@@ -23,7 +23,7 @@
   <img src="resources/screen_1.gif" width="720" alt="Oryxis 演示：连接主机、运行代码片段、浏览 SFTP">
 </p>
 
-> 本文档基于 v0.20.0 之后的英文 README 翻译（2026-10-07 同步）。
+> 本文档基于 v0.20.1 之后的英文 README 翻译（2026-10-08 同步）。
 > 详细文档（[功能一览](docs/FEATURES.md)、[架构说明](docs/ARCHITECTURE.md)）为英文。
 
 ## Oryxis 是什么？
@@ -179,7 +179,7 @@ Big5 编码。
 ## 路线图
 
 Oryxis 以大约每周一次的节奏持续发布，功能就绪即上线。最新稳定版为
-**v0.20.0**；完整历史见 [CHANGELOG.md](CHANGELOG.md)，交互式路线图见
+**v0.20.1**；完整历史见 [CHANGELOG.md](CHANGELOG.md)，交互式路线图见
 [路线图讨论](https://github.com/wilsonglasser/oryxis/discussions/67)。
 自 0.15.0 以来已发布：分屏与 SFTP 控制台、离线模式及其离线包、阿里云
 与腾讯云、网络工具面板、一键部署中继、原生安全密钥，以及同一进程内的
