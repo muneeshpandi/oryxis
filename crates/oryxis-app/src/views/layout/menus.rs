@@ -713,7 +713,7 @@ impl Oryxis {
                 // destination): the vault section, at its root. The Home
                 // tab is the door that keeps the folder (`GoHome`).
                 Message::Navigation(NavigationMessage::ChangeView(View::Dashboard)),
-                // Show the dedicated OpenHosts shortcut (Cmd+Shift+H),
+                // Show the dedicated OpenHosts shortcut (Cmd+Alt+H),
                 // the one purpose-built for this row, rather than the
                 // positional Cmd+Shift+1 vault-slot family. Falls back to
                 // the slot hint if OpenHosts is unbound, so the row never
