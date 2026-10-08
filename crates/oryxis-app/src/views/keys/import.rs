@@ -37,6 +37,7 @@ impl Oryxis {
                     .id(iced::widget::Id::new("panel-key-import-name"))
                     .on_input(|v| Message::Keys(KeysMessage::KeyImportLabelChanged(v)))
                     .padding(10)
+                    .size(13)
                     .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
                     .boxed(),
             ),

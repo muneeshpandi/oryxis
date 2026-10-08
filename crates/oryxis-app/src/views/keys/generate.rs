@@ -168,6 +168,7 @@ impl Oryxis {
                     .id(iced::widget::Id::new("keygen-label"))
                     .on_input(|v| Message::Keys(KeysMessage::KeyGenLabelChanged(v)))
                     .padding(10)
+                    .size(13)
                     .style(crate::widgets::rounded_input_style)
                     .align_x(dir_align_x())
                     .boxed(),
@@ -259,6 +260,7 @@ impl Oryxis {
                     .id(iced::widget::Id::new("keygen-comment"))
                     .on_input(|v| Message::Keys(KeysMessage::KeyGenCommentChanged(v)))
                     .padding(10)
+                    .size(13)
                     .style(crate::widgets::rounded_input_style)
                     .align_x(dir_align_x())
                     .boxed(),
