@@ -10,6 +10,9 @@ project uses [SemVer](https://semver.org/spec/v2.0.0.html).
 - The AI chat asks Gemini 3 models to think at the lowest level with Reasoning off, the switch Google keeps for that generation; Gemini 2.5 models keep their thinking budget of zero.
 - A newly selected Google Gemini provider suggests `gemini-3.8-flash`; a model already chosen stays.
 
+### Fixed
+- Windows: the app starts on Intel integrated GPUs whose Vulkan driver predates the 1.3.215 spec revision (UHD 630, Ice Lake) (#248, reported by @koobs).
+
 ## [0.20.0] - 2026-10-07
 
 Several windows in one process, each a whole one, and security keys that sign natively. Dynamic forwards speak SOCKS4 and 4A, a stalled tunnel no longer stalls its connection, HTTPS follows the operating system's trust store, and the macOS window wears its native frame.

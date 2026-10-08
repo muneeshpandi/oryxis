@@ -211,6 +211,7 @@ debug = "line-tables-only"
 # (upstream is on 0.52, the oldest line left in the Windows build).
 [patch.crates-io]
 serialport = { git = "https://github.com/wilsonglasser/serialport-rs" }
+wgpu = { git = "https://github.com/wilsonglasser/wgpu", branch = "oryxis" }
 
 # arboard reaches us through iced_winit, and published 3.6.1 caps at
 # windows-sys <0.61, which alone was holding a second windows-sys in the
