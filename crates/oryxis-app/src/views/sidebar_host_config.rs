@@ -124,6 +124,7 @@ impl Oryxis {
             .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
             .width(Length::Fill)
             .padding(8)
+            .text_size(13)
             .style(crate::widgets::rounded_pick_list_style)
             .boxed(),
         );
@@ -150,6 +151,7 @@ impl Oryxis {
             .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
             .width(Length::Fill)
             .padding(8)
+            .text_size(13)
             .style(crate::widgets::rounded_pick_list_style)
             .boxed(),
         );
@@ -174,6 +176,7 @@ impl Oryxis {
             .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
             .width(Length::Fill)
             .padding(8)
+            .text_size(13)
             .style(crate::widgets::rounded_pick_list_style)
             .boxed(),
         );
@@ -260,6 +263,7 @@ impl Oryxis {
                 .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                 .width(Length::Fill)
                 .padding(8)
+                .text_size(13)
                 .style(pl_style)
                 .boxed(),
         );
@@ -283,6 +287,7 @@ impl Oryxis {
             .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
             .width(Length::Fill)
             .padding(8)
+            .text_size(13)
             .style(pl_style)
             .boxed(),
         );
@@ -309,6 +314,7 @@ impl Oryxis {
                 .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                 .width(Length::Fill)
                 .padding(8)
+                .text_size(13)
                 .style(pl_style)
                 .boxed(),
         );
@@ -335,6 +341,7 @@ impl Oryxis {
                 .on_close(Message::Navigation(NavigationMessage::PickOpenChanged(false)))
                 .width(Length::Fill)
                 .padding(8)
+                .text_size(13)
                 .style(pl_style)
                 .boxed(),
         );
