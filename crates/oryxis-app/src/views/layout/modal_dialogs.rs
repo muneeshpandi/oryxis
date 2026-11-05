@@ -139,7 +139,7 @@ impl Oryxis {
                         crate::keynav::RowAction::activate(Message::Share(ShareMessage::ShareDismiss)),
                         6.0,
                         false,
-                        styled_button(crate::i18n::t("cancel"), Message::Share(ShareMessage::ShareDismiss), OryxisColors::t().text_muted),
+                        styled_button(crate::i18n::t("cancel"), Message::Share(ShareMessage::ShareDismiss), OryxisColors::t().error),
                     ),
                 ],
                 if let Some(status) = &self.vaults.cur().share.status {
@@ -447,7 +447,7 @@ impl Oryxis {
                 styled_button(
                     crate::i18n::t("cancel"),
                     Message::Terminal(TerminalMessage::TerminalLinkDecision(false)),
-                    OryxisColors::t().bg_hover,
+                    OryxisColors::t().error,
                 ),
             ),
             Space::new().width(8).boxed(),
@@ -528,7 +528,7 @@ impl Oryxis {
                 styled_button(
                     crate::i18n::t("cancel"),
                     Message::Terminal(TerminalMessage::TerminalSaveOutputCancel),
-                    OryxisColors::t().bg_hover,
+                    OryxisColors::t().error,
                 ),
             ),
             Space::new().width(Length::Fill).boxed(),
@@ -730,7 +730,7 @@ impl Oryxis {
                         styled_button(
                             crate::i18n::t("cancel"),
                             Message::Share(ShareMessage::ImportHubDismiss),
-                            OryxisColors::t().text_muted,
+                            OryxisColors::t().error,
                         ),
                     ),
                 ],
@@ -972,7 +972,7 @@ impl Oryxis {
                         crate::keynav::RowAction::activate(Message::Share(ShareMessage::SshImportDismiss)),
                         6.0,
                         false,
-                        styled_button(crate::i18n::t("cancel"), Message::Share(ShareMessage::SshImportDismiss), OryxisColors::t().text_muted),
+                        styled_button(crate::i18n::t("cancel"), Message::Share(ShareMessage::SshImportDismiss), OryxisColors::t().error),
                     ),
                 ],
             ]
@@ -1121,7 +1121,7 @@ impl Oryxis {
                             styled_button(
                                 crate::i18n::t("cancel"),
                                 Message::History(HistoryMessage::CancelClearHistory),
-                                OryxisColors::t().text_muted,
+                                OryxisColors::t().error,
                             ),
                         )
                     },
@@ -1284,7 +1284,7 @@ impl Oryxis {
             styled_button(
                 crate::i18n::t("cancel"),
                 Message::Vault(VaultMessage::CancelLockVaultConfirm),
-                c.text_muted,
+                c.error,
             ),
         );
         // Sleep: the soft lock (issue #169 ask). Same operation the idle
@@ -1491,7 +1491,7 @@ impl Oryxis {
             styled_button(
                 crate::i18n::t("cancel"),
                 Message::Monitor(MonitorMessage::CancelKillPort),
-                c.text_muted,
+                c.error,
             ),
         );
         let mut actions = vec![cancel, Space::new().width(8).boxed()];

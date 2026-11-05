@@ -732,7 +732,7 @@ impl Oryxis {
         let cancel_btn = crate::widgets::styled_button(
             t("cancel"),
             Message::Ssh(SshMessage::SshKbiCancel),
-            OryxisColors::t().bg_hover,
+            OryxisColors::t().error,
         );
         let submit_btn = crate::widgets::styled_button(
             t("kbi_submit"),

@@ -454,7 +454,7 @@ impl Oryxis {
                     crate::widgets::styled_button(
                         crate::i18n::t("cancel"),
                         cancel_msg,
-                        OryxisColors::t().text_muted,
+                        OryxisColors::t().error,
                     ),
                 ),
                 Space::new().width(Length::Fill),
@@ -559,7 +559,7 @@ impl Oryxis {
             let cancel_btn = crate::widgets::styled_button(
                 crate::i18n::t("cancel"),
                 Message::Ssh(SshMessage::SshKbiCancel),
-                OryxisColors::t().bg_hover,
+                OryxisColors::t().error,
             );
 
             let submit_btn = crate::widgets::styled_button(

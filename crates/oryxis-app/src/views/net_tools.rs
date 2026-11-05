@@ -191,7 +191,7 @@ impl Oryxis {
         // Run becomes Cancel while a run is in flight, so the control
         // never lies about what pressing it does.
         let (label, msg, color) = if running {
-            (t("cancel"), NetToolsMessage::Cancel, OryxisColors::t().bg_selected)
+            (t("cancel"), NetToolsMessage::Cancel, OryxisColors::t().error)
         } else {
             (t("net_run"), NetToolsMessage::Run, OryxisColors::t().accent)
         };

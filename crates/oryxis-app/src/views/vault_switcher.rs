@@ -457,7 +457,7 @@ impl Oryxis {
                 RowAction::activate(cancel.clone()),
                 6.0,
                 false,
-                styled_button(t("cancel"), cancel, c.text_muted),
+                styled_button(t("cancel"), cancel, c.error),
             ),
         ]).boxed());
         container(body.padding(24))

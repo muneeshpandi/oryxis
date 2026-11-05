@@ -165,7 +165,7 @@ impl Oryxis {
             styled_button(
                 t("cancel"),
                 Message::Settings(SettingsMessage::HighlightRuleCancelEdit),
-                c.bg_selected,
+                c.error,
             ),
         );
         let save = self.modal_nav_slot_default(

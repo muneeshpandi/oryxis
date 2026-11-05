@@ -90,7 +90,7 @@ pub(crate) fn close_guard_modal<'a>() -> Element<'a, Message> {
                 crate::widgets::styled_button(
                     t("cancel"),
                     Message::Sftp(SftpMessage::CancelCloseSftpTab),
-                    OryxisColors::t().text_muted,
+                    OryxisColors::t().error,
                 ),
             ],
         ]
@@ -166,7 +166,7 @@ pub(crate) fn new_entry_modal<'a>(entry: &'a crate::state::SftpNewEntry) -> Elem
                 crate::widgets::styled_button(
                     t("cancel"),
                     Message::Sftp(SftpMessage::SftpNewEntryCancel),
-                    OryxisColors::t().text_muted,
+                    OryxisColors::t().error,
                 ),
             ],
         ]
@@ -259,7 +259,7 @@ pub(crate) fn edit_reopen_modal<'a>(
             crate::keynav::RowAction::activate(choice(C::Cancel)),
             8.0,
             false,
-            ghost_button(t("cancel"), choice(C::Cancel)),
+            crate::widgets::styled_button(t("cancel"), choice(C::Cancel), OryxisColors::t().error),
         ),
         Space::new().width(Length::Fill).boxed(),
         app.modal_nav_slot(
@@ -801,9 +801,10 @@ pub(crate) fn overwrite_modal<'a>(
 
     content = content.push(Space::new().height(18).boxed());
     let mut actions = row![
-        ghost_button(
+        crate::widgets::styled_button(
             t("cancel"),
             reply(crate::state::OverwriteAction::Cancel),
+            OryxisColors::t().error,
         ),
         Space::new().width(Length::Fill),
     ]
@@ -939,8 +940,8 @@ pub(crate) fn modal_footer<'a>(
     let cancel = footer_button(
         cancel_label,
         Some(cancel_msg),
-        OryxisColors::t().bg_selected,
-        OryxisColors::t().text_primary,
+        OryxisColors::t().error,
+        crate::theme::contrast_text_for(OryxisColors::t().error),
         FOOTER_BTN_W,
     );
     let action = footer_button(action_label, action_msg, action_color, action_fg, FOOTER_BTN_W);

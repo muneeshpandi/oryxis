@@ -47,7 +47,7 @@ pub(crate) fn new_link_modal<'a>(link: &'a crate::state::SftpNewLink) -> Element
                 crate::widgets::styled_button(
                     t("cancel"),
                     Message::Sftp(SftpMessage::SftpNewLinkCancel),
-                    OryxisColors::t().text_muted,
+                    OryxisColors::t().error,
                 ),
             ]),
         ]

@@ -299,7 +299,7 @@ impl Oryxis {
                         crate::widgets::styled_button(
                             t("cancel"),
                             cancel,
-                            OryxisColors::t().text_secondary,
+                            OryxisColors::t().error,
                         ),
                     ),
                 ])

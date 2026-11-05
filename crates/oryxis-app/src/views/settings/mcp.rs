@@ -616,7 +616,7 @@ fn mcp_info_panel(app: &crate::app::Oryxis) -> Element<'_, Message> {
                         6.0,
                         token_action_btn(
                             crate::i18n::t("cancel"),
-                            OryxisColors::t().text_secondary,
+                            OryxisColors::t().error,
                             Message::Mcp(McpMessage::McpVaultPwPromptCancel),
                         ),
                     ),

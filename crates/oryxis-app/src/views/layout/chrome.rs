@@ -138,41 +138,6 @@ pub(crate) fn folder_choice_card<'a>(
     .boxed()
 }
 
-/// Low-emphasis, full-width text button used for the modal "Cancel" so it
-/// does not compete with the colored action cards above it. Transparent at
-/// rest, picks up `bg_hover` / `bg_selected` on hover / press.
-pub(crate) fn ghost_button<'a>(label: &'a str, msg: Message) -> Element<'a, Message> {
-    let c = OryxisColors::t();
-    button(
-        container(
-            text(label.to_owned())
-                .size(12)
-                .font(iced::Font {
-                    weight: iced::font::Weight::Bold,
-                    ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
-                })
-                .color(c.text_muted),
-        )
-        .center_x(Length::Fill)
-        .padding(Padding { top: 7.0, right: 14.0, bottom: 7.0, left: 14.0 }),
-    )
-    .width(Length::Fill)
-    .on_press(msg)
-    .style(move |_, status| {
-        let bg = match status {
-            iced::widget::button::Status::Pressed => c.bg_selected,
-            iced::widget::button::Status::Hovered => c.bg_hover,
-            _ => Color::TRANSPARENT,
-        };
-        iced::widget::button::Style {
-            background: Some(Background::Color(bg)),
-            border: Border { radius: Radius::from(8.0), ..Default::default() },
-            ..Default::default()
-        }
-    })
-    .boxed()
-}
-
 /// Invisible hit-zone used on the window edges and corners. Captures a press
 /// and hands off to the OS as a native resize drag. Double-click on N/S
 /// expands to full monitor height, same convention Windows uses (no

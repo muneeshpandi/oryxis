@@ -172,7 +172,7 @@ impl Oryxis {
         let actions = dir_row(vec![
             styled_button(t("reset_to_auto"), Message::Tabs(TabsMessage::IconPickerResetAuto), OryxisColors::t().bg_selected),
             Space::new().width(Length::Fill).boxed(),
-            styled_button(t("cancel"), Message::Tabs(TabsMessage::HideIconPicker), OryxisColors::t().bg_hover),
+            styled_button(t("cancel"), Message::Tabs(TabsMessage::HideIconPicker), OryxisColors::t().error),
             Space::new().width(8).boxed(),
             styled_button(t("save"), Message::Tabs(TabsMessage::IconPickerSave), OryxisColors::t().accent),
         ])

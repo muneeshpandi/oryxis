@@ -861,7 +861,7 @@ impl Oryxis {
                     crate::widgets::styled_button(
                         t("cancel"),
                         Message::Sftp(SftpMessage::SftpCancelRemoteLoad(side)),
-                        OryxisColors::t().text_muted,
+                        OryxisColors::t().error,
                     ),
                 ]
                 .padding(12),

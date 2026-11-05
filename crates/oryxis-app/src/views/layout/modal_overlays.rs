@@ -210,7 +210,7 @@ impl Oryxis {
                         styled_button(
                             crate::i18n::t("cancel"),
                             Message::Cloud(CloudMessage::CloudDiscoverImportCancelled),
-                            OryxisColors::t().text_muted,
+                            OryxisColors::t().error,
                         ),
                     ),
                 ]),

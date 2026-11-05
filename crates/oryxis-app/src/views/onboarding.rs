@@ -46,17 +46,25 @@ impl Oryxis {
             column![
                 content,
                 Space::new().height(10),
-                button(text(t("cancel")).size(12).color(OryxisColors::t().text_muted))
+                button(text(t("cancel")).size(12).color(crate::theme::contrast_text_for(OryxisColors::t().error)))
                     .on_press(Message::MultiVault(crate::app::MultiVaultMessage::CancelVaultSetup))
                     .padding(Padding { top: 6.0, right: 12.0, bottom: 6.0, left: 12.0 })
-                    .style(|_, status| button::Style {
-                        background: Some(Background::Color(match status {
-                            iced::widget::button::Status::Hovered
-                            | iced::widget::button::Status::Pressed => OryxisColors::t().bg_hover,
-                            _ => Color::TRANSPARENT,
-                        })),
-                        border: Border { radius: Radius::from(6.0), ..Default::default() },
-                        ..Default::default()
+                    .style(|_, status| {
+                        let err = OryxisColors::t().error;
+                        button::Style {
+                            background: Some(Background::Color(match status {
+                                iced::widget::button::Status::Hovered
+                                | iced::widget::button::Status::Pressed => Color {
+                                    r: (err.r + 0.05).min(1.0),
+                                    g: (err.g + 0.05).min(1.0),
+                                    b: (err.b + 0.05).min(1.0),
+                                    a: 1.0,
+                                },
+                                _ => err,
+                            })),
+                            border: Border { radius: Radius::from(6.0), ..Default::default() },
+                            ..Default::default()
+                        }
                     }),
             ]
         } else {

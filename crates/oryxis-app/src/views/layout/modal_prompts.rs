@@ -77,7 +77,7 @@ impl Oryxis {
                         styled_button(
                             crate::i18n::t("cancel"),
                             Message::Snippet(SnippetMessage::CancelSnippetVars),
-                            c.text_muted,
+                            c.error,
                         ),
                     ),
                 ]),
@@ -325,7 +325,7 @@ impl Oryxis {
                         styled_button(
                             crate::i18n::t("cancel"),
                             Message::Terminal(TerminalMessage::CancelPendingPaste),
-                            c.text_muted,
+                            c.error,
                         ),
                     ),
                 ]),
@@ -371,7 +371,7 @@ impl Oryxis {
                 dir_row(vec![
                     styled_button(crate::i18n::t("save"), Message::Tabs(TabsMessage::ConfirmTabRename), OryxisColors::t().accent),
                     Space::new().width(8).boxed(),
-                    styled_button(crate::i18n::t("cancel"), Message::Tabs(TabsMessage::CancelTabRename), OryxisColors::t().text_muted),
+                    styled_button(crate::i18n::t("cancel"), Message::Tabs(TabsMessage::CancelTabRename), OryxisColors::t().error),
                 ]),
             ]
             .width(Length::Fill)
@@ -407,7 +407,7 @@ impl Oryxis {
                 dir_row(vec![
                     styled_button(crate::i18n::t("save"), Message::Tabs(TabsMessage::ConfirmRenameFolder), OryxisColors::t().accent),
                     Space::new().width(8).boxed(),
-                    styled_button(crate::i18n::t("cancel"), Message::Tabs(TabsMessage::CancelFolderModal), OryxisColors::t().text_muted),
+                    styled_button(crate::i18n::t("cancel"), Message::Tabs(TabsMessage::CancelFolderModal), OryxisColors::t().error),
                 ]),
             ]
             .width(Length::Fill)
@@ -562,7 +562,7 @@ impl Oryxis {
                     RowAction::activate(Message::Tabs(TabsMessage::CancelFolderModal)),
                     8.0,
                     false,
-                    ghost_button(crate::i18n::t("cancel"), Message::Tabs(TabsMessage::CancelFolderModal)),
+                    crate::widgets::styled_button(crate::i18n::t("cancel"), Message::Tabs(TabsMessage::CancelFolderModal), OryxisColors::t().error),
                 ),
             ]
             .width(Length::Fill)

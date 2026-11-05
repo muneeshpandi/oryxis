@@ -404,8 +404,8 @@ impl Oryxis {
         let cancel_btn = pill_button(
             crate::i18n::t("cancel"),
             Some(Message::Plugin(PluginMessage::HidePluginInstallModal)),
-            OryxisColors::t().text_muted,
-            false,
+            OryxisColors::t().error,
+            true,
         );
 
         let header = container(

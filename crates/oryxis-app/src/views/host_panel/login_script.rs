@@ -274,7 +274,7 @@ impl Oryxis {
                 crate::widgets::styled_button(
                     t("cancel"),
                     Message::Editor(EditorMessage::EditorScriptDraftCancel),
-                    OryxisColors::t().bg_hover,
+                    OryxisColors::t().error,
                 ),
             ),
         ])
