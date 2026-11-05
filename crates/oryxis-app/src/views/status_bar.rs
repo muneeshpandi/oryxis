@@ -400,6 +400,9 @@ impl Oryxis {
             ));
             items.push(Space::new().width(10).boxed());
         }
+        // TEMP DIAGNOSTIC (remove after we pin down the vault switcher):
+        // print the exact inputs that decide whether the switcher chip
+        // renders, so the real state is visible instead of guessed.
         // The version is opt-out too; hidden it leaves the trailing edge
         // clean.
         if self.vaults.cur().prefs.status_show_version {

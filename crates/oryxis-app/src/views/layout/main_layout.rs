@@ -46,6 +46,14 @@ impl Oryxis {
         // the titlebar affordances stay where every OS puts them.
         let tab_pos =
             crate::views::tab_bar::TabBarPos::from_setting(&self.vaults.cur().prefs.tab_bar_position);
+        // Keep the process-wide position atomic in step with the vault
+        // being drawn THIS frame. It is otherwise only written on a
+        // vault's first load, so a window on an already-loaded vault (or
+        // a second window on a different vault) could read a stale
+        // position — the desync that made the chrome bar drop the vault
+        // switcher. Setting it here, from the same pref `build_base`
+        // uses, means `tab_bar_pos()` and this view can never disagree.
+        crate::views::tab_bar::set_tab_bar_pos(tab_pos);
         let bottom_tabs = tab_pos == crate::views::tab_bar::TabBarPos::Bottom;
         let side_tabs = tab_pos.is_side();
         // The side dock can hide the top bar entirely (`side_hide_top_bar`):

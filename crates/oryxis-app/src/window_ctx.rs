@@ -693,6 +693,22 @@ impl Oryxis {
         if !on_panel {
             self.active_view = view;
         }
+        // Sync the process-wide tab-bar-position atomic to the vault we
+        // just switched to. It is otherwise only set on a vault's FIRST
+        // load (`load_vault_terminal_settings`), so switching to an
+        // already-loaded vault left the atomic on the PREVIOUS vault's
+        // position. That desync is what made the vault switcher vanish:
+        // `build_base` reads the per-vault `tab_bar_position` (e.g.
+        // "left") and draws the slim chrome bar, but that bar pushes the
+        // Home/vault chip only when `tab_bar_pos()` (the stale atomic,
+        // still "top") reports a side dock — so the chip was skipped and
+        // there was no way to switch vaults again. Same atomic drives
+        // tab sizing / drag bands, so keeping it in step fixes those too.
+        crate::views::tab_bar::set_tab_bar_pos(
+            crate::views::tab_bar::TabBarPos::from_setting(
+                &self.vaults.cur().prefs.tab_bar_position,
+            ),
+        );
     }
 
     /// The window that shows the tab with strip id `id` (terminal or
