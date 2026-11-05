@@ -129,7 +129,30 @@ impl Oryxis {
     /// The switcher is the chip on the vault toolbar (the badge at the
     /// top of the nav rail).
     pub(crate) fn vault_switcher_in_toolbar(&self) -> bool {
-        self.show_vault_switcher() && self.device_prefs.vault_switcher_place == crate::state::VaultSwitcherPlace::Toolbar
+        self.show_vault_switcher()
+            && self.device_prefs.vault_switcher_place == crate::state::VaultSwitcherPlace::Toolbar
+            // ...but only where that toolbar/rail is actually drawn.
+            // Both its hosts (the vertical nav rail and the horizontal
+            // sub-nav) live inside the vault nav, which `main_layout`
+            // only draws `in_vault_area`. Outside it (a terminal tab
+            // active, Settings, etc.) the Toolbar badge has no host, so
+            // it is NOT "in the toolbar" there and the tab-bar fallback
+            // below takes over. Without this, switching to a vault whose
+            // switcher is set to Toolbar left it reachable from nowhere.
+            && self.in_vault_area()
+    }
+
+    /// Whether the Home-tab chip must carry the vault switcher: either
+    /// the user put it there (`Tabs`), OR it is set to `Toolbar` but the
+    /// toolbar/rail that would host it is not on screen right now (not
+    /// `in_vault_area`). This guarantees the switcher is ALWAYS reachable
+    /// with several vaults, instead of vanishing on a terminal tab.
+    pub(crate) fn vault_switcher_on_home_tab(&self) -> bool {
+        if !self.show_vault_switcher() {
+            return false;
+        }
+        self.device_prefs.vault_switcher_place == crate::state::VaultSwitcherPlace::Tabs
+            || !self.in_vault_area()
     }
 
     /// True when the Home area is active: no connection tab open and the

@@ -59,7 +59,7 @@ impl Oryxis {
                 | View::KnownHosts
                 | View::History
         );
-        if self.vault_switcher_in_tabs() {
+        if self.vault_switcher_on_home_tab() {
             let menu_open = self
                 .cur_overlay()
                 .is_some_and(|o| matches!(o.content, crate::state::OverlayContent::VaultSwitcher));
@@ -83,7 +83,7 @@ impl Oryxis {
 
     /// The Home tab's width in the horizontal strip's budget.
     pub(crate) fn home_area_tab_width(&self) -> f32 {
-        if self.vault_switcher_in_tabs() {
+        if self.vault_switcher_on_home_tab() {
             vault_home_tab_width(&self.vault_name(self.vaults.cur().id), false)
         } else {
             TAB_ROW_HEIGHT
