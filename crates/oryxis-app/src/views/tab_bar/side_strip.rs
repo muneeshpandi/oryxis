@@ -192,29 +192,28 @@ impl Oryxis {
         // easy to miss). It lives in the strip FOOTER (pinned to the
         // bottom edge by the Fill scrollable above it), not in the
         // scrolling list: floating it under the `+` mid-strip read as an
-        // orphaned control. Tucked into the bottom-LEADING corner (its
-        // own 8px gutter), so it lines up with the tab badges' left edge.
+        // orphaned control. Tucked into the bottom-TRAILING corner (the
+        // content-facing edge), the standard spot for a panel collapse.
         // The `+` stays with the tabs.
         let footer: Option<Element<'_, Message>> = if overflow {
-            // Overflow docks the `+` and jump button here too; the
-            // collapse toggle leads the row, then a Fill pushes the rest
-            // right, so the bottom row reads [ collapse · + · ⋯ ].
+            // Overflow docks the `+` and jump button here too; a leading
+            // Fill pushes the collapse toggle to the trailing corner, so
+            // the bottom row reads [ + · ⋯ ············ collapse ].
             Some(
                 row(vec![
-                    side_strip_collapse_item(false, false),
-                    Space::new().width(4).boxed(),
                     plus_btn,
                     Space::new().width(2).boxed(),
                     tab_jump_btn(),
                     Space::new().width(Length::Fill).boxed(),
+                    side_strip_collapse_item(false, false),
                 ])
                     .align_y(iced::Alignment::Center)
                     .boxed(),
             )
         } else {
             items.push(plus_btn);
-            // Lone toggle, leading-aligned so it sits in the bottom-left
-            // corner of the strip.
+            // Lone toggle, trailing-aligned so it sits in the bottom-right
+            // corner of the strip (its content-facing edge).
             Some(side_strip_collapse_item(false, true))
         };
 
@@ -459,7 +458,7 @@ impl Oryxis {
 /// bottom-left corner on an LTR left dock) with the strip's own 8px
 /// gutter, which is where the full strip wants it; the collapsed rail
 /// passes `false` to keep it centered in its narrow column.
-fn side_strip_collapse_item<'a>(collapsed: bool, lead_align: bool) -> Element<'a, Message> {
+fn side_strip_collapse_item<'a>(collapsed: bool, trail_align: bool) -> Element<'a, Message> {
     let rtl = crate::i18n::is_rtl_layout();
     let icon = match (rtl, collapsed) {
         (false, true) => iced_fonts::lucide::panel_left_open(),
@@ -485,13 +484,19 @@ fn side_strip_collapse_item<'a>(collapsed: bool, lead_align: bool) -> Element<'a
                 ..Default::default()
             }
         });
-    // Leading-aligned: sit against the strip's leading gutter (8px, the
-    // same inset the tab chips keep) so the toggle lines up with the tab
-    // badges' left edge instead of floating center.
-    let holder = if lead_align {
+    // Trailing-aligned: sit against the strip's TRAILING gutter (its
+    // content-facing edge, the bottom-right corner on an LTR left dock),
+    // the standard spot for a panel collapse toggle. Under RTL the
+    // trailing edge flips to the left, keeping it content-facing.
+    let trailing = if crate::i18n::is_rtl_layout() {
+        iced::alignment::Horizontal::Left
+    } else {
+        iced::alignment::Horizontal::Right
+    };
+    let holder = if trail_align {
         container(btn)
             .width(Length::Fill)
-            .align_x(crate::widgets::dir_align_x())
+            .align_x(trailing)
             .padding(Padding { top: 0.0, right: 8.0, bottom: 0.0, left: 8.0 })
     } else {
         container(btn)
