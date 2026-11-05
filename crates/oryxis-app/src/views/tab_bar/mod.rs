@@ -166,15 +166,28 @@ impl Oryxis {
             // would go with the empty area (issue #226).
             leading.push(drag_spacer());
         } else {
+            // The empty middle slot is the window-drag area; it also
+            // hosts the active host's name as a clean header (centered),
+            // replacing the old floating badge over the terminal. The
+            // label is a child of the draggable area, so the slack
+            // around it still drags / double-click-maximizes the window.
+            let drag_inner: Element<'_, Message> = match self.terminal_header_label() {
+                Some(label) => container(label)
+                    .width(Length::Fill)
+                    .height(Length::Fixed(BAR_HEIGHT))
+                    .center_x(Length::Fill)
+                    .center_y(Length::Fixed(BAR_HEIGHT))
+                    .boxed(),
+                None => container(Space::new())
+                    .width(Length::Fill)
+                    .height(Length::Fixed(BAR_HEIGHT))
+                    .boxed(),
+            };
             leading.push(
-                MouseArea::new(
-                    container(Space::new())
-                        .width(Length::Fill)
-                        .height(Length::Fixed(BAR_HEIGHT)),
-                )
-                .on_press(Message::Tabs(TabsMessage::WindowDrag))
-                .on_double_click(Message::Tabs(TabsMessage::WindowMaximizeToggle))
-                .boxed(),
+                MouseArea::new(drag_inner)
+                    .on_press(Message::Tabs(TabsMessage::WindowDrag))
+                    .on_double_click(Message::Tabs(TabsMessage::WindowMaximizeToggle))
+                    .boxed(),
             );
         }
         leading.push(right_cluster);

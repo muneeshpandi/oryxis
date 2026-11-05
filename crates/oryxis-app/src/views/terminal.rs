@@ -307,13 +307,11 @@ impl Oryxis {
         // (`root_view.rs`), so notifications raised while the user sits
         // in the Dashboard / Settings views are visible too.
         let mut stack = iced::widget::Stack::<iced::Element<'_, _>>::new().push(base.boxed());
-        // iTerm2-style host badge: the active pane's saved connection
-        // label, floating at the top-right of the terminal viewport.
-        // Pushed under the transfer card so an in-flight transfer's UI
-        // is never covered by it.
-        if let Some(badge) = self.host_badge_overlay() {
-            stack = stack.push(badge);
-        }
+        // The host name now lives in the top chrome bar's header slot
+        // (`terminal_header_label`), not as a floating badge over the
+        // canvas: the old badge, layered over the whole terminal area,
+        // overlapped a docked AI panel and collided with terminal lines
+        // reaching the right edge.
         if let Some(zm) = self.transfer_edge_overlay() {
             stack = stack.push(zm);
         }
@@ -346,17 +344,19 @@ impl Oryxis {
         })
     }
 
-    /// The iTerm2-style host badge floating at the top-right of the
-    /// terminal content: the active pane's SAVED connection label
-    /// ("jumpserver"), so a glance names which host this session is on
-    /// regardless of what the remote prompt shows.
+    /// The active terminal tab's host identity for the top-bar header:
+    /// the SAVED connection label and its per-host colour (an explicit
+    /// custom/saved colour, else a stable hue derived from the id, run
+    /// through the contrast validator). `None` for panes with no saved
+    /// connection (local shells, quick-connect, cloud/ephemeral), whose
+    /// tab label already names them. Redacted under Privacy Mode like
+    /// the pane header, since a label routinely embeds the hostname.
     ///
-    /// `None` for panes with no saved connection (local shells,
-    /// quick-connect, cloud/ephemeral): there is no curated host name to
-    /// show, and the pane label already reads "Local Shell". Redacted
-    /// under Privacy Mode like the pane header and link chip, since a
-    /// label routinely embeds the hostname.
-    fn host_badge_overlay(&self) -> Option<Element<'_, Message>> {
+    /// Shared by the top-bar header label (`terminal_header_label`); the
+    /// old floating iTerm2 badge was retired because, layered over the
+    /// whole terminal area, it collided with a docked AI panel and with
+    /// terminal lines that reached the right edge.
+    pub(crate) fn active_host_identity(&self) -> Option<(String, Color)> {
         let conn = self
             .cur_active_tab()
             .and_then(|i| self.tabs.get(i))
@@ -378,76 +378,48 @@ impl Oryxis {
         } else {
             conn.label.clone()
         };
-        // Cap it so a very long label can't stretch across the viewport.
         let label = truncate_middle(&shown, 40);
-
-        // Per-host color so each host's badge is its own hue. A host with
-        // an explicit color (custom or saved) uses it; otherwise we
-        // DERIVE a stable hue from the connection id, so every host gets
-        // a distinct color automatically without the user configuring one
-        // (the fallback to the single global accent made every badge the
-        // same blue). Run through the contrast validator against the
-        // terminal background so a near-black color can't render invisible.
         let host_color = conn
             .custom_color
             .as_deref()
             .or(conn.color.as_deref())
             .and_then(crate::widgets::parse_hex_color)
             .unwrap_or_else(|| badge_hue_for(conn.id));
-        let badge_color =
-            crate::theme::readable_accent_on(host_color, colors.terminal_bg);
+        // Validate against the bar surface, not the terminal bg: the
+        // label now lives in the top chrome bar.
+        let header_color = crate::theme::readable_accent_on(host_color, colors.bg_sidebar);
+        Some((label, header_color))
+    }
 
-        // iTerm2-style badge: bare BOLD text floating over the terminal,
-        // no pill/box. Size is user-adjustable (Settings > Interface);
-        // bright in the host's own color so it reads clearly over a dark
-        // terminal without a background plate; right-aligned so a long
-        // label runs toward the corner.
-        let badge = text(label)
-            .size(self.vaults.cur().prefs.host_badge_font_size)
-            .font(iced::Font {
-                weight: iced::font::Weight::Bold,
-                ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
-            })
-            .color(badge_color)
-            .align_x(iced::alignment::Horizontal::Right);
-
-        // Opaque backing plate under the label (shrink-wrapped to the
-        // text, not the whole row). Bare floating text let a terminal
-        // line that reached the right edge render its glyphs in the same
-        // pixels as the badge, so the two collided into an unreadable
-        // smear (the reported bug). A solid rounded plate the color of
-        // the terminal background sits between the two: the cell text
-        // behind it is masked, the host name stays crisp and clearly on
-        // top, and a long line now visibly stops at the plate instead of
-        // writing through it. Shrink width keeps the plate hugging the
-        // label so it covers only the corner it occupies.
-        let colors_plate = colors;
-        let plate = container(badge)
-            .padding(Padding { top: 2.0, right: 8.0, bottom: 2.0, left: 8.0 })
-            .style(move |_| container::Style {
-                background: Some(Background::Color(Color {
-                    a: 0.88,
-                    ..colors_plate.terminal_bg
-                })),
-                border: Border {
-                    radius: Radius::from(6.0),
-                    color: Color { a: 0.35, ..badge_color },
-                    width: 1.0,
-                },
-                ..Default::default()
-            });
-
-        // Float at the top-right of the terminal viewport, with a small
-        // inset. Non-interactive (no MouseArea) so it stays click-through
-        // over the canvas.
+    /// The host-name header shown in the top chrome bar's empty centre
+    /// slot: a small coloured dot + the saved connection label in its
+    /// per-host colour. This replaced the floating badge so the host
+    /// name reads as a clean header that never overlaps the terminal
+    /// text or a docked AI panel. `None` when there is no saved host
+    /// (the drag area stays empty, as before).
+    pub(crate) fn terminal_header_label(&self) -> Option<Element<'_, Message>> {
+        let (label, color) = self.active_host_identity()?;
         Some(
-            container(plate)
-                .width(Length::Fill)
-                .height(Length::Fill)
-                .align_x(iced::alignment::Horizontal::Right)
-                .align_y(iced::alignment::Vertical::Top)
-                .padding(Padding { top: 8.0, right: 12.0, bottom: 0.0, left: 0.0 })
-                .boxed(),
+            crate::widgets::dir_row(vec![
+                container(Space::new().width(7).height(7))
+                    .style(move |_| container::Style {
+                        background: Some(Background::Color(color)),
+                        border: Border { radius: Radius::from(3.5), ..Default::default() },
+                        ..Default::default()
+                    })
+                    .boxed(),
+                Space::new().width(7).boxed(),
+                text(label)
+                    .size(12)
+                    .font(iced::Font {
+                        weight: iced::font::Weight::Semibold,
+                        ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
+                    })
+                    .color(color)
+                    .boxed(),
+            ])
+            .align_y(iced::Alignment::Center)
+            .boxed(),
         )
     }
 

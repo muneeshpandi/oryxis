@@ -192,11 +192,38 @@ impl Oryxis {
     /// every side whose region has at least one available tab, left
     /// first. One button per region, so with tabs docked to both
     /// sides the chrome shows two icons (issue #102).
+    ///
+    /// Cleanliness rule (Option A): the common case shows ONE toggle,
+    /// not two near-identical panel glyphs. Two buttons only appear when
+    /// BOTH regions are currently OPEN, so each open panel keeps its own
+    /// close affordance. When a region has tabs but is closed, it folds
+    /// into the single primary toggle (the right/AI side when available,
+    /// else the left) — no functionality is lost: opening the folded
+    /// side still works via its tab placement / hotkey, and the moment
+    /// both are open the second button returns.
     pub(crate) fn sidebar_toggle_sides(&self) -> Vec<SidebarSide> {
-        SidebarSide::BOTH
+        let with_tabs: Vec<SidebarSide> = SidebarSide::BOTH
             .into_iter()
             .filter(|s| self.sidebar_region_has_tabs(*s))
-            .collect()
+            .collect();
+        // Both open → keep both toggles so each can be closed on its own.
+        if with_tabs.len() == 2
+            && SidebarSide::BOTH
+                .into_iter()
+                .all(|s| self.active_sidebar_shown(s))
+        {
+            return with_tabs;
+        }
+        // Otherwise collapse to a single toggle. Prefer a side that is
+        // already open (so its button closes it); else the primary
+        // (right/AI) side; else whatever single side has tabs.
+        if let Some(open) = with_tabs.iter().copied().find(|s| self.active_sidebar_shown(*s)) {
+            return vec![open];
+        }
+        if with_tabs.contains(&SidebarSide::Right) {
+            return vec![SidebarSide::Right];
+        }
+        with_tabs.into_iter().take(1).collect()
     }
 
     /// Whether a sidebar tab is actually on screen right now: its
