@@ -101,6 +101,22 @@ impl Oryxis {
         if let Err(e) = result {
             tracing::warn!("failed to persist setting {key}: {e}");
         }
+        // The vault-switcher prefs are DEVICE-level (shared across every
+        // vault), but the write above lands in the OPEN vault's store.
+        // Also mirror them into `device.json` so switching to another
+        // vault — whose load re-reads these from the device store — does
+        // not clobber the user's choice with that vault's stale copy.
+        // This is the fix for the switcher vanishing after a switch; it
+        // is scoped to just these keys to avoid changing how every other
+        // device key already round-trips.
+        if matches!(
+            key,
+            "vault_switcher_place" | "vault_switcher_hide_single" | "vault_start_picker"
+        ) && let Some(device) = oryxis_vault::device::installed()
+            && let Err(e) = device.set(key, value)
+        {
+            tracing::warn!("failed to mirror device pref {key} to device.json: {e}");
+        }
     }
 
     /// Persist the window geometry (last windowed size + outer position +

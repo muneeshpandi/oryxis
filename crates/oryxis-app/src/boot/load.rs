@@ -930,13 +930,36 @@ impl Oryxis {
                 vault.get_setting("agent_server_enabled"),
                 Ok(Some(ref v)) if v == "true"
             );
-            if let Ok(Some(v)) = vault.get_setting("vault_switcher_hide_single") {
+            // The vault-switcher prefs are DEVICE-level: they must read
+            // the same on every vault, so they come from `device.json`,
+            // not the per-vault store. Reading them per-vault was the bug
+            // that made the switcher vanish after a switch (the target
+            // vault's stale copy clobbered the live pref). A one-time
+            // migration honours any value an older build wrote into this
+            // vault's own settings when the device store has none yet.
+            let device = oryxis_vault::device::installed();
+            // Read a device-level pref from `device.json`; if it only
+            // exists in this vault's own store (an older build wrote it
+            // there), adopt that value AND migrate it up to the device
+            // store so it becomes canonical and no other vault's stale
+            // copy can ever override it again.
+            let device_pref = |key: &str| -> Option<String> {
+                if let Some(v) = device.as_ref().and_then(|d| d.get(key)) {
+                    return Some(v);
+                }
+                let legacy = vault.get_setting(key).ok().flatten()?;
+                if let Some(d) = device.as_ref() {
+                    let _ = d.set(key, &legacy);
+                }
+                Some(legacy)
+            };
+            if let Some(v) = device_pref("vault_switcher_hide_single") {
                 self.device_prefs.vault_switcher_hide_single = v == "true";
             }
-            if let Ok(Some(v)) = vault.get_setting("vault_start_picker") {
+            if let Some(v) = device_pref("vault_start_picker") {
                 self.device_prefs.vault_start_picker = v == "true";
             }
-            if let Ok(Some(v)) = vault.get_setting("vault_switcher_place")
+            if let Some(v) = device_pref("vault_switcher_place")
                 && let Some(place) = crate::state::VaultSwitcherPlace::from_code(&v)
             {
                 self.device_prefs.vault_switcher_place = place;
