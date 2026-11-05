@@ -383,8 +383,35 @@ impl DeviceStore {
         let mut cached = self.cache.lock().unwrap_or_else(|p| p.into_inner());
         let now = stamp_of(&path);
         if cached.stamp != Some(now) {
-            cached.file = read_file(&path);
-            cached.stamp = Some(now);
+            // A transient read failure must NOT collapse a good cache to
+            // `fresh()`. When another window (or a sync) is mid-write,
+            // `device.json` can momentarily be half-written / unparsable
+            // or briefly unreadable; `read_file` would turn that into a
+            // one-vault `fresh()` registry, which made the vault switcher
+            // vanish until the file's mtime changed again (it won't, the
+            // bad result just got cached under the new stamp). So:
+            //   - the file genuinely missing (NotFound) → legitimately
+            //     fresh (first run / removed), accept it and stamp it.
+            //   - any OTHER error (unparsable, I/O) while we already hold
+            //     a registry → keep the cached one and DON'T advance the
+            //     stamp, so the next access retries once the writer is
+            //     done. With no prior cache, fall back to fresh so a true
+            //     first read still works.
+            match parse_file(&path) {
+                Ok(file) => {
+                    cached.file = file;
+                    cached.stamp = Some(now);
+                }
+                Err(_) if cached.stamp.is_some() => {
+                    // Keep the last good registry; leave the stamp as-is
+                    // so we re-read on the next call (the writer finishes
+                    // in milliseconds).
+                }
+                Err(_) => {
+                    cached.file = DeviceFile::fresh();
+                    cached.stamp = Some(now);
+                }
+            }
         }
         f(&cached.file)
     }
@@ -727,16 +754,13 @@ fn fold_latin(c: char) -> &'static str {
     }
 }
 
-/// The file's content, a fresh device when absent. A file that does not
-/// parse is reported and read as fresh, and a copy of it kept beside
-/// ([`keep_broken_copy`]); a WRITE refuses it ([`parse_file`]): the
-/// registry it holds (every other vault, one on a USB key) would go
-/// with the file.
-fn read_file(path: &Path) -> DeviceFile {
-    parse_file(path).unwrap_or_else(|_| DeviceFile::fresh())
-}
-
-/// [`read_file`] saying why the file could not be read as it is.
+/// The file's content as a `Result`: `Ok(fresh)` when the file is
+/// genuinely ABSENT (first run / removed), `Ok(parsed)` when it reads,
+/// and `Err` when it exists but is unparsable or briefly unreadable (a
+/// WRITE refuses it, and `with_current` keeps the last good cache rather
+/// than collapsing the registry — every other vault would otherwise
+/// vanish with the file). A file that does not parse has a copy kept
+/// beside it ([`keep_broken_copy`]).
 fn parse_file(path: &Path) -> Result<DeviceFile, DeviceError> {
     match std::fs::read(path) {
         Ok(bytes) => match serde_json::from_slice::<DeviceFile>(&bytes) {

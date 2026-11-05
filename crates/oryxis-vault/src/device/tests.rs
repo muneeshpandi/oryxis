@@ -101,6 +101,40 @@ fn a_file_that_does_not_parse_reads_as_fresh_and_is_never_written_over() {
     assert_eq!(store_in(dir.path()).get("language"), None);
 }
 
+/// A transient unparsable `device.json` (another window or a sync
+/// mid-write) must NOT collapse a warm registry to one vault: that is
+/// what made the vault switcher vanish until the file's mtime changed
+/// again. The cache keeps the last good registry on a failed re-read and
+/// recovers once the write finishes.
+#[test]
+fn a_transient_unreadable_file_keeps_the_cached_registry() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = store_in(dir.path());
+    // Warm the cache with a second vault, so the registry is two.
+    let work = store.create_entry("Work").unwrap();
+    assert_eq!(store.vaults().len(), 2);
+
+    // Simulate a mid-write: the file is briefly unparsable, and its
+    // length changes so the cache's (mtime,len) stamp invalidates and a
+    // re-read is attempted.
+    let path = store.path();
+    let good = std::fs::read(&path).unwrap();
+    std::fs::write(&path, b"{ half-written").unwrap();
+    // The switcher reads this: it must still see BOTH vaults, not fold
+    // back to one, even though the file on disk is garbage right now.
+    assert_eq!(
+        store.vaults().len(),
+        2,
+        "a transient bad read must not drop the registry to one vault"
+    );
+    assert!(store.entry(work.id).is_some(), "the second vault is still known");
+
+    // The writer finishes (good bytes back, length changes again): the
+    // next read picks the file up cleanly.
+    std::fs::write(&path, &good).unwrap();
+    assert_eq!(store.vaults().len(), 2);
+}
+
 /// A start names the file it could not read (issue #271: a portable
 /// `data` folder on a USB key whose `device.json` was damaged): absent is
 /// a first start, not a problem; a file that reads is none; one that does
