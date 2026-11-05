@@ -167,16 +167,26 @@ impl Oryxis {
             leading.push(drag_spacer());
         } else {
             // The empty middle slot is the window-drag area; it also
-            // hosts the active host's name as a clean header (centered),
-            // replacing the old floating badge over the terminal. The
-            // label is a child of the draggable area, so the slack
-            // around it still drags / double-click-maximizes the window.
+            // hosts the active host's name as a clean header, docked on
+            // the TRAILING side (right, just before the window chrome)
+            // rather than centered — that corner is where the user wants
+            // it and it keeps the label clear of the burger / tabs. The
+            // label is a child of the draggable area, so the slack around
+            // it still drags / double-click-maximizes the window.
+            let trailing = if crate::i18n::is_rtl_layout() {
+                iced::alignment::Horizontal::Left
+            } else {
+                iced::alignment::Horizontal::Right
+            };
             let drag_inner: Element<'_, Message> = match self.terminal_header_label() {
                 Some(label) => container(label)
                     .width(Length::Fill)
                     .height(Length::Fixed(BAR_HEIGHT))
-                    .center_x(Length::Fill)
+                    .align_x(trailing)
                     .center_y(Length::Fixed(BAR_HEIGHT))
+                    // Breathing room so the label doesn't butt against
+                    // the sidebar-toggle / window-chrome cluster.
+                    .padding(Padding { top: 0.0, right: 14.0, bottom: 0.0, left: 0.0 })
                     .boxed(),
                 None => container(Space::new())
                     .width(Length::Fill)

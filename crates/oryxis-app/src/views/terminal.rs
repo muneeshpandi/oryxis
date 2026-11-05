@@ -391,28 +391,36 @@ impl Oryxis {
         Some((label, header_color))
     }
 
-    /// The host-name header shown in the top chrome bar's empty centre
-    /// slot: a small coloured dot + the saved connection label in its
-    /// per-host colour. This replaced the floating badge so the host
-    /// name reads as a clean header that never overlaps the terminal
-    /// text or a docked AI panel. `None` when there is no saved host
-    /// (the drag area stays empty, as before).
+    /// The host-name header shown in the top chrome bar, docked on the
+    /// trailing side just before the window chrome: a coloured dot + the
+    /// saved connection label in its per-host colour, at a comfortable
+    /// reading size. This replaced the floating badge so the host name
+    /// reads as a clean header that never overlaps the terminal text or
+    /// a docked AI panel. `None` when there is no saved host.
     pub(crate) fn terminal_header_label(&self) -> Option<Element<'_, Message>> {
         let (label, color) = self.active_host_identity()?;
+        // Same format as the old floating badge: BOLD, at the
+        // user-configurable `host_badge_font_size` (Settings → Interface,
+        // default 18, range 10–28), so the header reads large and clean
+        // and still honours the size the user picked.
+        let size = self.vaults.cur().prefs.host_badge_font_size;
+        // Dot scaled to the font so it stays proportional as the size
+        // changes (≈45% of the cap height reads as a tidy bullet).
+        let dot = (size * 0.45).round().max(7.0);
         Some(
             crate::widgets::dir_row(vec![
-                container(Space::new().width(7).height(7))
+                container(Space::new().width(dot).height(dot))
                     .style(move |_| container::Style {
                         background: Some(Background::Color(color)),
-                        border: Border { radius: Radius::from(3.5), ..Default::default() },
+                        border: Border { radius: Radius::from(dot / 2.0), ..Default::default() },
                         ..Default::default()
                     })
                     .boxed(),
-                Space::new().width(7).boxed(),
+                Space::new().width(8).boxed(),
                 text(label)
-                    .size(12)
+                    .size(size)
                     .font(iced::Font {
-                        weight: iced::font::Weight::Semibold,
+                        weight: iced::font::Weight::Bold,
                         ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
                     })
                     .color(color)
