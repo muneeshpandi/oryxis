@@ -189,25 +189,34 @@ impl Oryxis {
         .boxed();
         // Visible collapse toggle on the full strip, so minimizing the
         // sidebar is one obvious click (the right-click menu entry is
-        // easy to miss). Mirrors the collapsed rail's expand button.
-        let collapse_btn = side_strip_collapse_item(false);
-        let mut footer: Option<Element<'_, Message>> = None;
-        if overflow {
-            footer = Some(
+        // easy to miss). It lives in the strip FOOTER (pinned to the
+        // bottom edge by the Fill scrollable above it), not in the
+        // scrolling list: floating it under the `+` mid-strip read as an
+        // orphaned control. Tucked into the bottom-LEADING corner (its
+        // own 8px gutter), so it lines up with the tab badges' left edge.
+        // The `+` stays with the tabs.
+        let footer: Option<Element<'_, Message>> = if overflow {
+            // Overflow docks the `+` and jump button here too; the
+            // collapse toggle leads the row, then a Fill pushes the rest
+            // right, so the bottom row reads [ collapse · + · ⋯ ].
+            Some(
                 row(vec![
+                    side_strip_collapse_item(false, false),
+                    Space::new().width(4).boxed(),
                     plus_btn,
                     Space::new().width(2).boxed(),
                     tab_jump_btn(),
-                    Space::new().width(2).boxed(),
-                    collapse_btn,
+                    Space::new().width(Length::Fill).boxed(),
                 ])
                     .align_y(iced::Alignment::Center)
                     .boxed(),
-            );
+            )
         } else {
             items.push(plus_btn);
-            items.push(collapse_btn);
-        }
+            // Lone toggle, leading-aligned so it sits in the bottom-left
+            // corner of the strip.
+            Some(side_strip_collapse_item(false, true))
+        };
 
         // Vertical scrollable, scrollbar zeroed out like the horizontal
         // strip (the wheel still scrolls it natively).
@@ -254,7 +263,16 @@ impl Oryxis {
                 }
             }
         };
-        let footer_slot = footer.unwrap_or_else(empty);
+        // A hair of breathing room above/below the pinned footer so the
+        // collapse toggle doesn't sit flush against the tabs or the
+        // strip's bottom edge.
+        let footer_slot = footer
+            .map(|f| {
+                container(f)
+                    .padding(Padding { top: 6.0, right: 0.0, bottom: 4.0, left: 0.0 })
+                    .boxed()
+            })
+            .unwrap_or_else(empty);
         let inner = iced::widget::Column::with_children(vec![
             header_slot,
             pins_slot,
@@ -371,7 +389,7 @@ impl Oryxis {
         .width(Length::Fill)
         .height(Length::Fill);
 
-        let footer = container(side_strip_collapse_item(true))
+        let footer = container(side_strip_collapse_item(true, false))
             .padding(Padding { top: 8.0, right: 0.0, bottom: 12.0, left: 0.0 });
 
         let inner = iced::widget::Column::with_children(vec![list.boxed(), footer.boxed()])
@@ -435,8 +453,13 @@ impl Oryxis {
 /// collapsed rail it shows the "open" glyph and an "expand" tooltip; on
 /// the full strip the "close" glyph and a "collapse" tooltip. RTL-aware
 /// (the strip grows toward the physical content edge), icon-only in both
-/// so it fits the 56px rail and the full strip's footer row alike.
-fn side_strip_collapse_item<'a>(collapsed: bool) -> Element<'a, Message> {
+/// so it fits the 56px rail and the full strip's footer alike.
+///
+/// `lead_align` tucks the button against the strip's LEADING edge (the
+/// bottom-left corner on an LTR left dock) with the strip's own 8px
+/// gutter, which is where the full strip wants it; the collapsed rail
+/// passes `false` to keep it centered in its narrow column.
+fn side_strip_collapse_item<'a>(collapsed: bool, lead_align: bool) -> Element<'a, Message> {
     let rtl = crate::i18n::is_rtl_layout();
     let icon = match (rtl, collapsed) {
         (false, true) => iced_fonts::lucide::panel_left_open(),
@@ -462,11 +485,22 @@ fn side_strip_collapse_item<'a>(collapsed: bool) -> Element<'a, Message> {
                 ..Default::default()
             }
         });
-    iced::widget::tooltip(
+    // Leading-aligned: sit against the strip's leading gutter (8px, the
+    // same inset the tab chips keep) so the toggle lines up with the tab
+    // badges' left edge instead of floating center.
+    let holder = if lead_align {
+        container(btn)
+            .width(Length::Fill)
+            .align_x(crate::widgets::dir_align_x())
+            .padding(Padding { top: 0.0, right: 8.0, bottom: 0.0, left: 8.0 })
+    } else {
         container(btn)
             .width(Length::Fill)
             .center_x(Length::Fill)
-            .padding(Padding { top: 0.0, right: 8.0, bottom: 0.0, left: 8.0 }),
+            .padding(Padding { top: 0.0, right: 8.0, bottom: 0.0, left: 8.0 })
+    };
+    iced::widget::tooltip(
+        holder,
         container(text(tip).size(11).color(OryxisColors::t().text_primary))
             .padding(Padding { top: 4.0, right: 8.0, bottom: 4.0, left: 8.0 })
             .style(|_| container::Style {
