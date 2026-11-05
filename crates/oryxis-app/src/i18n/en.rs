@@ -32,6 +32,8 @@ pub(super) fn lookup(key: &str) -> &'static str {
         // Navigation
         "expand" => "Expand",
         "collapse" => "Collapse",
+        "collapse_sidebar" => "Collapse sidebar",
+        "expand_sidebar" => "Expand sidebar",
         "nav_orientation" => "Navigation",
         "nav_orientation_desc" => "Horizontal shows the vault sections as a pill strip below the top bar; Vertical shows them as an icon rail on the left.",
         "nav_orientation_horizontal" => "Horizontal (pills)",

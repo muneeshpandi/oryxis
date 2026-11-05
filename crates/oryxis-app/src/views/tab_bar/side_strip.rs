@@ -38,6 +38,16 @@ impl Oryxis {
     /// fixed pinned group, then the scrolling tab list with `+`; `⋯`
     /// joins a docked footer once the list overflows the viewport.
     pub(crate) fn view_side_tab_strip(&self) -> Element<'_, Message> {
+        // Collapsed icon rail (sidebar minimizer): the strip shrinks to
+        // a narrow column of icon-only tab buttons with tooltips, a `+`,
+        // and the expand toggle at the foot, mirroring the vault nav
+        // rail's collapsed form. Returned as its own subtree, so the
+        // full-strip assembly below is untouched. The whole rail is a
+        // single constant-shape slot in `main_layout` (its width changes,
+        // the slot does not), which keeps the scroll-state keying safe.
+        if self.vaults.cur().prefs.sidebar_collapsed {
+            return self.view_side_tab_rail();
+        }
         let hide_top_bar = self.top_bar_hidden();
         let pins_top = self.vaults.cur().prefs.pinned_tabs_top_bar;
         let compact_pins = self.vaults.cur().prefs.pinned_tab_style == "compact";
@@ -314,6 +324,64 @@ impl Oryxis {
         with_ghost_layer(bar, ghost, Length::Fixed(SIDE_STRIP_WIDTH), Length::Fill)
     }
 
+    /// The collapsed icon-only form of the side strip: a scrolling
+    /// column of `side_rail_item` buttons (one per `strip_order` entry),
+    /// the `+` new-tab button, and a pinned expand toggle at the foot.
+    /// No drag-reorder, no pinned packing, no header chrome: the rail is
+    /// the minimal glance surface. Drag-reorder stays a full-strip
+    /// affordance (the icons are too small to aim a reorder at), so the
+    /// ghost layer is omitted.
+    fn view_side_tab_rail(&self) -> Element<'_, Message> {
+        let bar_base = OryxisColors::t().bg_sidebar;
+
+        let mut items: Vec<Element<'_, Message>> = self
+            .strip_order()
+            .into_iter()
+            .map(|entry| self.side_rail_item(entry))
+            .collect();
+        // Same `+` affordance as the full strip, centered in the rail.
+        items.push(
+            container(new_tab_btn(true))
+                .width(Length::Fill)
+                .center_x(Length::Fill)
+                .padding(Padding { top: 0.0, right: 8.0, bottom: 0.0, left: 8.0 })
+                .boxed(),
+        );
+
+        let list = scrollable(
+            iced::widget::Column::with_children(items)
+                .spacing(4)
+                .padding(Padding { top: 8.0, right: 0.0, bottom: 0.0, left: 0.0 }),
+        )
+        .id(iced::widget::Id::new("tab-scroll"))
+        .direction(scrollable::Direction::Vertical(
+            scrollable::Scrollbar::new().width(0.0).scroller_width(0.0),
+        ))
+        .width(Length::Fill)
+        .height(Length::Fill);
+
+        let footer = container(side_rail_toggle_item())
+            .padding(Padding { top: 8.0, right: 0.0, bottom: 12.0, left: 0.0 });
+
+        let inner = iced::widget::Column::with_children(vec![list.boxed(), footer.boxed()])
+            .width(Length::Fill)
+            .height(Length::Fill);
+
+        let bar: Element<'_, Message> = container(inner)
+            .padding(Padding { top: 8.0, right: 0.0, bottom: 8.0, left: 0.0 })
+            .width(Length::Fixed(crate::app::SIDEBAR_WIDTH_COLLAPSED))
+            .height(Length::Fill)
+            .style(move |_| container::Style {
+                background: Some(Background::Color(bar_base)),
+                ..Default::default()
+            })
+            .boxed();
+        // Keep the right-press strip menu reachable on the rail too.
+        MouseArea::new(bar)
+            .on_right_press(Message::Tabs(TabsMessage::ShowTabBarMenu))
+            .boxed()
+    }
+
     /// The pinned `strip_order` entries as fixed strip rows: compact
     /// chips packed `chips_per_row` per row, full-style pins one per
     /// row. Used by the hidden-top-bar head when `pinned_tabs_top_bar`
@@ -349,4 +417,55 @@ impl Oryxis {
         }
         rows
     }
+}
+
+/// The rail's expand toggle, pinned at the foot of the collapsed side
+/// strip. Mirrors the vault nav rail's `rail_toggle_item` collapsed form:
+/// a centered icon button (RTL-aware panel glyph) with a tooltip, firing
+/// `ToggleSidebarCollapsed` to restore the full-width strip.
+fn side_rail_toggle_item<'a>() -> Element<'a, Message> {
+    let rtl = crate::i18n::is_rtl_layout();
+    // Collapsed → the "open/expand" glyph (chevrons pointing outward from
+    // the content edge), the physical direction the strip grows on expand.
+    let icon = if rtl {
+        iced_fonts::lucide::panel_right_open()
+    } else {
+        iced_fonts::lucide::panel_left_open()
+    };
+    let muted = OryxisColors::t().text_secondary;
+    let btn = button(container(icon.size(16).color(muted)).center(Length::Fixed(40.0)))
+        .on_press(Message::Tabs(TabsMessage::ToggleSidebarCollapsed))
+        .padding(0)
+        .width(Length::Fixed(40.0))
+        .style(|_, status| {
+            let bg = match status {
+                BtnStatus::Hovered => Color::from_rgba(1.0, 1.0, 1.0, 0.08),
+                BtnStatus::Pressed => Color::from_rgba(1.0, 1.0, 1.0, 0.14),
+                _ => Color::TRANSPARENT,
+            };
+            button::Style {
+                background: Some(Background::Color(bg)),
+                border: Border { radius: Radius::from(8.0), ..Default::default() },
+                ..Default::default()
+            }
+        });
+    iced::widget::tooltip(
+        container(btn)
+            .width(Length::Fill)
+            .center_x(Length::Fill)
+            .padding(Padding { top: 0.0, right: 8.0, bottom: 0.0, left: 8.0 }),
+        container(text(crate::i18n::t("expand")).size(11).color(OryxisColors::t().text_primary))
+            .padding(Padding { top: 4.0, right: 8.0, bottom: 4.0, left: 8.0 })
+            .style(|_| container::Style {
+                background: Some(Background::Color(OryxisColors::t().bg_surface)),
+                border: Border {
+                    radius: Radius::from(6.0),
+                    color: OryxisColors::t().border,
+                    width: 1.0,
+                },
+                ..Default::default()
+            }),
+        iced::widget::tooltip::Position::Right,
+    )
+    .boxed()
 }

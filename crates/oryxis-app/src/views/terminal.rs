@@ -411,11 +411,37 @@ impl Oryxis {
             .color(badge_color)
             .align_x(iced::alignment::Horizontal::Right);
 
+        // Opaque backing plate under the label (shrink-wrapped to the
+        // text, not the whole row). Bare floating text let a terminal
+        // line that reached the right edge render its glyphs in the same
+        // pixels as the badge, so the two collided into an unreadable
+        // smear (the reported bug). A solid rounded plate the color of
+        // the terminal background sits between the two: the cell text
+        // behind it is masked, the host name stays crisp and clearly on
+        // top, and a long line now visibly stops at the plate instead of
+        // writing through it. Shrink width keeps the plate hugging the
+        // label so it covers only the corner it occupies.
+        let colors_plate = colors;
+        let plate = container(badge)
+            .padding(Padding { top: 2.0, right: 8.0, bottom: 2.0, left: 8.0 })
+            .style(move |_| container::Style {
+                background: Some(Background::Color(Color {
+                    a: 0.88,
+                    ..colors_plate.terminal_bg
+                })),
+                border: Border {
+                    radius: Radius::from(6.0),
+                    color: Color { a: 0.35, ..badge_color },
+                    width: 1.0,
+                },
+                ..Default::default()
+            });
+
         // Float at the top-right of the terminal viewport, with a small
         // inset. Non-interactive (no MouseArea) so it stays click-through
         // over the canvas.
         Some(
-            container(badge)
+            container(plate)
                 .width(Length::Fill)
                 .height(Length::Fill)
                 .align_x(iced::alignment::Horizontal::Right)

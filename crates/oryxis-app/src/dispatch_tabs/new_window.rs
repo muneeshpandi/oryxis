@@ -690,6 +690,7 @@ impl Oryxis {
                     *p,
                     self.window_size,
                     self.vaults.cur().prefs.pinned_tabs_top_bar && !self.top_bar_hidden(),
+                    self.side_strip_width(),
                 )
         });
         let hover = over_strip.map(|cursor| crate::window_ctx::CarryHover {
@@ -763,6 +764,7 @@ impl Oryxis {
                     local,
                     rect.size(),
                     pins_top,
+                    self.side_strip_width(),
                 ))
             .then_some((*target, local))
         });

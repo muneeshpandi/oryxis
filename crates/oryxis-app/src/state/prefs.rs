@@ -391,6 +391,12 @@ pub(crate) struct AppPrefs {
     /// Side dock only: the strip runs to the window's bottom edge and
     /// the status bar spans only the content area.
     pub(crate) side_full_height: bool,
+    /// Side dock only: collapse the vertical tab strip to a narrow
+    /// icon-only rail (each tab shows just its badge, with a tooltip
+    /// naming it), mirroring the vault nav rail's collapsed form. A
+    /// footer toggle flips it; persisted as `sidebar_collapsed` so the
+    /// choice sticks across restarts.
+    pub(crate) sidebar_collapsed: bool,
     /// Master toggle for the host-monitoring feature (issue #83), in
     /// Features & Plugins. Off by default: monitoring is niche and
     /// recurring, so ALL of its UI (the sidebar Monitor tab, the
@@ -692,6 +698,7 @@ impl Default for AppPrefs {
             pinned_tabs_top_bar: false,
             side_hide_top_bar: false,
             side_full_height: false,
+            sidebar_collapsed: false,
             host_monitoring: false,
             host_monitoring_seeded: false,
             monitor_all_hosts: false,

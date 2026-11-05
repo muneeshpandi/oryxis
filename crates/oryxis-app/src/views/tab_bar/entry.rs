@@ -593,6 +593,114 @@ impl Oryxis {
         }
     }
 
+    /// One entry of the COLLAPSED side strip: an icon-only rail button
+    /// (the tab's host/OS badge, or the panel/SFTP glyph) wrapped in a
+    /// tooltip naming it, carrying the same activation message the full
+    /// chip uses. The full-chip derivation (privacy labels, drag gaps,
+    /// close X, status dots, accents) is deliberately NOT reused here:
+    /// the rail is the minimal glance surface, so it shows just the
+    /// badge + an active wash, mirroring the vault nav rail's collapsed
+    /// form. Width is fixed at `SIDEBAR_WIDTH_COLLAPSED` so the rail
+    /// lines up with the nav rail.
+    pub(crate) fn side_rail_item(&self, entry: StripEntry) -> Element<'_, Message> {
+        let colors = OryxisColors::t();
+        // Resolve (badge color, glyph element, tooltip label, active,
+        // on-press) per entry kind, reusing the same icon derivation the
+        // full chips use so a host's brand icon/colour is identical in
+        // both forms.
+        let (badge_color, glyph, label, is_active, on_press): (
+            Color,
+            Element<'_, Message>,
+            String,
+            bool,
+            Message,
+        ) = match entry {
+            StripEntry::Panel(kind) => {
+                let is_active =
+                    self.cur_active_tab().is_none() && self.cur_view() == kind.view();
+                (
+                    colors.accent,
+                    panel_icon(kind).size(12).color(Color::WHITE).boxed(),
+                    self.panel_tab_label(kind),
+                    is_active,
+                    Message::Navigation(NavigationMessage::ChangeView(kind.view())),
+                )
+            }
+            StripEntry::Sftp(idx) => {
+                let tab = &self.sftp_tabs[idx];
+                let is_active = self.cur_active_tab().is_none()
+                    && self.cur_view() == View::Sftp
+                    && self.cur_active_sftp() == Some(idx);
+                let brand = self
+                    .vaults
+                    .cur()
+                    .connections
+                    .iter()
+                    .find(|c| c.label == tab.label)
+                    .and_then(|c| c.custom_color.as_deref().or(c.color.as_deref()))
+                    .and_then(crate::widgets::parse_hex_color)
+                    .unwrap_or(colors.accent);
+                (
+                    brand,
+                    iced_fonts::lucide::folder_tree().size(12).color(Color::WHITE).boxed(),
+                    tab.display_label().to_string(),
+                    is_active,
+                    Message::Sftp(SftpMessage::SelectSftpTab(idx)),
+                )
+            }
+            StripEntry::Terminal(idx) => {
+                let tab = &self.tabs[idx];
+                let is_active = self.cur_active_tab() == Some(idx);
+                let base_label = tab
+                    .auto_label(self.tab_auto_title(tab))
+                    .trim_end_matches(" (disconnected)");
+                let detected_os = self.tab_detected_os(base_label);
+                let (brand, brand_color) =
+                    crate::os_icon::resolve_icon(detected_os.as_deref(), colors.accent);
+                (
+                    brand_color,
+                    brand.view(12.0, Color::WHITE),
+                    tab.display_label(self.tab_auto_title(tab)).to_string(),
+                    is_active,
+                    Message::Tabs(TabsMessage::TabChipClicked(idx)),
+                )
+            }
+        };
+
+        let badge = crate::widgets::host_icon(
+            crate::widgets::HostIconStyle::Rounded,
+            badge_color,
+            &label,
+            Some(glyph),
+            TAB_ICON_SLOT,
+        );
+        let btn = button(container(badge).center(Length::Fixed(40.0)))
+            .on_press(on_press)
+            .padding(0)
+            .width(Length::Fixed(40.0))
+            .style(move |_, status| {
+                let accent = OryxisColors::t().accent;
+                let bg = match status {
+                    BtnStatus::Hovered if !is_active => Color::from_rgba(1.0, 1.0, 1.0, 0.08),
+                    BtnStatus::Pressed => Color { a: 0.25, ..accent },
+                    _ if is_active => Color { a: 0.15, ..accent },
+                    _ => Color::TRANSPARENT,
+                };
+                button::Style {
+                    background: Some(Background::Color(bg)),
+                    border: Border { radius: Radius::from(8.0), ..Default::default() },
+                    ..Default::default()
+                }
+            });
+        let centered = container(btn)
+            .width(Length::Fill)
+            .center_x(Length::Fill)
+            .padding(Padding { top: 0.0, right: 8.0, bottom: 0.0, left: 8.0 });
+        // The frame-local label can't be borrowed, so the owned tooltip
+        // variant is the one that outlives this build.
+        crate::views::terminal::icon_tooltip_owned(centered.boxed(), label)
+    }
+
     /// Floating ghost of the tab being dragged (terminal or SFTP),
     /// plus its width. `None` when no drag is active. The caller
     /// positions it over its strip: the horizontal bars track the

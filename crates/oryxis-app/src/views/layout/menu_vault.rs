@@ -683,6 +683,23 @@ impl Oryxis {
         if !self.vaults.cur().closed_tabs.is_empty() {
             items = items.push(self.menu_item(iced_fonts::lucide::rotate_ccw(), crate::i18n::t("reopen_closed_tab"), Message::Tabs(TabsMessage::ReopenClosedTab), OryxisColors::t().text_secondary));
         }
+        // Collapse / expand the side strip to its icon rail. Only on a
+        // side dock, where the vertical strip exists at all: the
+        // horizontal strips have no collapsed form.
+        if crate::views::tab_bar::tab_bar_pos().is_side() {
+            let collapsed = self.vaults.cur().prefs.sidebar_collapsed;
+            let (icon, label) = if collapsed {
+                (iced_fonts::lucide::panel_left_open(), crate::i18n::t("expand_sidebar"))
+            } else {
+                (iced_fonts::lucide::panel_left_close(), crate::i18n::t("collapse_sidebar"))
+            };
+            items = items.push(self.menu_item(
+                icon,
+                label,
+                Message::Tabs(TabsMessage::ToggleSidebarCollapsed),
+                OryxisColors::t().text_secondary,
+            ));
+        }
         // Same block as the `+` popover's, recorded for keynav here
         // because this surface is one and that one is not.
         for row in self.recent_host_rows(true) {
@@ -695,7 +712,8 @@ impl Oryxis {
     /// `split_menu_rows` is.
     pub(crate) fn tab_bar_menu_rows(&self) -> f32 {
         let base: f32 = if self.vaults.cur().closed_tabs.is_empty() { 1.0 } else { 2.0 };
-        base + self.recent_host_menu_rows()
+        let collapse_row = if crate::views::tab_bar::tab_bar_pos().is_side() { 1.0 } else { 0.0 };
+        base + collapse_row + self.recent_host_menu_rows()
     }
 
     pub(crate) fn build_menu_sort(&self, kind: crate::state::SortMenuKind) -> Element<'_, Message> {

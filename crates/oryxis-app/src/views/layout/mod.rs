@@ -206,9 +206,24 @@ impl Oryxis {
     /// or its content overflows under / behind the strip.
     pub(crate) fn side_strip_reserve(&self) -> f32 {
         if crate::views::tab_bar::tab_bar_pos().is_side() {
-            crate::views::tab_bar::SIDE_STRIP_WIDTH + 2.0
+            self.side_strip_width() + 2.0
         } else {
             0.0
+        }
+    }
+
+    /// The side strip's current rendered width. `SIDE_STRIP_WIDTH` is
+    /// the full form; the collapsed icon rail shrinks it to
+    /// `SIDEBAR_WIDTH_COLLAPSED` (shared with the vault nav rail so the
+    /// two sidebars read at the same narrow width). Every width budget
+    /// and window-x↔content-x mapping that used the constant must go
+    /// through this instead, or the content and hit-testing drift from
+    /// the strip the moment it collapses.
+    pub(crate) fn side_strip_width(&self) -> f32 {
+        if self.vaults.cur().prefs.sidebar_collapsed {
+            crate::app::SIDEBAR_WIDTH_COLLAPSED
+        } else {
+            crate::views::tab_bar::SIDE_STRIP_WIDTH
         }
     }
 
@@ -217,7 +232,7 @@ impl Oryxis {
     /// when the strip docks right (content starts at the window edge).
     pub(crate) fn side_strip_left_offset(&self) -> f32 {
         if crate::views::tab_bar::tab_bar_pos() == crate::views::tab_bar::TabBarPos::Left {
-            crate::views::tab_bar::SIDE_STRIP_WIDTH + 2.0
+            self.side_strip_width() + 2.0
         } else {
             0.0
         }

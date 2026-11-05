@@ -386,6 +386,11 @@ impl Oryxis {
                     .on_input(|v| Message::MultiVault(MultiVaultMessage::VaultDialogNameChanged(v)))
                     .on_submit(submit.clone())
                     .padding(10)
+                    // 13px to match the app's inline form controls
+                    // (password fields, option rows); without it the
+                    // field fell back to iced's ~16px default and read
+                    // larger than every other input.
+                    .size(13)
                     .width(Length::Fill)
                     .style(crate::widgets::rounded_input_style)
                     .align_x(dir_align_x())
@@ -414,6 +419,12 @@ impl Oryxis {
                         .on_select(|choice: CopySettingsChoice| {
                             Message::MultiVault(MultiVaultMessage::NewVaultCopyFromChanged(choice.vault))
                         })
+                        // Match the name input's 13px and the app's
+                        // shared surface/border style so the dropdown
+                        // lines up with the rest of the form.
+                        .text_size(13)
+                        .padding(10)
+                        .style(crate::widgets::rounded_pick_list_style)
                         .width(Length::Fill)
                         .boxed(),
                 ))

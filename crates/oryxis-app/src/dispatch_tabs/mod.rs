@@ -133,6 +133,7 @@ impl Oryxis {
                 | TabsMessage::TabBarWheel(..)
                 | TabsMessage::ShowTabMenu(..)
                 | TabsMessage::ShowTabBarMenu
+                | TabsMessage::ToggleSidebarCollapsed
                 | TabsMessage::ShowSplitMenu
                 | TabsMessage::SplitMenuEnter
                 | TabsMessage::SplitMenuLeave

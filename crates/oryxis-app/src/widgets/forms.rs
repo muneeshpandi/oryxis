@@ -96,7 +96,16 @@ pub(crate) fn password_placeholder(has_existing: bool, touched: bool, empty_hint
 /// [`form_save_button`] inside [`form_footer`]; wrap in the surface's
 /// keynav slot at the call site (the layer differs per surface).
 pub(crate) fn form_cancel_button<'a>(msg: Message) -> Element<'a, Message> {
-    styled_button(crate::i18n::t("cancel"), msg, OryxisColors::t().text_muted)
+    cancel_button(msg)
+}
+
+/// The canonical Cancel / dismiss button, solid red across the whole
+/// app. Every Cancel affordance should route through here so the color
+/// stays consistent: one definition, one place to change. Uses the
+/// theme's `error` red (the same fill destructive actions use); the
+/// label foreground is auto-contrasted by `styled_button`.
+pub(crate) fn cancel_button<'a>(msg: Message) -> Element<'a, Message> {
+    styled_button(crate::i18n::t("cancel"), msg, OryxisColors::t().error)
 }
 
 /// The standard editor primary button (accent). `on_save: None`

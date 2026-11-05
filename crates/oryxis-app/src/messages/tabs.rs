@@ -118,6 +118,11 @@ pub enum TabsMessage {
     /// captures its right press, so this only ever fires from the empty
     /// area the strip also drags the window by.
     ShowTabBarMenu,
+    /// Collapse / expand the side-docked vertical tab strip to its
+    /// narrow icon-only rail (issue: sidebar minimizer). Mirrors the
+    /// vault nav rail's `ToggleNavRailExpanded`; flips
+    /// `prefs.sidebar_collapsed` and persists it.
+    ToggleSidebarCollapsed,
     ReconnectTab(usize),
     DuplicateTab(usize),
     DuplicateInNewWindow(usize),

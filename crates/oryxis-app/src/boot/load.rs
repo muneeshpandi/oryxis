@@ -1069,6 +1069,9 @@ impl Oryxis {
             if let Ok(Some(v)) = vault.get_setting("side_full_height") {
                 ov.prefs.side_full_height = v == "true";
             }
+            if let Ok(Some(v)) = vault.get_setting("sidebar_collapsed") {
+                ov.prefs.sidebar_collapsed = v == "true";
+            }
             if let Ok(Some(v)) = vault.get_setting("sftp_enabled") {
                 ov.sftp_enabled = v == "true";
             }

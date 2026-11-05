@@ -171,6 +171,17 @@ impl Oryxis {
                     y: anchor.1,
                 });
             }
+            TabsMessage::ToggleSidebarCollapsed => {
+                // Flip the side strip between its full-width form and the
+                // narrow icon-only rail, mirroring the vault nav rail's
+                // expand/collapse. Persisted so the choice sticks.
+                self.vaults.cur_mut().prefs.sidebar_collapsed =
+                    !self.vaults.cur().prefs.sidebar_collapsed;
+                self.persist_setting(
+                    "sidebar_collapsed",
+                    if self.vaults.cur().prefs.sidebar_collapsed { "true" } else { "false" },
+                );
+            }
             TabsMessage::ShowTabBarMenu => {
                 // The strip's own menu, at the cursor. A chip's right
                 // press is captured by the chip, so reaching here means

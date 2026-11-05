@@ -122,6 +122,12 @@ pub(crate) fn cursor_in_tab_strip_band(
     cursor: iced::Point,
     window: iced::Size,
     pins_in_top_bar: bool,
+    // The side strip's CURRENT width. `SIDE_STRIP_WIDTH` in the full
+    // form, `SIDEBAR_WIDTH_COLLAPSED` when the icon rail is collapsed;
+    // passing it keeps the band hugging the rail so a press in the
+    // content doesn't read as a strip press after collapse. Ignored for
+    // the horizontal docks.
+    side_strip_width: f32,
 ) -> bool {
     match pos {
         TabBarPos::Top => cursor.y <= BAR_HEIGHT,
@@ -130,11 +136,11 @@ pub(crate) fn cursor_in_tab_strip_band(
         // without leaking far into the content above it.
         TabBarPos::Bottom => cursor.y >= window.height - BAR_HEIGHT - 40.0,
         TabBarPos::Left => {
-            cursor.x <= SIDE_STRIP_WIDTH + 2.0
+            cursor.x <= side_strip_width + 2.0
                 || (pins_in_top_bar && cursor.y <= BAR_HEIGHT)
         }
         TabBarPos::Right => {
-            cursor.x >= window.width - SIDE_STRIP_WIDTH - 2.0
+            cursor.x >= window.width - side_strip_width - 2.0
                 || (pins_in_top_bar && cursor.y <= BAR_HEIGHT)
         }
     }
@@ -590,9 +596,9 @@ mod tests {
     #[test]
     fn top_dock_band_is_the_top_strip_only() {
         let p = TabBarPos::Top;
-        assert!(cursor_in_tab_strip_band(p, Point::new(800.0, 10.0), WIN, false));
+        assert!(cursor_in_tab_strip_band(p, Point::new(800.0, 10.0), WIN, false, SIDE_STRIP_WIDTH));
         // A press deep in the content below the strip is rejected.
-        assert!(!cursor_in_tab_strip_band(p, Point::new(800.0, 500.0), WIN, false));
+        assert!(!cursor_in_tab_strip_band(p, Point::new(800.0, 500.0), WIN, false, SIDE_STRIP_WIDTH));
     }
 
     #[test]
@@ -600,17 +606,17 @@ mod tests {
         let p = TabBarPos::Bottom;
         // The old `y <= BAR_HEIGHT` guard rejected this, silently
         // breaking bottom-dock reorder; the edge-aware band accepts it.
-        assert!(cursor_in_tab_strip_band(p, Point::new(800.0, 880.0), WIN, false));
-        assert!(!cursor_in_tab_strip_band(p, Point::new(800.0, 400.0), WIN, false));
+        assert!(cursor_in_tab_strip_band(p, Point::new(800.0, 880.0), WIN, false, SIDE_STRIP_WIDTH));
+        assert!(!cursor_in_tab_strip_band(p, Point::new(800.0, 400.0), WIN, false, SIDE_STRIP_WIDTH));
     }
 
     #[test]
     fn left_dock_band_is_the_leading_column() {
         let p = TabBarPos::Left;
         // A tab lower down the left strip (the exact reported failure).
-        assert!(cursor_in_tab_strip_band(p, Point::new(100.0, 600.0), WIN, false));
+        assert!(cursor_in_tab_strip_band(p, Point::new(100.0, 600.0), WIN, false, SIDE_STRIP_WIDTH));
         // A press in the content to the right is rejected.
-        assert!(!cursor_in_tab_strip_band(p, Point::new(800.0, 600.0), WIN, false));
+        assert!(!cursor_in_tab_strip_band(p, Point::new(800.0, 600.0), WIN, false, SIDE_STRIP_WIDTH));
     }
 
     #[test]
@@ -620,9 +626,10 @@ mod tests {
             p,
             Point::new(WIN.width - 100.0, 600.0),
             WIN,
-            false
+            false,
+            SIDE_STRIP_WIDTH
         ));
-        assert!(!cursor_in_tab_strip_band(p, Point::new(800.0, 600.0), WIN, false));
+        assert!(!cursor_in_tab_strip_band(p, Point::new(800.0, 600.0), WIN, false, SIDE_STRIP_WIDTH));
     }
 
     #[test]
@@ -659,7 +666,7 @@ mod tests {
         // Docked pins live in the top bar: a press up there must arm
         // their drag, but only while that top bar is actually present.
         let top = Point::new(800.0, 12.0);
-        assert!(cursor_in_tab_strip_band(TabBarPos::Left, top, WIN, true));
-        assert!(!cursor_in_tab_strip_band(TabBarPos::Left, top, WIN, false));
+        assert!(cursor_in_tab_strip_band(TabBarPos::Left, top, WIN, true, SIDE_STRIP_WIDTH));
+        assert!(!cursor_in_tab_strip_band(TabBarPos::Left, top, WIN, false, SIDE_STRIP_WIDTH));
     }
 }

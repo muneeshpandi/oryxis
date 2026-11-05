@@ -37,6 +37,7 @@ impl Oryxis {
             self.strip_cursor(),
             self.cur_window_size(),
             self.vaults.cur().prefs.pinned_tabs_top_bar && !self.top_bar_hidden(),
+            self.side_strip_width(),
         )
     }
 
