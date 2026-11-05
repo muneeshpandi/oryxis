@@ -399,35 +399,20 @@ impl Oryxis {
     /// a docked AI panel. `None` when there is no saved host.
     pub(crate) fn terminal_header_label(&self) -> Option<Element<'_, Message>> {
         let (label, color) = self.active_host_identity()?;
-        // Same format as the old floating badge: BOLD, at the
-        // user-configurable `host_badge_font_size` (Settings → Interface,
-        // default 18, range 10–28), so the header reads large and clean
-        // and still honours the size the user picked.
+        // Same format as the old floating badge: bare BOLD text (no
+        // dot / plate) at the user-configurable `host_badge_font_size`
+        // (Settings → Interface, default 18, range 10–28), in the host's
+        // own colour.
         let size = self.vaults.cur().prefs.host_badge_font_size;
-        // Dot scaled to the font so it stays proportional as the size
-        // changes (≈45% of the cap height reads as a tidy bullet).
-        let dot = (size * 0.45).round().max(7.0);
         Some(
-            crate::widgets::dir_row(vec![
-                container(Space::new().width(dot).height(dot))
-                    .style(move |_| container::Style {
-                        background: Some(Background::Color(color)),
-                        border: Border { radius: Radius::from(dot / 2.0), ..Default::default() },
-                        ..Default::default()
-                    })
-                    .boxed(),
-                Space::new().width(8).boxed(),
-                text(label)
-                    .size(size)
-                    .font(iced::Font {
-                        weight: iced::font::Weight::Bold,
-                        ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
-                    })
-                    .color(color)
-                    .boxed(),
-            ])
-            .align_y(iced::Alignment::Center)
-            .boxed(),
+            text(label)
+                .size(size)
+                .font(iced::Font {
+                    weight: iced::font::Weight::Bold,
+                    ..iced::Font::new(crate::theme::SYSTEM_UI_FAMILY)
+                })
+                .color(color)
+                .boxed(),
         )
     }
 
