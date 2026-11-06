@@ -285,6 +285,9 @@ impl Oryxis {
                 self.vaults.cur_mut().cloud_form.test_state = CloudTestState::Idle;
             }
             CloudMessage::CloudFormTestCredentials => {
+                // Same flush as Save: test against the region the user
+                // typed even if they didn't press Enter.
+                self.flush_cloud_region_draft();
                 let provider_id = self.vaults.cur().cloud_form.provider.id();
                 let registry: Arc<CloudProviderRegistry> =
                     self.cloud_provider_registry.clone();
@@ -314,6 +317,10 @@ impl Oryxis {
                 };
             }
             CloudMessage::SaveCloudProfile => {
+                // Commit a typed-but-not-Entered region so it is saved
+                // rather than dropped (the "region keeps disappearing"
+                // bug).
+                self.flush_cloud_region_draft();
                 let label = self.vaults.cur().cloud_form.label.trim().to_string();
                 if label.is_empty() {
                     self.vaults.cur_mut().cloud_form.error =

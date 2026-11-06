@@ -457,6 +457,30 @@ impl Oryxis {
         Some(profile)
     }
 
+    /// Commit any text sitting in the AWS region input box into the
+    /// `aws_regions` chip list, the same way pressing Enter
+    /// (`CloudFormAwsRegionAdd`) does. Called before Save and Test so a
+    /// region the user typed but did not press Enter on is not silently
+    /// dropped — the reported "I set the region and it keeps
+    /// disappearing" bug, which left discovery with no region at all.
+    pub(super) fn flush_cloud_region_draft(&mut self) {
+        let draft = self.vaults.cur().cloud_form.aws_region_draft.clone();
+        if draft.trim().is_empty() {
+            return;
+        }
+        let parts: Vec<String> = draft
+            .split(|c: char| c == ',' || c.is_whitespace())
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
+        for p in parts {
+            if !self.vaults.cur().cloud_form.aws_regions.contains(&p) {
+                self.vaults.cur_mut().cloud_form.aws_regions.push(p);
+            }
+        }
+        self.vaults.cur_mut().cloud_form.aws_region_draft.clear();
+    }
+
     pub(super) fn serialize_cloud_form_config(&self) -> String {
         let mut obj = serde_json::Map::new();
         let put = |obj: &mut serde_json::Map<String, serde_json::Value>, k: &str, v: &str| {
