@@ -152,18 +152,32 @@ impl Oryxis {
                 .width(Length::Fill)
                 .boxed()
         } else {
-            // Editing an existing host: NOTHING. Removing the Save
-            // button was about removing the footer, not about replacing
-            // it with a caption; a standing "changes are saved
-            // automatically" is a label the user reads once and then
-            // has to look past forever. The write happens when the
-            // drawer closes (dispatch_editor/autosave.rs), which is the
-            // same gesture that already means "done", so there is
-            // nothing here to confirm and nothing to press. Enter
-            // saves-and-closes via the fields' on_submit; Esc / X
-            // flush on their way out; only a FAILED write speaks up
-            // (inline error + toast).
-            Space::new().boxed()
+            // Editing an existing host: an explicit Cancel / Save footer
+            // (matching every other editor's `form_footer`), so the save
+            // affordance is visible and consistent rather than implicit.
+            // The underlying model is still auto-save on close, so:
+            //   Save   = commit the edits and close (reuse EditorSave).
+            //   Cancel = discard the edits and close (EditorDiscardClose,
+            //            which drops the baseline so the close-flush net
+            //            persists nothing). Solid red, like every Cancel.
+            // Recorded on the panel keynav ring in visual order (cancel
+            // then save), built after the fields so they land last.
+            let cancel = self.panel_nav_slot(
+                crate::keynav::RowAction::activate(Message::Editor(EditorMessage::EditorDiscardClose)),
+                6.0,
+                crate::widgets::form_cancel_button(Message::Editor(EditorMessage::EditorDiscardClose)),
+            );
+            let save = self.panel_nav_slot(
+                crate::keynav::RowAction::activate(Message::Editor(EditorMessage::EditorSave)),
+                6.0,
+                crate::widgets::form_save_button(
+                    crate::i18n::t("save"),
+                    Some(Message::Editor(EditorMessage::EditorSave)),
+                ),
+            );
+            dir_row(vec![cancel, Space::new().width(8).boxed(), save])
+                .width(Length::Fill)
+                .boxed()
         };
         actions_row
     }

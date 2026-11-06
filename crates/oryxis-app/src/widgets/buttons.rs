@@ -223,26 +223,55 @@ pub(crate) fn styled_icon_button<'a>(
 /// with no hover feedback, each hand-built at its call site. Route new
 /// header closers through here rather than re-typing `button(text("×"))`.
 pub(crate) fn panel_close_button<'a>(msg: Message) -> Element<'a, Message> {
-    button(
-        text("\u{00D7}")
-            .size(18)
-            .color(OryxisColors::t().text_muted),
-    )
-    .on_press(msg)
-    .padding(Padding { top: 4.0, right: 8.0, bottom: 4.0, left: 8.0 })
-    .style(|_, status| {
-        // Transparent until hovered/pressed, then a faint wash so the
-        // corner answers the pointer like the other icon affordances.
-        let bg = match status {
-            iced::widget::button::Status::Hovered => Color::from_rgba(1.0, 1.0, 1.0, 0.08),
-            iced::widget::button::Status::Pressed => Color::from_rgba(1.0, 1.0, 1.0, 0.12),
-            _ => Color::TRANSPARENT,
-        };
-        button::Style {
-            background: Some(Background::Color(bg)),
-            border: Border { radius: Radius::from(6.0), ..Default::default() },
-            ..Default::default()
-        }
-    })
-    .boxed()
+    panel_close_button_styled(msg, false)
+}
+
+/// Solid-red variant of [`panel_close_button`] for headers where the
+/// close should read as a strong, deliberate action (the Edit Host
+/// tray). Filled with the theme `error` red, a contrast-picked glyph on
+/// top, darkening on hover/press. Scoped by the `danger` flag so the
+/// other app headers keep the muted default.
+pub(crate) fn panel_close_button_danger<'a>(msg: Message) -> Element<'a, Message> {
+    panel_close_button_styled(msg, true)
+}
+
+fn panel_close_button_styled<'a>(msg: Message, danger: bool) -> Element<'a, Message> {
+    let glyph_color = if danger {
+        crate::theme::contrast_text_for(OryxisColors::t().error)
+    } else {
+        OryxisColors::t().text_muted
+    };
+    button(text("\u{00D7}").size(18).color(glyph_color))
+        .on_press(msg)
+        .padding(Padding { top: 4.0, right: 8.0, bottom: 4.0, left: 8.0 })
+        .style(move |_, status| {
+            let bg = if danger {
+                let err = OryxisColors::t().error;
+                match status {
+                    iced::widget::button::Status::Hovered => Color {
+                        r: (err.r + 0.05).min(1.0),
+                        g: (err.g + 0.05).min(1.0),
+                        b: (err.b + 0.05).min(1.0),
+                        a: 1.0,
+                    },
+                    iced::widget::button::Status::Pressed => Color { a: 0.85, ..err },
+                    _ => err,
+                }
+            } else {
+                // Transparent until hovered/pressed, then a faint wash so
+                // the corner answers the pointer like the other icon
+                // affordances.
+                match status {
+                    iced::widget::button::Status::Hovered => Color::from_rgba(1.0, 1.0, 1.0, 0.08),
+                    iced::widget::button::Status::Pressed => Color::from_rgba(1.0, 1.0, 1.0, 0.12),
+                    _ => Color::TRANSPARENT,
+                }
+            };
+            button::Style {
+                background: Some(Background::Color(bg)),
+                border: Border { radius: Radius::from(6.0), ..Default::default() },
+                ..Default::default()
+            }
+        })
+        .boxed()
 }

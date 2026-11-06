@@ -166,7 +166,7 @@ impl Oryxis {
                 .id(iced::widget::Id::new("panel-cloud-name"))
                 .on_input(|v| Message::Cloud(CloudMessage::CloudFormLabelChanged(v)))
                 .padding(10)
-                .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
+                .size(13).style(crate::widgets::rounded_input_style).align_x(dir_align_x())
                 .boxed(),
         );
 
@@ -299,7 +299,7 @@ impl Oryxis {
                         .on_input(|v| Message::Cloud(CloudMessage::CloudFormAwsRegionDraftChanged(v)))
                         .on_submit(Message::Cloud(CloudMessage::CloudFormAwsRegionAdd))
                         .padding(10)
-                        .style(crate::widgets::rounded_input_style)
+                        .size(13).style(crate::widgets::rounded_input_style)
                         .align_x(dir_align_x())
                         .boxed(),
                 ),
@@ -328,7 +328,7 @@ impl Oryxis {
                         .id(iced::widget::Id::new("panel-cloud-aws-profile"))
                         .on_input(|v| Message::Cloud(CloudMessage::CloudFormAwsProfileNameChanged(v)))
                         .padding(10)
-                        .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
+                        .size(13).style(crate::widgets::rounded_input_style).align_x(dir_align_x())
                         .boxed(),
                 ),
                 Space::new().height(14),
@@ -354,7 +354,7 @@ impl Oryxis {
                             .id(iced::widget::Id::new("panel-cloud-aws-key-id"))
                             .on_input(|v| Message::Cloud(CloudMessage::CloudFormAwsAccessKeyIdChanged(v)))
                             .padding(10)
-                            .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
+                            .size(13).style(crate::widgets::rounded_input_style).align_x(dir_align_x())
                             .boxed(),
                     ),
                     Space::new().height(14),
@@ -401,7 +401,7 @@ impl Oryxis {
                             .id(iced::widget::Id::new("panel-cloud-aws-session-token"))
                             .on_input(|v| Message::Cloud(CloudMessage::CloudFormAwsAccessKeySessionTokenChanged(v.into())))
                             .padding(10)
-                            .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
+                            .size(13).style(crate::widgets::rounded_input_style).align_x(dir_align_x())
                             .boxed(),
                     ),
                     Space::new().height(14),
@@ -422,7 +422,7 @@ impl Oryxis {
                         .id(iced::widget::Id::new("panel-cloud-sso-start-url"))
                         .on_input(|v| Message::Cloud(CloudMessage::CloudFormAwsSsoStartUrlChanged(v)))
                         .padding(10)
-                        .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
+                        .size(13).style(crate::widgets::rounded_input_style).align_x(dir_align_x())
                         .boxed(),
                 ),
                 Space::new().height(14),
@@ -439,7 +439,7 @@ impl Oryxis {
                         .id(iced::widget::Id::new("panel-cloud-sso-region"))
                         .on_input(|v| Message::Cloud(CloudMessage::CloudFormAwsSsoRegionChanged(v)))
                         .padding(10)
-                        .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
+                        .size(13).style(crate::widgets::rounded_input_style).align_x(dir_align_x())
                         .boxed(),
                 ),
                 Space::new().height(14),
@@ -456,7 +456,7 @@ impl Oryxis {
                         .id(iced::widget::Id::new("panel-cloud-sso-account"))
                         .on_input(|v| Message::Cloud(CloudMessage::CloudFormAwsSsoAccountIdChanged(v)))
                         .padding(10)
-                        .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
+                        .size(13).style(crate::widgets::rounded_input_style).align_x(dir_align_x())
                         .boxed(),
                 ),
                 Space::new().height(14),
@@ -473,7 +473,7 @@ impl Oryxis {
                         .id(iced::widget::Id::new("panel-cloud-sso-role"))
                         .on_input(|v| Message::Cloud(CloudMessage::CloudFormAwsSsoRoleNameChanged(v)))
                         .padding(10)
-                        .style(crate::widgets::rounded_input_style).align_x(dir_align_x())
+                        .size(13).style(crate::widgets::rounded_input_style).align_x(dir_align_x())
                         .boxed(),
                 ),
                 Space::new().height(14),
@@ -497,7 +497,7 @@ impl Oryxis {
                         .id(iced::widget::Id::new("panel-cloud-kubeconfig-path"))
                         .on_input(|v| Message::Cloud(CloudMessage::CloudFormKubeconfigPathChanged(v)))
                         .padding(10)
-                        .style(crate::widgets::rounded_input_style)
+                        .size(13).style(crate::widgets::rounded_input_style)
                         .align_x(dir_align_x())
                         .boxed(),
                 ),
@@ -519,7 +519,7 @@ impl Oryxis {
                         .id(iced::widget::Id::new("panel-cloud-k8s-context"))
                         .on_input(|v| Message::Cloud(CloudMessage::CloudFormContextChanged(v)))
                         .padding(10)
-                        .style(crate::widgets::rounded_input_style)
+                        .size(13).style(crate::widgets::rounded_input_style)
                         .align_x(dir_align_x())
                         .boxed(),
                 ),
@@ -548,7 +548,7 @@ impl Oryxis {
                         .id(iced::widget::Id::new("panel-cloud-gcp-project"))
                         .on_input(|v| Message::Cloud(CloudMessage::CloudFormGcpProjectChanged(v)))
                         .padding(10)
-                        .style(crate::widgets::rounded_input_style)
+                        .size(13).style(crate::widgets::rounded_input_style)
                         .align_x(dir_align_x())
                         .boxed(),
                 ),
@@ -580,7 +580,7 @@ impl Oryxis {
                     .id(iced::widget::Id::new("panel-cloud-azure-subscription"))
                     .on_input(|v| Message::Cloud(CloudMessage::CloudFormAzureSubscriptionChanged(v)))
                     .padding(10)
-                    .style(crate::widgets::rounded_input_style)
+                    .size(13).style(crate::widgets::rounded_input_style)
                     .align_x(dir_align_x())
                     .boxed(),
                 ),
@@ -609,7 +609,7 @@ impl Oryxis {
                         .id(iced::widget::Id::new("panel-cloud-cli-profile"))
                         .on_input(|v| Message::Cloud(CloudMessage::CloudFormCliProfileChanged(v)))
                         .padding(10)
-                        .style(crate::widgets::rounded_input_style)
+                        .size(13).style(crate::widgets::rounded_input_style)
                         .align_x(dir_align_x())
                         .boxed(),
                 ),
@@ -631,7 +631,7 @@ impl Oryxis {
                         .id(iced::widget::Id::new("panel-cloud-cli-region"))
                         .on_input(|v| Message::Cloud(CloudMessage::CloudFormCliRegionChanged(v)))
                         .padding(10)
-                        .style(crate::widgets::rounded_input_style)
+                        .size(13).style(crate::widgets::rounded_input_style)
                         .align_x(dir_align_x())
                         .boxed(),
                 ),
@@ -660,7 +660,7 @@ impl Oryxis {
                         .id(iced::widget::Id::new("panel-cloud-cli-profile"))
                         .on_input(|v| Message::Cloud(CloudMessage::CloudFormCliProfileChanged(v)))
                         .padding(10)
-                        .style(crate::widgets::rounded_input_style)
+                        .size(13).style(crate::widgets::rounded_input_style)
                         .align_x(dir_align_x())
                         .boxed(),
                 ),
@@ -682,7 +682,7 @@ impl Oryxis {
                         .id(iced::widget::Id::new("panel-cloud-cli-region"))
                         .on_input(|v| Message::Cloud(CloudMessage::CloudFormCliRegionChanged(v)))
                         .padding(10)
-                        .style(crate::widgets::rounded_input_style)
+                        .size(13).style(crate::widgets::rounded_input_style)
                         .align_x(dir_align_x())
                         .boxed(),
                 ),

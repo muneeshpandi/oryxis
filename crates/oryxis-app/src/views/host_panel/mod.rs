@@ -223,7 +223,7 @@ impl Oryxis {
             dir_row(vec![
                 text(title).size(16).color(OryxisColors::t().text_primary).boxed(),
                 Space::new().width(Length::Fill).boxed(),
-                crate::widgets::panel_close_button(Message::Editor(EditorMessage::EditorCancel)).boxed(),
+                crate::widgets::panel_close_button_danger(Message::Editor(EditorMessage::EditorCancel)).boxed(),
             ]).align_y(iced::Alignment::Center),
         )
         // top 12 (not 16): the taller ×-button row centres the title, so a

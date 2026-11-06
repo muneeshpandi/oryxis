@@ -198,6 +198,13 @@ pub enum EditorMessage {
     /// memory) and dispatches `QuickConnect`. New-host flow only.
     EditorConnectWithoutSaving,
     EditorCancel,
+    /// Close the host editor and DISCARD the pending edits of an
+    /// existing host (the explicit Cancel footer button). Unlike
+    /// `EditorCancel` / the X — which flush-then-close under the
+    /// auto-save model — this one drops the editor's baseline snapshot
+    /// first so the close-flush net writes nothing, then closes without
+    /// persisting. The stored row is left exactly as it was.
+    EditorDiscardClose,
     /// Ask for confirmation before removing a host. Confirming dispatches
     /// `DeleteConnection`. Destructive removals are routed through a confirm
     /// dialog so a stray click can't silently drop a host.

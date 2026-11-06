@@ -1015,6 +1015,7 @@ impl Oryxis {
                 | EditorMessage::EditorSave
                 | EditorMessage::EditorConnectWithoutSaving
                 | EditorMessage::EditorCancel
+                | EditorMessage::EditorDiscardClose
                 | EditorMessage::RequestDeleteConnection(..)
                 | EditorMessage::DeleteConnection(..)
                 | EditorMessage::DuplicateConnection(..)

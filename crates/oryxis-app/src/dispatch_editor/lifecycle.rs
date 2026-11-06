@@ -255,6 +255,21 @@ impl Oryxis {
                 self.vaults.cur_mut().editor_form.sweep_secrets();
                 self.vaults.cur_mut().editor_saved_snapshot = None;
             }
+            EditorMessage::EditorDiscardClose => {
+                // Explicit Cancel on an existing host: DISCARD the edits.
+                // Dropping the baseline snapshot FIRST makes
+                // `editor_owns_write()` false, so neither the flush here
+                // nor the post-update close-flush net
+                // (`editor_flush_on_close`) persists anything — the
+                // stored row is left exactly as it was. We then close
+                // like the other paths. (A NEW host had nothing written
+                // either way, so Cancel there simply closes.)
+                self.vaults.cur_mut().editor_saved_snapshot = None;
+                self.vaults.cur_mut().panels.host_panel = false;
+                self.panel_nav_clear();
+                self.vaults.cur_mut().host_panel_error = None;
+                self.vaults.cur_mut().editor_form.sweep_secrets();
+            }
             EditorMessage::RequestDeleteConnection(idx) => {
                 if let Some(conn) = self.vaults.cur().connections.get(idx) {
                     let name = conn.label.clone();
