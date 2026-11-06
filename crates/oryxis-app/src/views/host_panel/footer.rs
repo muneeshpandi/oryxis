@@ -3,7 +3,7 @@
 use super::*;
 
 impl Oryxis {
-    pub(super) fn hp_actions_row(&self, has_address: bool) -> Element<'_, Message> {
+    pub(super) fn hp_actions_row(&self, _has_address: bool) -> Element<'_, Message> {
         // ── Bottom actions ──
         // New-host flow: Connect (without saving) sits BEFORE Save both
         // visually and in the panel-nav recording. Quick-edit flow
@@ -15,47 +15,65 @@ impl Oryxis {
         // its own visual order (recording happens at construction).
         let quick_flow = self.vaults.cur().editor_form.quick_flow;
         let save_primary = !quick_flow;
-        let save_btn_bg = if save_primary && has_address {
-            OryxisColors::t().accent
-        } else {
-            OryxisColors::t().bg_surface
+        // Both footer buttons are SOLID for a clean, consistent look:
+        // the primary action fills with the accent, the secondary with a
+        // neutral solid surface (`bg_selected`) — never a faint outlined
+        // box. Emphasis is the accent-vs-neutral contrast, not fill vs.
+        // no-fill. (Previously Save only turned solid once an address was
+        // typed and Connect was a flat outline, so the footer read washed
+        // out.) Primary text pairs with `button_text`; the neutral solid
+        // keeps the readable `text_primary`.
+        let primary_style = |_: &iced::Theme, status: button::Status| {
+            let accent = OryxisColors::t().accent;
+            let bg = match status {
+                button::Status::Hovered => Color {
+                    r: (accent.r + 0.05).min(1.0),
+                    g: (accent.g + 0.05).min(1.0),
+                    b: (accent.b + 0.05).min(1.0),
+                    a: 1.0,
+                },
+                button::Status::Pressed => Color { a: 0.85, ..accent },
+                _ => accent,
+            };
+            button::Style {
+                background: Some(Background::Color(bg)),
+                border: Border { radius: Radius::from(6.0), ..Default::default() },
+                ..Default::default()
+            }
+        };
+        let secondary_style = |_: &iced::Theme, status: button::Status| {
+            let bg = match status {
+                button::Status::Hovered | button::Status::Pressed => OryxisColors::t().bg_hover,
+                _ => OryxisColors::t().bg_selected,
+            };
+            button::Style {
+                background: Some(Background::Color(bg)),
+                border: Border { radius: Radius::from(6.0), ..Default::default() },
+                ..Default::default()
+            }
         };
         let make_save_btn = |app: &Self| -> Element<'_, Message> {
+            let fg = if save_primary {
+                OryxisColors::t().button_text
+            } else {
+                OryxisColors::t().text_primary
+            };
             app.panel_nav_slot(
                 crate::keynav::RowAction::activate(Message::Editor(EditorMessage::EditorSave)),
                 8.0,
                 button(
-                    container(text(crate::i18n::t("save")).size(12).color(OryxisColors::t().text_primary))
+                    container(text(crate::i18n::t("save")).size(12).color(fg))
                         .padding(Padding { top: 7.0, right: 0.0, bottom: 7.0, left: 0.0 })
                         .width(Length::Fill)
                         .center_x(Length::Fill),
                 )
                 .on_press(Message::Editor(EditorMessage::EditorSave))
                 .width(Length::Fill)
-                .style(move |_, status| {
-                    let bg = if save_primary {
-                        save_btn_bg
+                .style(move |t, status| {
+                    if save_primary {
+                        primary_style(t, status)
                     } else {
-                        match status {
-                            button::Status::Hovered | button::Status::Pressed => {
-                                OryxisColors::t().bg_hover
-                            }
-                            _ => OryxisColors::t().bg_surface,
-                        }
-                    };
-                    let border = if save_primary {
-                        Border { radius: Radius::from(6.0), ..Default::default() }
-                    } else {
-                        Border {
-                            radius: Radius::from(6.0),
-                            width: 1.0,
-                            color: OryxisColors::t().border,
-                        }
-                    };
-                    button::Style {
-                        background: Some(Background::Color(bg)),
-                        border,
-                        ..Default::default()
+                        secondary_style(t, status)
                     }
                 })
                 .boxed(),
@@ -68,53 +86,34 @@ impl Oryxis {
         // The short label gets a tooltip spelling out that nothing is
         // written to the vault.
         let make_connect_btn = |app: &Self| -> Element<'_, Message> {
-            let connect_bg = if quick_flow && has_address {
-                OryxisColors::t().accent
+            // Connect is the PRIMARY in the quick-edit flow (accent),
+            // otherwise the SECONDARY neutral-solid. Either way it is a
+            // solid, filled button — never the old faint outline. The
+            // label stays readable even before an address is typed (the
+            // button's own validation gates the action, not a greyed
+            // label).
+            let connect_primary = quick_flow;
+            let fg = if connect_primary {
+                OryxisColors::t().button_text
             } else {
-                OryxisColors::t().bg_surface
+                OryxisColors::t().text_primary
             };
             let btn = app.panel_nav_slot(
                 crate::keynav::RowAction::activate(Message::Editor(EditorMessage::EditorConnectWithoutSaving)),
                 8.0,
                 button(
-                    container(
-                        text(crate::i18n::t("connect"))
-                            .size(12)
-                            .color(if has_address {
-                                OryxisColors::t().text_primary
-                            } else {
-                                OryxisColors::t().text_muted
-                            }),
-                    )
-                    .padding(Padding { top: 7.0, right: 0.0, bottom: 7.0, left: 0.0 })
-                    .width(Length::Fill)
-                    .center_x(Length::Fill),
+                    container(text(crate::i18n::t("connect")).size(12).color(fg))
+                        .padding(Padding { top: 7.0, right: 0.0, bottom: 7.0, left: 0.0 })
+                        .width(Length::Fill)
+                        .center_x(Length::Fill),
                 )
                 .on_press(Message::Editor(EditorMessage::EditorConnectWithoutSaving))
                 .width(Length::Fill)
-                .style(move |_, status| {
-                    if quick_flow {
-                        button::Style {
-                            background: Some(Background::Color(connect_bg)),
-                            border: Border { radius: Radius::from(6.0), ..Default::default() },
-                            ..Default::default()
-                        }
+                .style(move |t, status| {
+                    if connect_primary {
+                        primary_style(t, status)
                     } else {
-                        let bg = match status {
-                            button::Status::Hovered | button::Status::Pressed => {
-                                OryxisColors::t().bg_hover
-                            }
-                            _ => OryxisColors::t().bg_surface,
-                        };
-                        button::Style {
-                            background: Some(Background::Color(bg)),
-                            border: Border {
-                                radius: Radius::from(6.0),
-                                width: 1.0,
-                                color: OryxisColors::t().border,
-                            },
-                            ..Default::default()
-                        }
+                        secondary_style(t, status)
                     }
                 })
                 .boxed(),
