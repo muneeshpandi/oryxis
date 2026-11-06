@@ -266,6 +266,33 @@ impl Oryxis {
                     Padding { top: 16.0, right: pad_trailing, bottom: 16.0, left: 16.0 }
                 };
 
+                // While a "Sync now" is in flight for this account, the
+                // subtitle becomes a spinning glyph + "Syncing…" so the
+                // action has visible, live feedback (the glyph advances
+                // off `busy_anim_tick`). Otherwise the usual
+                // "Provider · auth" line.
+                let syncing = self.cloud_sync_in_progress.contains(&cp_id);
+                let subtitle: Element<'_, Message> = if syncing {
+                    const FRAMES: [&str; 8] = ["⠋","⠙","⠹","⠸","⠼","⠴","⠦","⠧"];
+                    let frame = FRAMES[(self.busy_anim_tick as usize) % FRAMES.len()];
+                    dir_row(vec![
+                        text(frame).size(11).color(OryxisColors::t().accent).boxed(),
+                        Space::new().width(6).boxed(),
+                        text(t("cloud_sync_running"))
+                            .size(10)
+                            .color(OryxisColors::t().accent)
+                            .wrapping(iced::widget::text::Wrapping::None)
+                            .boxed(),
+                    ])
+                    .align_y(iced::Alignment::Center)
+                    .boxed()
+                } else {
+                    text(format!("{} · {}", provider_label, cp.auth_kind))
+                        .size(10)
+                        .color(OryxisColors::t().text_muted)
+                        .wrapping(iced::widget::text::Wrapping::None)
+                        .boxed()
+                };
                 let card_body = container(
                     dir_row(vec![
                         icon_box,
@@ -274,12 +301,10 @@ impl Oryxis {
                             text(&cp.label)
                                 .size(13)
                                 .color(OryxisColors::t().text_primary)
-                                .wrapping(iced::widget::text::Wrapping::None),
-                            Space::new().height(2),
-                            text(format!("{} · {}", provider_label, cp.auth_kind))
-                                .size(10)
-                                .color(OryxisColors::t().text_muted)
-                                .wrapping(iced::widget::text::Wrapping::None),
+                                .wrapping(iced::widget::text::Wrapping::None)
+                                .boxed(),
+                            Space::new().height(2).boxed(),
+                            subtitle,
                         ]
                         .width(Length::Fill)
                         .align_x(crate::widgets::dir_align_x())

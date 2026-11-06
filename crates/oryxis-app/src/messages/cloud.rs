@@ -141,6 +141,11 @@ pub enum CloudMessage {
     /// Hosts not in the upstream result get their `cloud_ref.orphaned_at`
     /// set; hosts that come back get it cleared.
     CloudProfileSync(Uuid),
+    /// User-initiated "Sync now" from the account's context menu. Same
+    /// discovery as `CloudProfileSync`, but it reports to the user
+    /// (started / done / failed toasts + the card spinner), whereas the
+    /// silent `CloudProfileSync` is for the automated refresh tick.
+    CloudProfileSyncManual(Uuid),
     CloudProfileSyncResult(Uuid, Result<Box<oryxis_cloud::DiscoveryResult>, String>),
     /// Fired by the iced subscription when the auto-refresh interval
     /// elapses. Iterates every cloud profile and dispatches a

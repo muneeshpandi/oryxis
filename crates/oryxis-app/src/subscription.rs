@@ -391,6 +391,15 @@ impl Oryxis {
                 );
             }
         }
+        // Spin the cloud-account cards while a "Sync now" discovery runs.
+        // Drives the same `busy_anim_tick` the tab marching-dots use, so
+        // the per-card spinner glyph advances; idle when nothing syncs.
+        if !self.cloud_sync_in_progress.is_empty() {
+            subs.push(
+                iced::time::every(std::time::Duration::from_millis(100))
+                    .map(|_| Message::Tabs(crate::app::TabsMessage::BusyAnimTick)),
+            );
+        }
         // Auto-dismiss the transient toast chip. Only ticks while a toast
         // is shown, otherwise idle; the handler clears it once its
         // deadline passes.

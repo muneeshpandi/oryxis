@@ -27,12 +27,60 @@ impl Oryxis {
                 }
                 return Ok(Task::batch(tasks));
             }
+            CloudMessage::CloudProfileSyncManual(profile_id) => {
+                // User pressed "Sync now". Report visibly (the silent
+                // `CloudProfileSync` below is for the automated tick):
+                // guard the plugin with a toast, mark this id manual so
+                // the result toasts fire, announce the start, then run
+                // the same discovery.
+                let Some(label) = self
+                    .vaults.cur().cloud_profiles
+                    .iter()
+                    .find(|p| p.id == profile_id)
+                    .map(|p| p.label.clone())
+                else {
+                    return Ok(Task::none());
+                };
+                if self.cloud_sync_in_progress.contains(&profile_id) {
+                    // Already running: don't stack a second toast/sync.
+                    return Ok(Task::none());
+                }
+                // The provider's plugin must be installed, or `discover`
+                // fails deep in the async task with only a log line —
+                // which is exactly why "Sync now" looked dead. Guard up
+                // front and say so.
+                let registered = self.cloud_provider_registry.get(
+                    &self
+                        .vaults.cur().cloud_profiles
+                        .iter()
+                        .find(|p| p.id == profile_id)
+                        .map(|p| p.provider.clone())
+                        .unwrap_or_default(),
+                ).is_some();
+                let installed = self
+                    .vaults.cur().cloud_profiles
+                    .iter()
+                    .find(|p| p.id == profile_id)
+                    .map(|p| self.cloud_provider_installed(&p.provider))
+                    .unwrap_or(false);
+                if !registered || !installed {
+                    return Ok(self.show_toast(
+                        crate::i18n::t("cloud_sync_plugin_missing").to_string(),
+                    ));
+                }
+                self.cloud_sync_manual.insert(profile_id);
+                let started = self.show_toast(
+                    crate::i18n::t("cloud_sync_started").replace("{name}", &label),
+                );
+                let sync = self.handle_cloud(CloudMessage::CloudProfileSync(profile_id));
+                return Ok(Task::batch([started, sync]));
+            }
             CloudMessage::CloudProfileSync(profile_id) => {
-                // Background refresh, runs the provider's `discover`
-                // and routes the result to `CloudProfileSyncResult`
-                // where the sticky-fields merge happens. Independent
-                // of the Discover panel; the profile card's Sync
-                // button can fire this without opening any UI.
+                // The actual discovery, shared by the manual path above
+                // and the automated `CloudAutoRefreshTick`. Silent on its
+                // own (no toast); it sets the in-progress flag (drives the
+                // card spinner) and routes the result to
+                // `CloudProfileSyncResult` for the sticky-fields merge.
                 let Some(mut profile) = self
                     .vaults.cur().cloud_profiles
                     .iter()
@@ -41,15 +89,24 @@ impl Oryxis {
                 else {
                     return Ok(Task::none());
                 };
+                // Already syncing this profile: ignore so the auto-tick
+                // never fans a second discovery over one already running.
+                if self.cloud_sync_in_progress.contains(&profile_id) {
+                    return Ok(Task::none());
+                }
                 let registry: Arc<CloudProviderRegistry> =
                     self.cloud_provider_registry.clone();
                 let Some(provider) = registry.get(&profile.provider) else {
                     return Ok(Task::none());
                 };
+                if !self.cloud_provider_installed(&profile.provider) {
+                    return Ok(Task::none());
+                }
                 if let Some(vault) = &self.vaults.cur().store {
                     profile.secret =
                         vault.get_cloud_profile_secret(&profile_id).ok().flatten();
                 }
+                self.cloud_sync_in_progress.insert(profile_id);
                 return Ok(Task::perform(
                     async move { provider.discover(&profile).await },
                     move |result| {
@@ -61,6 +118,18 @@ impl Oryxis {
                 ));
             }
             CloudMessage::CloudProfileSyncResult(profile_id, result) => {
+                // The sync is done (success or not): clear the spinner
+                // state for this profile whatever happens below.
+                self.cloud_sync_in_progress.remove(&profile_id);
+                // Only a USER-initiated sync reports via toast; the
+                // automated refresh tick stays silent.
+                let manual = self.cloud_sync_manual.remove(&profile_id);
+                let profile_name = self
+                    .vaults.cur().cloud_profiles
+                    .iter()
+                    .find(|p| p.id == profile_id)
+                    .map(|p| p.label.clone())
+                    .unwrap_or_default();
                 if self.vaults.cur().store.is_none() {
                     return Ok(Task::none());
                 }
@@ -208,12 +277,32 @@ impl Oryxis {
                         {
                             *slot = cp;
                         }
+                        // Confirm a user-initiated sync finished. Without
+                        // this the only sign of success was metadata on
+                        // the card, which reads as "nothing happened".
+                        // The automated tick stays silent.
+                        if manual {
+                            return Ok(self.show_toast(
+                                crate::i18n::t("cloud_sync_done").replace("{name}", &profile_name),
+                            ));
+                        }
                     }
                     Err(msg) => {
                         tracing::error!(
                             target = "oryxis::dispatch_cloud",
                             "cloud profile sync failed: {msg}"
                         );
+                        // Surface a user-initiated failure instead of only
+                        // logging it: a silent failure is indistinguishable
+                        // from the action doing nothing. Auto-tick failures
+                        // stay in the log (they recur on the next tick).
+                        if manual {
+                            return Ok(self.show_toast(
+                                crate::i18n::t("cloud_sync_failed")
+                                    .replace("{name}", &profile_name)
+                                    .replace("{error}", &msg),
+                            ));
+                        }
                     }
                 }
             }
@@ -222,6 +311,8 @@ impl Oryxis {
             // rather than swallow it.
             m => return Err(m),
         }
+        // Reached when a non-manual (auto-tick) sync result lands: the
+        // merge is done and there is no toast to show.
         Ok(Task::none())
     }
 }

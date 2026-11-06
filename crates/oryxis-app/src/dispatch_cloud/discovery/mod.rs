@@ -71,6 +71,7 @@ impl Oryxis {
             m @ (
                 CloudMessage::CloudAutoRefreshTick
                 | CloudMessage::CloudProfileSync(..)
+                | CloudMessage::CloudProfileSyncManual(..)
                 | CloudMessage::CloudProfileSyncResult(..)
             ) => self.handle_discover_profile_sync(m),
             m @ (

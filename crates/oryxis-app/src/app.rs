@@ -1040,6 +1040,15 @@ pub struct Oryxis {
     /// Rules whose connect is in flight (drives the per-row spinner and
     /// prevents a double-start).
     pub(crate) port_forward_starting: std::collections::HashSet<Uuid>,
+    /// Cloud profiles whose "Sync now" discovery is in flight, keyed by
+    /// profile id. Drives the per-card spinner and prevents firing a
+    /// second sync over the first. Cleared when `CloudProfileSyncResult`
+    /// lands for that id.
+    pub(crate) cloud_sync_in_progress: std::collections::HashSet<Uuid>,
+    /// Of those in-flight syncs, the ones the USER started (via the
+    /// account's "Sync now"), so only they report done/failed toasts.
+    /// The automated refresh tick syncs silently and is absent here.
+    pub(crate) cloud_sync_manual: std::collections::HashSet<Uuid>,
     /// Auto-start rules that failed to come up (or dropped after being up)
     /// and are scheduled to be re-attempted. Only ever holds `auto_start`
     /// rules; a manual Stop or delete removes the entry so a rule the user

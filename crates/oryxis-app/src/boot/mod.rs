@@ -523,6 +523,8 @@ impl Oryxis {
                 save_output: None,
                 remote_desktop_seq: 0,
                 port_forward_starting: std::collections::HashSet::new(),
+                cloud_sync_in_progress: std::collections::HashSet::new(),
+                cloud_sync_manual: std::collections::HashSet::new(),
                 port_forward_retry: std::collections::HashMap::new(),
                 port_forward_agent_watch: None,
                 local_terminal_theme: None,

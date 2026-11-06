@@ -500,7 +500,7 @@ impl Oryxis {
     pub(crate) fn build_menu_cloud_profile_actions(&self, id: uuid::Uuid) -> Element<'_, Message> {
         column![
             self.menu_item(iced_fonts::lucide::pencil(), crate::i18n::t("edit"), Message::Cloud(CloudMessage::ShowCloudForm(Some(id))), OryxisColors::t().text_secondary),
-            self.menu_item(iced_fonts::lucide::refresh_cw(), crate::i18n::t("cloud_profile_sync"), Message::Cloud(CloudMessage::CloudProfileSync(id)), OryxisColors::t().accent),
+            self.menu_item(iced_fonts::lucide::refresh_cw(), crate::i18n::t("cloud_profile_sync"), Message::Cloud(CloudMessage::CloudProfileSyncManual(id)), OryxisColors::t().accent),
             self.menu_item(iced_fonts::lucide::trash(), crate::i18n::t("delete"), Message::Cloud(CloudMessage::DeleteCloudProfile(id)), OryxisColors::t().error),
         ].boxed()
     }

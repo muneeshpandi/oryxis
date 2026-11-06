@@ -94,6 +94,7 @@ impl Oryxis {
             | CloudMessage::ToggleCloudDiscoverGroupPicker
             | CloudMessage::CloudDiscoverDefaultGroupPickerSearchChanged(..)
             | CloudMessage::CloudProfileSync(..)
+            | CloudMessage::CloudProfileSyncManual(..)
             | CloudMessage::CloudProfileSyncResult(..)
             | CloudMessage::CloudAutoRefreshTick) => self
                 .handle_cloud_discovery(m)
