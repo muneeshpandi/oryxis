@@ -696,9 +696,33 @@ impl Oryxis {
             .width(Length::Fill)
             .center_x(Length::Fill)
             .padding(Padding { top: 0.0, right: 8.0, bottom: 0.0, left: 8.0 });
+        // Same actions as the full-width chip, so the collapsed rail is
+        // not a lesser mode: right-click opens the tab menu (Rename,
+        // Split, Duplicate, Pin, Reconnect, Close Tab, Close Other Tabs,
+        // Close All Tabs) and a middle-click closes the tab outright.
+        // A chip captures its own right press, which is also what stops
+        // the click falling through to the strip's New Tab menu. A panel
+        // tab (Settings) has no menu, so right-click closes it.
+        let (menu_msg, close_msg) = match entry {
+            StripEntry::Terminal(idx) => (
+                Message::Tabs(TabsMessage::ShowTabMenu(idx)),
+                Message::Tabs(TabsMessage::CloseTabFromStrip(idx)),
+            ),
+            StripEntry::Sftp(idx) => (
+                Message::Sftp(SftpMessage::ShowSftpTabMenu(idx)),
+                Message::Sftp(SftpMessage::CloseSftpTab(idx)),
+            ),
+            StripEntry::Panel(kind) => (
+                Message::Tabs(TabsMessage::ClosePanelTab(kind)),
+                Message::Tabs(TabsMessage::ClosePanelTab(kind)),
+            ),
+        };
+        let with_menu = MouseArea::new(centered)
+            .on_right_press(menu_msg)
+            .on_middle_press(close_msg);
         // The frame-local label can't be borrowed, so the owned tooltip
         // variant is the one that outlives this build.
-        crate::views::terminal::icon_tooltip_owned(centered.boxed(), label)
+        crate::views::terminal::icon_tooltip_owned(with_menu.boxed(), label)
     }
 
     /// Floating ghost of the tab being dragged (terminal or SFTP),
