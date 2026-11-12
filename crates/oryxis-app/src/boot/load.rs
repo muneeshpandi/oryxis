@@ -975,6 +975,25 @@ impl Oryxis {
             // (not inside the `if let`) so a vault without the row still
             // pushes the default.
             crate::tray::set_minimize_to_tray(self.device_prefs.minimize_to_tray);
+            // One-time look alignment: the tab close button on the right
+            // and a large host name are the app's look, but both live in
+            // each vault's own settings, so vaults created or opened
+            // before the defaults changed (clients, modeln, ...) kept
+            // the old left / small look next to Personal. Apply the
+            // current look once per vault, then stamp it so the user's
+            // later choices in Settings stick. New vaults need no
+            // migration (they start from the new defaults, and are
+            // stamped here on first load too).
+            if vault
+                .get_setting("ui_defaults_v2_applied")
+                .ok()
+                .flatten()
+                .is_none()
+            {
+                let _ = vault.set_setting("tab_close_button_side", "right");
+                let _ = vault.set_setting("host_badge_font_size", "28");
+                let _ = vault.set_setting("ui_defaults_v2_applied", "true");
+            }
             if let Ok(Some(v)) = vault.get_setting("tab_close_button_side")
                 && (v == "left" || v == "right")
             {
