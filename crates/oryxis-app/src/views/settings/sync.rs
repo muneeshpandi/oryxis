@@ -673,6 +673,29 @@ impl Oryxis {
             ))
             .push(Space::new().height(10).boxed())
             .push(
+                text(t("git_sync_folder"))
+                    .size(12)
+                    .color(OryxisColors::t().text_secondary).boxed(),
+            )
+            .push(Space::new().height(4).boxed())
+            .push(self.settings_nav_slot_labeled(
+                t("git_sync_folder"),
+                crate::keynav::RowAction::input(iced::widget::Id::new("sync-git-folder")),
+                crate::widgets::INPUT_RADIUS,
+                text_input(t("git_sync_folder_placeholder"), &self.vaults.cur().sync.git.folder)
+                .id(iced::widget::Id::new("sync-git-folder"))
+                .on_input(|v| Message::Sync(SyncMessage::GitFolderChanged(v)))
+                .size(13)
+                .padding(10)
+                .width(Length::Fill)
+                .style(crate::widgets::rounded_input_style)
+                .align_x(dir_align_x())
+                .boxed(),
+            ))
+            .push(Space::new().height(4).boxed())
+            .push(text(t("git_sync_folder_hint")).size(11).color(OryxisColors::t().text_muted).boxed())
+            .push(Space::new().height(10).boxed())
+            .push(
                 text(t("sftp_sync_passphrase"))
                     .size(12)
                     .color(OryxisColors::t().text_secondary).boxed(),

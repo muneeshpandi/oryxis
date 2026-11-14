@@ -35,6 +35,7 @@ pub enum SyncMessage {
     GitRoundFinished(Result<usize, String>),
     /// Settings > Sync: the Git transport's remote URL.
     GitRemoteChanged(String),
+    GitFolderChanged(String),
     /// "Sync now" for the Git transport.
     GitSyncNow,
     /// Result of the off-thread `git --version` probe, cached in

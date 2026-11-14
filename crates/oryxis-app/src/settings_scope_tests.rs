@@ -53,7 +53,7 @@ const VAULT_KEYS: &[&str] = &[
     "smart_tabs_long_seconds", "snippet_tag_filter", "snippets_sort", "ssh_connection_reuse",
     "ssh_session_timeout", "status_bar_align_left", "status_show_connection", "status_show_cwd",
     "status_show_dimensions", "status_show_latency", "status_show_version",
-    "sync_device_identity", "sync_enabled", "sync_folder_path", "sync_git_remote",
+    "sync_device_identity", "sync_enabled", "sync_folder_path", "sync_git_folder", "sync_git_remote",
     "sync_hosted_migrated", "sync_key_private_migrated", "sync_mode", "sync_passwords",
     "sync_relay_url", "sync_sftp_host_id", "sync_sftp_passphrase", "sync_sftp_remote_path",
     "sync_signaling_token", "sync_signaling_url", "sync_transport", "sync_webdav_password",

@@ -744,6 +744,9 @@ pub(crate) struct SyncPairingForm {
 pub(crate) struct GitSyncForm {
     /// Remote URL, anything `git clone` accepts.
     pub remote: String,
+    /// Subfolder of the repository holding this vault's snapshot; empty
+    /// is the repository root (the layout before folders existed).
+    pub folder: String,
     pub in_progress: bool,
     pub status: Option<Result<String, String>>,
     /// Whether a usable `git` is on PATH. `None` = probe in flight (boot,

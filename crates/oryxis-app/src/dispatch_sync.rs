@@ -804,9 +804,25 @@ impl Oryxis {
                 });
             }
             SyncMessage::GitRemoteChanged(v) => {
+                let first_setup = self.vaults.cur().sync.git.remote.trim().is_empty();
                 self.vaults.cur_mut().sync.git.remote = v.clone();
+                // A fresh setup gets this vault's name as its folder, once,
+                // so several vaults can share one repository. A remote that
+                // was already set keeps the root (no setting row = legacy).
+                let slug = crate::dispatch_git_sync::folder_slug(&self.vault_name(self.vaults.current_id()));
                 if let Some(vault) = &self.vaults.cur().store {
                     let _ = vault.set_setting("sync_git_remote", &v);
+                    let unset = matches!(vault.get_setting("sync_git_folder"), Ok(None));
+                    if first_setup && unset && !v.trim().is_empty() {
+                        let _ = vault.set_setting("sync_git_folder", &slug);
+                        self.vaults.cur_mut().sync.git.folder = slug;
+                    }
+                }
+            }
+            SyncMessage::GitFolderChanged(v) => {
+                self.vaults.cur_mut().sync.git.folder = v.clone();
+                if let Some(vault) = &self.vaults.cur().store {
+                    let _ = vault.set_setting("sync_git_folder", &v);
                 }
             }
             SyncMessage::GitSyncNow => return self.run_git_sync_round(SyncRoundTrigger::Manual),

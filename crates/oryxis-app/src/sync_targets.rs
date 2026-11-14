@@ -16,6 +16,7 @@ const TARGET_KEYS: &[&str] = &[
     "sync_transport",
     "sync_folder_path",
     "sync_git_remote",
+    "sync_git_folder",
     "sync_webdav_url",
     "sync_sftp_host_id",
     "sync_sftp_remote_path",
@@ -27,6 +28,7 @@ pub(crate) struct TargetConfig {
     pub transport: String,
     pub folder_path: String,
     pub git_remote: String,
+    pub git_folder: String,
     pub webdav_url: String,
     /// The SFTP host's address (hostname, port), resolved from the host
     /// the vault names (host ids are per vault, addresses are not).
@@ -64,7 +66,10 @@ impl TargetConfig {
                 if remote.is_empty() {
                     return None;
                 }
-                format!("git:{remote}")
+                match crate::dispatch_git_sync::clean_folder(&self.git_folder) {
+                    Some(f) if !f.is_empty() => format!("git:{remote}#{f}"),
+                    _ => format!("git:{remote}"),
+                }
             }
             "webdav" => {
                 let url = trimmed(&self.webdav_url);
@@ -97,6 +102,7 @@ impl TargetConfig {
             transport: get("sync_transport"),
             folder_path: get("sync_folder_path"),
             git_remote: get("sync_git_remote"),
+            git_folder: get("sync_git_folder"),
             webdav_url: get("sync_webdav_url"),
             sftp_host,
             sftp_remote_path: get("sync_sftp_remote_path"),
@@ -113,6 +119,7 @@ impl crate::app::Oryxis {
             transport: sync.transport.clone(),
             folder_path: sync.folder.path.clone(),
             git_remote: sync.git.remote.clone(),
+            git_folder: sync.git.folder.clone(),
             webdav_url: sync.webdav.url.clone(),
             sftp_host: sync.sftp.host_id.and_then(|id| {
                 self.vaults.cur().connections.iter().find(|c| c.id == id).map(|c| (c.hostname.clone(), c.port))
@@ -181,5 +188,15 @@ mod tests {
         assert_ne!(folder.key(), webdav.key());
         assert_eq!(config("p2p").key(), None);
         assert_eq!(config("folder").key(), None, "an empty path is no target");
+    }
+
+    #[test]
+    fn a_git_folder_makes_a_distinct_target() {
+        let base = TargetConfig { transport: "git".into(), git_remote: "git@h:me/v.git".into(), ..Default::default() };
+        let a = TargetConfig { git_folder: "alpha".into(), ..base.clone() };
+        let b = TargetConfig { git_folder: "beta".into(), ..base.clone() };
+        assert_ne!(a.key(), b.key());
+        assert_ne!(a.key(), base.key());
+        assert_eq!(base.key(), Some("git:git@h:me/v".to_string()));
     }
 }

@@ -1141,6 +1141,9 @@ impl Oryxis {
             if let Ok(Some(v)) = vault.get_setting("sync_git_remote") {
                 ov.sync.git.remote = v;
             }
+            if let Ok(Some(v)) = vault.get_setting("sync_git_folder") {
+                ov.sync.git.folder = v;
+            }
             if let Ok(Some(v)) = vault.get_setting("side_panel_width")
                 && let Ok(w) = v.parse::<f32>()
             {

@@ -57,6 +57,48 @@ const SIGNATURE_NAME: &str = "oryxis-sync.sig";
 /// still be there in a minute. We never force-push, because that would
 /// discard the other device's edits, which is the exact outcome the
 /// whole design exists to prevent.
+/// Rounds are serialised process-wide: vaults on the same remote share
+/// one working clone, and two rounds resetting and committing in it at
+/// once would corrupt each other.
+static ROUND_LOCK: Mutex<()> = Mutex::new(());
+
+/// A safe folder name from free text: lowercase letters, digits, `-`
+/// and `_`, everything else collapsed to `-`.
+pub(crate) fn folder_slug(name: &str) -> String {
+    let mut out = String::new();
+    for c in name.trim().chars() {
+        if c.is_alphanumeric() || c == '_' {
+            out.extend(c.to_lowercase());
+        } else if !out.ends_with('-') {
+            out.push('-');
+        }
+    }
+    let s = out.trim_matches('-').to_string();
+    if s.is_empty() { "vault".to_string() } else { s }
+}
+
+/// Validate a typed folder. `Some("")` is the repository root. `None`
+/// means unusable (traversal, absolute path, hidden or option-like
+/// segment). Nested `a/b` is allowed; `\` is read as `/`.
+pub(crate) fn clean_folder(raw: &str) -> Option<String> {
+    let norm = raw.trim().replace('\\', "/");
+    let mut parts = Vec::new();
+    for seg in norm.split('/') {
+        let seg = seg.trim();
+        if seg.is_empty() {
+            continue;
+        }
+        if seg.starts_with('.') || seg.starts_with('-') || seg.contains(':') {
+            return None;
+        }
+        parts.push(seg.to_string());
+    }
+    if norm.starts_with('/') {
+        return None;
+    }
+    Some(parts.join("/"))
+}
+
 const PUSH_ATTEMPTS: usize = 3;
 
 /// Per-command budget.
@@ -251,6 +293,7 @@ impl Oryxis {
         // at ~370 ms per round).
         let db_path = vault.db_path().to_path_buf();
         let master_password = self.vaults.cur().master_password.clone();
+        let folder = self.vaults.cur().sync.git.folder.clone();
         // Same fallback as `start_sync_engine`: an unset device name
         // would otherwise render as a bare "oryxis: sync from" commit.
         let device = if self.device_prefs.sync_device_name.trim().is_empty() {
@@ -269,7 +312,7 @@ impl Oryxis {
                 tokio::task::spawn_blocking(move || {
                     let secret =
                         oryxis_vault::derive_sync_secret(&passphrase).map_err(|e| e.to_string())?;
-                    git_round(&remote, &db_path, master_password, &secret, &device)
+                    git_round(&remote, &db_path, master_password, &secret, &device, &folder)
                 })
                 .await
                 .unwrap_or_else(|e| Err(format!("join: {e}")))
@@ -341,14 +384,19 @@ fn git_round(
     master_password: Option<String>,
     secret: &[u8; 32],
     device: &str,
+    folder: &str,
 ) -> Result<usize, String> {
+    let folder = clean_folder(folder).ok_or_else(|| t("git_sync_bad_folder").to_string())?;
+    let _guard = ROUND_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     if !git_available() {
         return Err(t("git_sync_no_git").to_string());
     }
     let dir = clone_dir(remote);
     ensure_clone(remote, &dir)?;
     let branch = current_branch(&dir)?;
-    let snapshot_path = dir.join(SNAPSHOT_NAME);
+    let base = if folder.is_empty() { dir.clone() } else { dir.join(&folder) };
+    let rel = |name: &str| if folder.is_empty() { name.to_string() } else { format!("{folder}/{name}") };
+    let snapshot_path = base.join(SNAPSHOT_NAME);
 
     // Unlocked ONCE, outside the retry loop, like the WebDAV round: the
     // unlock is an Argon2id derivation tuned to take about a second, and
@@ -384,7 +432,7 @@ fn git_round(
         // Compare the LOGICAL content, not the bytes: an unchanged
         // vault re-seals to a different blob every time.
         let signature = oryxis_sync::vault_signature(&vault).map_err(|e| e.to_string())?;
-        let signature_path = dir.join(SIGNATURE_NAME);
+        let signature_path = base.join(SIGNATURE_NAME);
         let remote_signature = std::fs::read_to_string(&signature_path)
             .unwrap_or_default()
             .trim()
@@ -397,10 +445,11 @@ fn git_round(
 
         let rebuilt = oryxis_sync::build_full_snapshot(&vault, secret)
             .map_err(|e| e.to_string())?;
+        std::fs::create_dir_all(&base).map_err(|e| e.to_string())?;
         std::fs::write(&snapshot_path, &rebuilt).map_err(|e| e.to_string())?;
         std::fs::write(&signature_path, &signature).map_err(|e| e.to_string())?;
 
-        git(Some(&dir), &["add", SNAPSHOT_NAME, SIGNATURE_NAME])?;
+        git(Some(&dir), &["add", "--", &rel(SNAPSHOT_NAME), &rel(SIGNATURE_NAME)])?;
         if git(Some(&dir), &["diff", "--cached", "--quiet"]).is_ok() {
             return Ok(pulled);
         }
@@ -472,7 +521,7 @@ mod tests {
             v.save_connection(&conn, None).unwrap();
         }
         let secret = oryxis_vault::derive_sync_secret("group").unwrap();
-        let pulled = git_round(&remote_url, &vault_a, Some("pw".into()), &secret, "device-a")
+        let pulled = git_round(&remote_url, &vault_a, Some("pw".into()), &secret, "device-a", "")
             .expect("first round");
         assert_eq!(pulled, 0, "nothing to pull on the first round");
 
@@ -487,7 +536,7 @@ mod tests {
             let mut v = VaultStore::open(&vault_b).unwrap();
             v.set_master_password("pw2").unwrap();
         }
-        let pulled = git_round(&remote_url, &vault_b, Some("pw2".into()), &secret, "device-b")
+        let pulled = git_round(&remote_url, &vault_b, Some("pw2".into()), &secret, "device-b", "")
             .expect("second round");
         assert!(pulled > 0, "the second device merged the first one's records");
         let mut v = VaultStore::open(&vault_b).unwrap();
@@ -514,9 +563,9 @@ mod tests {
             v.set_master_password("pw").unwrap();
         }
         let secret = oryxis_vault::derive_sync_secret("group").unwrap();
-        git_round(&remote_url, &vault, Some("pw".into()), &secret, "d").unwrap();
+        git_round(&remote_url, &vault, Some("pw".into()), &secret, "d", "").unwrap();
         let before = git(None, &["--git-dir", remote.to_str().unwrap(), "rev-list", "--count", "HEAD"]).unwrap();
-        git_round(&remote_url, &vault, Some("pw".into()), &secret, "d").unwrap();
+        git_round(&remote_url, &vault, Some("pw".into()), &secret, "d", "").unwrap();
         let after = git(None, &["--git-dir", remote.to_str().unwrap(), "rev-list", "--count", "HEAD"]).unwrap();
         assert_eq!(before.trim(), after.trim(), "an idle round committed anyway");
     }
@@ -540,5 +589,52 @@ mod tests {
         ensure_clone(&remote_url, &work).expect("repaired");
         assert!(work.join(".git").is_dir());
         assert!(!work.join("junk.txt").exists(), "the old contents went away");
+    }
+
+    #[test]
+    fn slug_and_folder_validation() {
+        assert_eq!(folder_slug("My Vault!"), "my-vault");
+        assert_eq!(folder_slug("  "), "vault");
+        assert_eq!(clean_folder(""), Some(String::new()));
+        assert_eq!(clean_folder(" work/prod "), Some("work/prod".into()));
+        assert_eq!(clean_folder("../x"), None);
+        assert_eq!(clean_folder("/abs"), None);
+        assert_eq!(clean_folder("-flag"), None);
+        assert_eq!(clean_folder(".git"), None);
+    }
+
+    /// Two vaults, one repository, different folders: neither merges
+    /// into the other, and the legacy root layout is untouched.
+    #[test]
+    fn two_vaults_share_one_repo_in_separate_folders() {
+        if !git_available() {
+            eprintln!("git not installed, skipping");
+            return;
+        }
+        let dir = tempfile::tempdir().unwrap();
+        let remote = dir.path().join("remote.git");
+        git(None, &["init", "--bare", "--initial-branch=main", remote.to_str().unwrap()]).unwrap();
+        let url = remote.to_string_lossy().into_owned();
+        let mk = |name: &str, pw: &str, label: &str| {
+            let p = dir.path().join(name);
+            let mut v = VaultStore::open(&p).unwrap();
+            v.set_master_password(pw).unwrap();
+            v.save_connection(&oryxis_core::models::Connection::new(label, "h.example"), None).unwrap();
+            p
+        };
+        let a = mk("a.db", "pa", "only-in-a");
+        let b = mk("b.db", "pb", "only-in-b");
+        let secret = oryxis_vault::derive_sync_secret("group").unwrap();
+        git_round(&url, &a, Some("pa".into()), &secret, "d", "alpha").unwrap();
+        let pulled = git_round(&url, &b, Some("pb".into()), &secret, "d", "beta").unwrap();
+        assert_eq!(pulled, 0, "beta must not read alpha's snapshot");
+        let mut vb = VaultStore::open(&b).unwrap();
+        vb.unlock("pb").unwrap();
+        assert!(!vb.list_connections().unwrap().iter().any(|c| c.label == "only-in-a"));
+        let tree = git(None, &["--git-dir", remote.to_str().unwrap(), "ls-tree", "-r", "--name-only", "HEAD"]).unwrap();
+        for f in ["alpha/oryxis-sync.bin", "alpha/oryxis-sync.sig", "beta/oryxis-sync.bin", "beta/oryxis-sync.sig"] {
+            assert!(tree.lines().any(|l| l == f), "missing {f} in {tree}");
+        }
+        assert!(git_round(&url, &a, Some("pa".into()), &secret, "d", "../evil").is_err());
     }
 }
